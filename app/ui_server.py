@@ -182,19 +182,13 @@ def files(path: str):
     return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream")
 
 
-TRASH = os.path.realpath(f"{P.ROOT}/trash")
-
-
 @app.delete("/api/files/{path:path}")
 def delete_file(path: str):
-    """Move a result out of the gallery into <volume>/zc/trash (recoverable; empty the folder to free space)."""
+    """Permanently delete a result (the UI asks for a second tap first)."""
     p = os.path.realpath(os.path.join(OUT, path))
     if not p.startswith(OUT + os.sep) or not os.path.isfile(p) or not p.lower().endswith(MEDIA):
         raise HTTPException(404)
-    dst = os.path.join(TRASH, os.path.relpath(p, OUT))
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    os.replace(p, dst) if os.stat(p).st_dev == os.stat(os.path.dirname(dst)).st_dev else \
-        __import__("shutil").move(p, dst)
+    os.remove(p)
     with open(JOBS_LOG, "a") as f:
         f.write(json.dumps({"deleted": path, "ts": time.time()}) + "\n")
     return {"ok": True}
