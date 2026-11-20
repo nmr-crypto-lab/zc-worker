@@ -304,6 +304,7 @@ class Progress:
         self.sizes = _model_bytes(workflow)
         self.samplers = [nid for nid, n in workflow.items() if any(k in n["class_type"] for k in SAMPLERS)]
         self.cached = set()
+        self.active = []
         self.t0 = time.time()
         self.load_bytes = None
         self.first_step_t = None
@@ -345,11 +346,13 @@ class Progress:
             ts = self.step_t.setdefault(nid, [])
             ts.append(now)
             per = (ts[-1] - ts[0]) / (len(ts) - 1) if len(ts) > 1 else None
-            k = self.samplers.index(nid)
-            passes = f" · pass {k + 1}/{len(self.samplers)}" if len(self.samplers) > 1 else ""
-            left = (mx - v) + mx * (len(self.samplers) - k - 1)
-            self._emit(stage="generating", frac=(k + v / mx) / len(self.samplers), detail=f"step {v}/{mx}{passes}",
-                       eta=round(per * left) if per else None)
+            # count only sampler nodes that actually run (a template may contain unused alternatives)
+            if nid not in self.active:
+                self.active.append(nid)
+            k = self.active.index(nid)
+            passes = f" · pass {k + 1}" if len(self.active) > 1 else ""
+            self._emit(stage="generating", frac=v / mx, detail=f"step {v}/{mx}{passes}",
+                       eta=round(per * (mx - v)) if per else None)
 
     def _preparing(self, nid):
         """Sampler started but no step yet: weights are being read / moved to the GPU."""
