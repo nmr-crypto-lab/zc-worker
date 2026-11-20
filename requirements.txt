@@ -9,3 +9,5 @@ pillow
 opencv-python-headless
 insightface
 onnxruntime-gpu
+fastapi
+uvicorn
