@@ -64,7 +64,9 @@ if [ "$MODE" = "pod" ]; then
   # the watcher also gates files made directly in the ComfyUI UI
   ( python -u $APP/age_watcher.py > $LOGS/watch.log 2>&1 ) &
   el "ZC Studio on :8000 (password: \$ZC_UI_PASSWORD or $ROOT/state/ui_password.txt)"
-  cd $APP && exec python -u ui_server.py
+  # keep the UI in a restart loop (not exec): restarting it (pkill -f ui_server.py) must not stop the container
+  cd $APP
+  while true; do python -u ui_server.py; el "ui_server exited ($?), restarting in 3s"; sleep 3; done
 else
   exec python -u $APP/handler.py
 fi

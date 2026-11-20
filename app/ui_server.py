@@ -69,12 +69,48 @@ LOCK = threading.Lock()
 
 
 def _save(job):
+    """one line per finished job; the actual seed (also when it was random), timing and the age-gate verdict included"""
+    res = job.get("result") or {}
+    rec = {k: v for k, v in job.items() if k not in ("result", "progress")}
+    rec.update(outputs=[o.get("path") for o in res.get("outputs", [])], seed=res.get("seed"), gen_secs=res.get("secs"),
+               removed=res.get("removed"), gate=[{k: g.get(k) for k in ("ok", "faces", "min_age", "error") if k in g}
+                                                 for g in (res.get("gate") or [])])
     try:
         with open(JOBS_LOG, "a") as f:
-            f.write(json.dumps({k: v for k, v in job.items() if k != "result"} |
-                               {"outputs": [o.get("path") for o in (job.get("result") or {}).get("outputs", [])]}) + "\n")
+            f.write(json.dumps(rec) + "\n")
     except OSError:
         pass
+
+
+def _restore():
+    """Reload the recent job history so the queue panel survives a server restart or a new pod.
+    The local log is copied to <volume>/zc/logs every 30 s; a fresh pod continues from that copy."""
+    vol = f"{P.ROOT}/logs/ui_jobs.jsonl"
+    try:
+        if not os.path.exists(JOBS_LOG) and os.path.exists(vol):
+            os.makedirs(os.path.dirname(JOBS_LOG), exist_ok=True)
+            __import__("shutil").copyfile(vol, JOBS_LOG)
+        lines = open(JOBS_LOG).read().splitlines()[-500:]
+    except OSError:
+        return
+    for ln in lines:
+        try:
+            r = json.loads(ln)
+        except ValueError:
+            continue
+        if "id" not in r or "input" not in r:
+            continue
+        outs = [{"path": p, "type": "video" if p.lower().endswith((".mp4", ".webm", ".mov")) else "image"}
+                for p in (r.get("outputs") or []) if os.path.exists(os.path.join(OUT, p))]
+        job = {k: r.get(k) for k in ("id", "status", "input", "created", "started", "finished", "error", "note")}
+        job["result"] = {"outputs": outs, "seed": r.get("seed")}
+        if job["status"] in ("queued", "running"):
+            job.update(status="error", error="interrupted by a server restart")
+        if r["id"] not in JOBS:
+            ORDER.append(r["id"])
+        JOBS[r["id"]] = job
+    ORDER.sort(key=lambda k: JOBS[k].get("created") or 0)
+    del ORDER[:-50]
 
 
 def worker():
@@ -100,6 +136,7 @@ def worker():
         Q.task_done()
 
 
+_restore()
 threading.Thread(target=worker, daemon=True).start()
 
 
