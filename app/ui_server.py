@@ -211,12 +211,49 @@ def gallery(limit: int = 120, kind: str = ""):
     return [{"path": r, "type": t, "mtime": int(m)} for m, r, t in items[:limit]]
 
 
-@app.get("/files/{path:path}")
-def files(path: str):
+def _media(path):
     p = os.path.realpath(os.path.join(OUT, path))
     if not p.startswith(OUT + os.sep) or not os.path.isfile(p):
         raise HTTPException(404)
-    return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream")
+    return p
+
+
+@app.get("/files/{path:path}")
+def files(path: str):
+    p = _media(path)
+    return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream",
+                        headers={"Cache-Control": "private, max-age=86400"})
+
+
+THUMBS = os.environ.get("ZC_THUMBS", "/root/zcthumbs")
+THUMB_PX = 360
+
+
+@app.get("/thumb/{path:path}")
+def thumb(path: str):
+    """Small JPEG preview for the gallery (a frame for videos). Cached on local disk, rebuilt if the file changes.
+    Phones would otherwise download and decode every full PNG / MP4 in the grid."""
+    import subprocess
+    from PIL import Image
+    p = _media(path)
+    t = os.path.join(THUMBS, os.path.relpath(p, OUT)) + ".jpg"
+    if not (os.path.exists(t) and os.path.getmtime(t) >= os.path.getmtime(p)):
+        os.makedirs(os.path.dirname(t), exist_ok=True)
+        tmp = t + ".tmp.jpg"
+        try:
+            if p.lower().endswith((".mp4", ".webm", ".mov")):
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", "0.5", "-i", p, "-frames:v", "1",
+                                "-vf", f"scale={THUMB_PX}:-2", "-q:v", "5", tmp], check=True, timeout=60)
+            else:
+                im = Image.open(p)
+                im.seek(0)
+                im = im.convert("RGB")
+                im.thumbnail((THUMB_PX, THUMB_PX * 2))
+                im.save(tmp, "JPEG", quality=80)
+            os.replace(tmp, t)
+        except Exception:
+            raise HTTPException(404)
+    return FileResponse(t, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=604800"})
 
 
 @app.delete("/api/files/{path:path}")
@@ -241,7 +278,7 @@ def status():
                "vram_total_gb": round((dev.get("vram_total") or 0) / 2**30, 1)}
     except Exception as e:
         gpu = {"error": str(e)[:100]}
-    return {"gpu": gpu, "queued": sum(1 for j in JOBS.values() if j["status"] == "queued"),
+    return {"thumbs": True, "gpu": gpu, "queued": sum(1 for j in JOBS.values() if j["status"] == "queued"),
             "running": sum(1 for j in JOBS.values() if j["status"] == "running"), "mode": P.MODE}
 
 
