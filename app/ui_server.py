@@ -49,9 +49,16 @@ async def basic_auth(request: Request, call_next):
             ok = secrets.compare_digest(pw, PASSWORD)
         except Exception:
             ok = False
+    # link-friendly alternative for phones: open /?key=<password> once, a cookie keeps you logged in
+    key = request.query_params.get("key") or request.cookies.get("zc_key") or ""
+    if not ok and key and secrets.compare_digest(key, PASSWORD):
+        ok = True
     if not ok:
         return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="ZC"'})
-    return await call_next(request)
+    resp = await call_next(request)
+    if request.query_params.get("key"):
+        resp.set_cookie("zc_key", key, max_age=30 * 86400, httponly=True, secure=True, samesite="lax")
+    return resp
 
 
 # ------------------------------------------------------------------ job queue (single GPU, one job at a time)
