@@ -41,17 +41,23 @@ _BLOCK = re.compile(
     r"\b(child|children|kid|kids|minor|minors|underage|under[- ]?age|teen|teens|teenager|preteen|pre-teen|"
     r"loli|lolita|shota|toddler|infant|baby|schoolgirl|schoolboy|school girl|school boy|young girl|young boy|"
     r"little girl|little boy|elementary school|middle school|high school|junior high)\b|"
-    r"ребен|ребён|дет[еия]|девочк|мальчик|школьн|подрост|малолет|несовершеннолет|лоли",
+    r"ребен|ребён|дет[еия]|девочк|мальчик|школьн|подрост|малолет|несовершеннолет|лоли|"
+    # Indonesian / Malay
+    r"\b(anak|anak-anak|bocah|balita|batita|bayi|remaja|abg|siswi|siswa|murid|pelajar|"
+    r"gadis kecil|cewek kecil|cowok kecil|di ?bawah umur|sd|smp|sma)\b",
     re.I)
-_AGE = re.compile(r"\b(\d{1,2})\s*(?:yo|y/o|years?[- ]old|year[- ]old)\b", re.I)
+# "<N> years old" and the same in Russian / Indonesian; N < 18 is refused
+_AGE = re.compile(r"\b(\d{1,2})\s*(?:yo|y/o|years?[- ]old|year[- ]old|yrs?|лет|год[аы]?|[- ]?летн\w*|tahun|thn)(?!\w)"
+                  r"|\b(?:usia|umur|age[d]?|возраст\w*)\s*:?\s*(\d{1,2})\b", re.I)
 
 
 def prompt_violation(text):
     if not text:
         return None
     for m in _AGE.finditer(text):
-        if int(m.group(1)) < 18:
-            return f"age {m.group(1)}"
+        n = int(m.group(1) or m.group(2))
+        if n < 18:
+            return f"age {n}"
     m = _BLOCK.search(text)
     return m.group(0) if m else None
 
