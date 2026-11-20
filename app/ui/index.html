@@ -171,13 +171,13 @@ async function poll(){
   }catch(e){$("#st").textContent="no connection to the server"}
 }
 const fmtT=s=>s==null?"":s>=60?`${Math.floor(s/60)}m ${String(s%60).padStart(2,"0")}s`:`${s}s`;
-const STAGE={"queued":"Starting","loading models":"Loading models","encoding prompt":"Encoding prompt","generating":"Generating",
+const STAGE={"queued":"Starting","waiting for GPU":"Waiting for GPU","loading models":"Loading models","encoding prompt":"Encoding prompt","generating":"Generating",
   "decoding":"Decoding","saving":"Saving","age check":"Age check"};
 function progHtml(j){
   const p=j.progress; if(j.status!=="running"||!p) return "";
   const est=p.stage==="loading models", pct=Math.round(100*Math.min(1,p.frac||0));
   const txt=[STAGE[p.stage]||p.stage, p.detail, est?"(estimate)":"", p.eta!=null?`· ~${fmtT(p.eta)} left`:""].filter(Boolean).join(" ");
-  return `<div class="bar"><i class="${est?"est":""}" style="width:${["queued","age check","saving"].includes(p.stage)?100:pct}%"></i></div><div class="ps">${txt}</div>`;
+  return `<div class="bar"><i class="${est?"est":""}" style="width:${["queued","waiting for GPU","age check","saving"].includes(p.stage)?100:pct}%"></i></div><div class="ps">${txt}</div>`;
 }
 $("#jobs").onclick=e=>{const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p)}};
 document.querySelectorAll("#gf .chip").forEach(c=>c.onclick=()=>{gkind=c.dataset.k;document.querySelectorAll("#gf .chip").forEach(x=>x.classList.toggle("on",x===c));loadGallery()});
