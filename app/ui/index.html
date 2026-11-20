@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZC Studio</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--text:#e7e9ee;--mut:#8b93a3;--acc:#7c9cff;--acc2:#5a7cf0;--ok:#4cc38a;--warn:#e6a23c;--err:#ef5b5b;--r:10px}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header b{font-size:16px;letter-spacing:.3px}#st{color:var(--mut);font-size:12px;margin-left:auto;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{display:grid;grid-template-columns:minmax(320px,440px) 1fr;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+@media(max-width:860px){main{grid-template-columns:minmax(0,1fr);padding:12px}}
+main>section{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.tab.on{background:var(--acc2);border-color:var(--acc2)}.tab small{color:#ffd28a;margin-left:4px}
+label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
+select,textarea,input[type=number],input[type=text]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+textarea{min-height:96px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);cursor:pointer;font-size:12px}.chip.on{border-color:var(--acc);color:var(--acc)}
+button.go{width:100%;margin-top:14px;padding:12px;border:0;border-radius:9px;background:var(--acc2);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+button.go:disabled{opacity:.5}
+.hint{color:var(--mut);font-size:12px;margin-top:4px}
+.lora{display:grid;grid-template-columns:1fr 110px 38px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.lora:first-child{border-top:0}.lora .n{font-size:13px}.lora .t{color:var(--mut);font-size:11px;cursor:pointer}
+.lora input[type=range]{width:100%}.lora .v{font-variant-numeric:tabular-nums;color:var(--mut);font-size:12px;text-align:right}
+details>summary{cursor:pointer;color:var(--mut);font-size:12px;margin-top:10px}
+.inputs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.inputs .slot{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--panel2)}
+.inputs img{width:100%;height:100%;object-fit:cover}.inputs .x{position:absolute;top:2px;right:2px;background:#000a;border:0;color:#fff;border-radius:6px;cursor:pointer;font-size:11px;padding:1px 5px}
+.inputs .empty{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:11px;text-align:center;padding:4px}
+h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
+.jobs{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-bottom:16px}
+.job{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12px}
+.job .s{min-width:84px;font-weight:600}.job .p{color:var(--mut);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s.queued{color:var(--mut)}.s.running{color:var(--warn)}.s.done{color:var(--ok)}.s.error{color:var(--err)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--panel2);cursor:pointer;border:2px solid transparent}
+.item img,.item video{width:100%;height:100%;object-fit:cover;display:block}
+.item .b{position:absolute;left:6px;bottom:6px;background:#000b;padding:1px 6px;border-radius:6px;font-size:11px}
+.item.pick{border-color:var(--acc)}
+#lb{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:20;padding:12px}
+#lb .m{max-width:96vw;max-height:78vh}#lb .m img,#lb .m video{max-width:96vw;max-height:78vh;border-radius:8px}
+#lb .a{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+#lb .a button,#lb .a a{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font-size:13px}
+.err{color:var(--err);font-size:12px;margin-top:8px;min-height:16px}
+.pickbar{display:none;background:var(--acc2);color:#fff;padding:8px 12px;border-radius:8px;margin-bottom:10px;font-size:13px;justify-content:space-between;align-items:center}
+.pickbar button{background:#fff2;border:0;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer}
+</style>
+</head>
+<body>
+<header><b>ZC Studio</b><span id="st">…</span></header>
+<main>
+  <section class="card" id="form">
+    <div class="tabs" id="tabs"></div>
+    <div id="fields"></div>
+    <button class="go" id="go">Сгенерировать</button>
+    <div class="err" id="err"></div>
+  </section>
+  <section>
+    <div class="card" style="margin-bottom:16px"><h3>Очередь</h3><div class="jobs" id="jobs"><div class="hint">Пока пусто</div></div></div>
+    <div class="card">
+      <div class="pickbar" id="pickbar"><span id="picktxt"></span><button id="pickdone">Готово</button></div>
+      <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Галерея</h3>
+        <div class="chips" style="justify-content:flex-end" id="gf">
+          <span class="chip on" data-k="">Все</span><span class="chip" data-k="image">Картинки</span><span class="chip" data-k="video">Видео</span></div></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+</main>
+<div id="lb"><div class="m" id="lbm"></div><div class="a" id="lba"></div></div>
+<script>
+const $=s=>document.querySelector(s), FAM_INPUTS={qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
+const HINTS={
+ zimage:"Промпт по-английски, обычным текстом. Turbo: 8 шагов, негатив игнорируется.",
+ illustrious:"Теги Danbooru через запятую (1girl, long hair, …). «mature female, adult» добавляются автоматически.",
+ qwen_aio:"Что изменить на картинке, по-английски. Пример: change the dress to red, keep everything else the same.",
+ wan22_i2v:"Опишите движение и камеру по-английски. Без звука, 16 кадров/с, до 5 с.",
+ h3_fl2va:"Сцена, движение, речь в кавычках и звуки. Картинка = &lt;Picture 1&gt;. Второе фото (необязательно) — последний кадр.",
+ h3_ref2va:"Персонажи из референсов: &lt;Picture 1&gt;, &lt;Picture 2&gt;… Опишите сцену, действия, речь, звук."};
+let M=null, fam=null, inputs=[], picking=false, gkind="", loraVals={};
+const api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||r.statusText);return j});
+const fileUrl=p=>"/files/"+p.split("/").map(encodeURIComponent).join("/");
+const isVid=p=>/\.(mp4|webm|mov)$/i.test(p);
+
+async function init(){
+  M=await api("/api/models");
+  const order=["zimage","illustrious","qwen_aio","wan22_i2v","h3_fl2va","h3_ref2va"];
+  const fams=order.filter(f=>M.families[f]&&M.families[f].models.length);
+  $("#tabs").innerHTML=fams.map(f=>`<button class="tab" data-f="${f}">${M.families[f].label.replace(/^(Изображение|Видео): /,"")}${M.families[f].status!=="ready"?"<small>β</small>":""}</button>`).join("");
+  $("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b)setFam(b.dataset.f)};
+  setFam(localStorage.getItem("zc_fam")&&fams.includes(localStorage.getItem("zc_fam"))?localStorage.getItem("zc_fam"):fams[0]);
+  poll(); setInterval(poll,2500); loadGallery(); setInterval(loadGallery,12000);
+}
+function setFam(f){
+  fam=f; try{localStorage.setItem("zc_fam",f)}catch(e){}
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.f===f));
+  const F=M.families[f], dm=F.models.find(m=>m.default)||F.models[0];
+  inputs=inputs.slice(0,(FAM_INPUTS[f]||[0,0])[1]);
+  let h=`<label>Модель</label><select id="model">${F.models.map(m=>`<option value="${m.key}" ${m===dm?"selected":""}>${m.label}</option>`).join("")}</select>`;
+  if(FAM_INPUTS[f]) h+=`<label>${f==="h3_ref2va"?"Референсы (до 9, из галереи)":f==="h3_fl2va"?"Первый кадр (+ последний, необязательно)":"Исходная картинка"}</label><div class="inputs" id="inputs"></div>`;
+  h+=`<label>Промпт</label><textarea id="prompt" placeholder="…"></textarea><div class="hint">${HINTS[f]||""}</div>`;
+  if(f==="zimage"||f==="illustrious"){
+    h+=`<label>Размер</label><div class="chips" id="size">${[["832x1216","Портрет"],["1024x1024","Квадрат"],["1216x832","Альбом"]].map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>
+       <details><summary>Негативный промпт</summary><textarea id="neg" style="min-height:60px" placeholder="по умолчанию из модели"></textarea></details>`;
+  }
+  if(f==="wan22_i2v") h+=`<label>Длина: <span id="secv">5</span> с</label><input type="range" id="sec" min="1" max="5" step="1" value="5" style="width:100%">
+     <label>Размер</label><div class="chips" id="size">${[["480x832","Вертикально 480p"],["832x480","Горизонтально 480p"],["720x1280","Вертикально 720p"]].map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>`;
+  if(f==="h3_fl2va"||f==="h3_ref2va") h+=`<label>Длина: <span id="secv">5</span> с</label><input type="range" id="sec" min="4" max="15" step="1" value="5" style="width:100%">
+     <label>Качество</label><div class="chips" id="mp"><span class="chip on" data-v="0.5">Быстро (0.5 МП)</span><span class="chip" data-v="0.9">Стандарт (0.9 МП)</span></div>
+     ${f==="h3_ref2va"?`<label>Формат</label><div class="chips" id="aspect">${["9:16","16:9","1:1","3:4"].map((a,i)=>`<span class="chip ${i?"":"on"}" data-v="${a}">${a}</span>`).join("")}</div>`:""}`;
+  if(F.loras.length){
+    h+=`<details ${Object.keys(loraVals).some(k=>F.loras.find(l=>l.key===k)&&loraVals[k]>0)?"open":""}><summary>LoRA (${F.loras.length})</summary><div id="loras">${F.loras.map(l=>`
+      <div class="lora"><div><div class="n">${l.label}</div>${l.triggers?`<div class="t" data-t="${l.triggers.replace(/"/g,"&quot;")}" title="вставить в промпт">⤷ ${l.triggers}</div>`:""}</div>
+      <input type="range" min="0" max="1.5" step="0.05" value="${loraVals[l.key]||0}" data-k="${l.key}"><span class="v">${(loraVals[l.key]||0).toFixed(2)}</span></div>`).join("")}</div></details>`;
+  }
+  h+=`<details><summary>Seed</summary><div class="row"><input type="number" id="seed" placeholder="случайный"><span></span></div></details>`;
+  $("#fields").innerHTML=h;
+  document.querySelectorAll("#fields .chips").forEach(c=>c.onclick=e=>{const x=e.target.closest(".chip");if(!x)return;c.querySelectorAll(".chip").forEach(y=>y.classList.remove("on"));x.classList.add("on")});
+  const sec=$("#sec"); if(sec) sec.oninput=()=>$("#secv").textContent=sec.value;
+  const L=$("#loras"); if(L){L.oninput=e=>{if(e.target.dataset.k){loraVals[e.target.dataset.k]=+e.target.value;e.target.nextElementSibling.textContent=(+e.target.value).toFixed(2)}};
+    L.onclick=e=>{const t=e.target.closest(".t");if(t){const p=$("#prompt");p.value=(p.value?p.value.replace(/\s*$/,", "):"")+t.dataset.t}}}
+  renderInputs();
+}
+function renderInputs(){
+  const box=$("#inputs"); if(!box) return; const [mn,mx]=FAM_INPUTS[fam];
+  box.innerHTML=inputs.map((p,i)=>`<div class="slot"><img src="${fileUrl(p)}"><button class="x" data-i="${i}">✕</button></div>`).join("")+
+    (inputs.length<mx?`<div class="slot empty" id="addin">＋ из<br>галереи</div>`:"");
+  box.onclick=e=>{if(e.target.dataset.i!==undefined){inputs.splice(+e.target.dataset.i,1);renderInputs();return}
+    if(e.target.closest("#addin")) startPick()};
+}
+function startPick(){picking=true;$("#pickbar").style.display="flex";$("#picktxt").textContent="Выберите картинку в галерее";gkind="image";
+  document.querySelectorAll("#gf .chip").forEach(c=>c.classList.toggle("on",c.dataset.k==="image"));loadGallery();
+  $("#pickbar").scrollIntoView({behavior:"smooth",block:"center"})}
+$("#pickdone").onclick=()=>{picking=false;$("#pickbar").style.display="none";renderInputs();$("#form").scrollIntoView({behavior:"smooth"})};
+function chipVal(id){const c=document.querySelector(`#${id} .chip.on`);return c?c.dataset.v:null}
+
+$("#go").onclick=async()=>{
+  $("#err").textContent=""; const F=M.families[fam]; const req={family:fam,model:$("#model").value,prompt:$("#prompt").value.trim()};
+  if(!req.prompt&&fam!=="qwen_aio"){$("#err").textContent="Напишите промпт";return}
+  if(FAM_INPUTS[fam]){ if(inputs.length<FAM_INPUTS[fam][0]){$("#err").textContent="Выберите картинку из галереи";return} req.images=inputs.map(p=>({path:p})) }
+  const sz=chipVal("size"); if(sz){const [w,h]=sz.split("x").map(Number);req.width=w;req.height=h}
+  const neg=$("#neg"); if(neg&&neg.value.trim()) req.negative=neg.value.trim();
+  const sec=$("#sec"); if(sec) req.seconds=+sec.value;
+  const mp=chipVal("mp"); if(mp) req.megapixels=+mp; const ar=chipVal("aspect"); if(ar) req.aspect=ar;
+  const lo={}; F.loras.forEach(l=>{if((loraVals[l.key]||0)>0) lo[l.key]=loraVals[l.key]}); req.loras=lo;
+  const sd=$("#seed").value; if(sd!=="") req.seed=+sd;
+  $("#go").disabled=true;
+  try{await api("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});poll()}
+  catch(e){$("#err").textContent=e.message} finally{setTimeout(()=>$("#go").disabled=false,600)}
+};
+
+const ST={queued:"в очереди",running:"генерация",done:"готово",error:"ошибка"};
+let lastDone="";
+async function poll(){
+  try{
+    const [js,s]=await Promise.all([api("/api/jobs"),api("/api/status")]);
+    $("#st").textContent=`${s.gpu.name||"GPU…"} · свободно ${s.gpu.vram_free_gb??"?"}/${s.gpu.vram_total_gb??"?"} ГБ · в очереди ${s.queued}${s.running?" · идёт генерация":""}`;
+    $("#jobs").innerHTML=js.length?js.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
+      <span class="p">${j.family} · ${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}с</span>
+      ${j.error?`<span style="color:var(--err)">${j.error.replace(/</g,"&lt;")}</span>`:""}${j.note?`<span style="color:var(--warn)">${j.note}</span>`:""}
+      ${(j.outputs||[]).map(o=>`<a href="#" data-p="${o.path}" style="color:var(--acc)">открыть</a>`).join(" ")}</div>`).join(""):`<div class="hint">Пока пусто</div>`;
+    const d=js.filter(j=>j.status==="done").map(j=>j.id).join(); if(d!==lastDone){lastDone=d;loadGallery()}
+  }catch(e){$("#st").textContent="нет связи с сервером"}
+}
+$("#jobs").onclick=e=>{const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p)}};
+document.querySelectorAll("#gf .chip").forEach(c=>c.onclick=()=>{gkind=c.dataset.k;document.querySelectorAll("#gf .chip").forEach(x=>x.classList.toggle("on",x===c));loadGallery()});
+async function loadGallery(){
+  const g=await api("/api/gallery?limit=150"+(gkind?"&kind="+gkind:"")).catch(()=>[]);
+  $("#grid").innerHTML=g.map(i=>`<div class="item ${inputs.includes(i.path)?"pick":""}" data-p="${i.path}">${isVid(i.path)?`<video src="${fileUrl(i.path)}#t=0.5" muted preload="metadata"></video><span class="b">▶ видео</span>`:`<img loading="lazy" src="${fileUrl(i.path)}">`}</div>`).join("")||`<div class="hint">Здесь появятся результаты</div>`;
+}
+$("#grid").onclick=e=>{const it=e.target.closest(".item");if(!it)return;const p=it.dataset.p;
+  if(picking){ if(isVid(p)) return; const mx=(FAM_INPUTS[fam]||[0,1])[1]; if(inputs.includes(p)) inputs=inputs.filter(x=>x!==p); else if(inputs.length<mx) inputs.push(p);
+    it.classList.toggle("pick",inputs.includes(p)); $("#picktxt").textContent=`Выбрано ${inputs.length} из ${mx}`; if(inputs.length>=mx&&mx===1) $("#pickdone").click(); return}
+  openLb(p)};
+function openLb(p){
+  $("#lbm").innerHTML=isVid(p)?`<video src="${fileUrl(p)}" controls autoplay playsinline></video>`:`<img src="${fileUrl(p)}">`;
+  const acts=[`<a href="${fileUrl(p)}" download>Скачать</a>`];
+  if(!isVid(p)){acts.push(`<button data-a="edit">Редактировать</button>`,`<button data-a="wan22_i2v">Видео Wan</button>`,`<button data-a="h3_fl2va">Видео H3</button>`,`<button data-a="h3_ref2va">В референсы H3</button>`)}
+  acts.push(`<button data-a="close">Закрыть</button>`);
+  $("#lba").innerHTML=acts.join(""); $("#lb").style.display="flex"; $("#lb").dataset.p=p;
+}
+$("#lb").onclick=e=>{const a=e.target.dataset.a; if(e.target.id==="lb"||a==="close"){$("#lb").style.display="none";$("#lbm").innerHTML="";return}
+  if(a){const p=$("#lb").dataset.p; const f=a==="edit"?"qwen_aio":a; if(!M.families[f])return;
+    if(f==="h3_ref2va"&&fam==="h3_ref2va"){if(!inputs.includes(p)&&inputs.length<9)inputs.push(p)} else inputs=[p];
+    $("#lb").style.display="none";$("#lbm").innerHTML=""; setFam(f); $("#form").scrollIntoView({behavior:"smooth"})}};
+init().catch(e=>{$("#st").textContent="Ошибка загрузки: "+e.message});
+</script>
+</body>
+</html>
