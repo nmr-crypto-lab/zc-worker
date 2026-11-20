@@ -44,6 +44,8 @@ h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--panel2);cursor:pointer;border:2px solid transparent}
 .item img,.item video{width:100%;height:100%;object-fit:cover;display:block}
+.item .vph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--mut);background:var(--panel2)}
+.grid .more{grid-column:1/-1;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
 .item .b{position:absolute;left:6px;bottom:6px;background:#000b;padding:1px 6px;border-radius:6px;font-size:11px}
 .item.pick{border-color:var(--acc)}
 #lb{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:20;padding:12px}
@@ -97,7 +99,7 @@ async function init(){
   $("#tabs").innerHTML=fams.map(f=>`<button class="tab" data-f="${f}">${M.families[f].label.replace(/^(Image|Video): /,"").replace(/^./,c=>c.toUpperCase())}${M.families[f].status!=="ready"?"<small>β</small>":""}</button>`).join("");
   $("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b)setFam(b.dataset.f)};
   setFam(localStorage.getItem("zc_fam")&&fams.includes(localStorage.getItem("zc_fam"))?localStorage.getItem("zc_fam"):fams[0]);
-  poll(); setInterval(poll,2500); loadGallery(); setInterval(loadGallery,12000);
+  await poll(); setInterval(poll,2500); loadGallery(); setInterval(loadGallery,12000);
 }
 function setFam(f){
   fam=f; try{localStorage.setItem("zc_fam",f)}catch(e){}
@@ -168,6 +170,7 @@ let lastDone="";
 async function poll(){
   try{
     const [js,s]=await Promise.all([api("/api/jobs"),api("/api/status")]);
+    if(!!s.thumbs!==THUMBS){THUMBS=!!s.thumbs;loadGallery(true)}
     $("#st").textContent=`${(s.gpu.name||"GPU…").replace(/^cuda:\d+\s*/,"").split(" : ")[0]} · free ${s.gpu.vram_free_gb??"?"}/${s.gpu.vram_total_gb??"?"} GB · queued ${s.queued}${s.running?" · generating":""}`;
     $("#jobs").innerHTML=js.length?js.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
       <span class="p">${j.family} · ${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${progHtml(j)}
@@ -187,16 +190,28 @@ function progHtml(j){
 }
 $("#jobs").onclick=e=>{const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p)}};
 document.querySelectorAll("#gf .chip").forEach(c=>c.onclick=()=>{gkind=c.dataset.k;document.querySelectorAll("#gf .chip").forEach(x=>x.classList.toggle("on",x===c));loadGallery()});
-async function loadGallery(){
-  const g=await api("/api/gallery?limit=150"+(gkind?"&kind="+gkind:"")).catch(()=>[]);
-  $("#grid").innerHTML=g.map(i=>`<div class="item ${inputs.includes(i.path)?"pick":""}" data-p="${i.path}">${isVid(i.path)?`<video src="${fileUrl(i.path)}#t=0.5" muted preload="metadata"></video><span class="b">▶ video</span>`:`<img loading="lazy" src="${fileUrl(i.path)}">`}</div>`).join("")||`<div class="hint">Results will appear here</div>`;
+let gSig="", gLimit=60, THUMBS=false;
+function tile(i){
+  const vid=isVid(i.path), th=`/thumb/${i.path.split("/").map(encodeURIComponent).join("/")}?v=${i.mtime}`;
+  const inner=THUMBS?`<img loading="lazy" decoding="async" src="${th}">`
+    :(vid?`<div class="vph">▶</div>`:`<img loading="lazy" decoding="async" src="${fileUrl(i.path)}">`);
+  return `<div class="item ${inputs.includes(i.path)?"pick":""}" data-p="${i.path}">${inner}${vid?`<span class="b">▶ video</span>`:""}</div>`;
+}
+async function loadGallery(force){
+  const g=await api("/api/gallery?limit="+gLimit+(gkind?"&kind="+gkind:"")).catch(()=>null); if(!g) return;
+  const sig=gLimit+"|"+gkind+"|"+THUMBS+"|"+inputs.join()+"|"+g.map(i=>i.path+i.mtime).join();
+  if(sig===gSig&&!force) return;            // nothing changed: do not rebuild the grid (keeps phones fast)
+  gSig=sig;
+  $("#grid").innerHTML=(g.map(tile).join("")||`<div class="hint">Results will appear here</div>`)+
+    (g.length>=gLimit?`<button class="more" id="gmore">Show more</button>`:"");
+  const m=$("#gmore"); if(m) m.onclick=e=>{e.stopPropagation();gLimit+=60;loadGallery(true)};
 }
 $("#grid").onclick=e=>{const it=e.target.closest(".item");if(!it)return;const p=it.dataset.p;
   if(picking){ if(isVid(p)) return; const mx=(FAM_INPUTS[fam]||[0,1])[1]; if(inputs.includes(p)) inputs=inputs.filter(x=>x!==p); else if(inputs.length<mx) inputs.push(p);
     it.classList.toggle("pick",inputs.includes(p)); $("#picktxt").textContent=`Selected ${inputs.length} of ${mx}`; if(inputs.length>=mx&&mx===1) $("#pickdone").click(); return}
   openLb(p)};
 function openLb(p){
-  $("#lbm").innerHTML=isVid(p)?`<video src="${fileUrl(p)}" controls autoplay playsinline></video>`:`<img src="${fileUrl(p)}">`;
+  $("#lbm").innerHTML=isVid(p)?`<video src="${fileUrl(p)}" controls autoplay playsinline preload="auto"></video>`:`<img src="${fileUrl(p)}">`;
   const acts=[`<a href="${fileUrl(p)}" download>Download</a>`];
   if(!isVid(p)){acts.push(`<button data-a="edit">Edit</button>`,`<button data-a="wan22_i2v">Video (Wan)</button>`,`<button data-a="h3_fl2va">Video (H3)</button>`,`<button data-a="h3_ref2va">Add to H3 references</button>`)}
   acts.push(`<button data-a="del" class="danger">Delete</button>`,`<button data-a="close">Close</button>`);
