@@ -121,8 +121,11 @@ function setFam(f){
       <div class="lora"><div><div class="n">${l.label}</div>${l.triggers?`<div class="t" data-t="${l.triggers.replace(/"/g,"&quot;")}" title="insert into prompt">⤷ ${l.triggers}</div>`:""}</div>
       <input type="range" min="0" max="1.5" step="0.05" value="${loraVals[l.key]||0}" data-k="${l.key}"><span class="v">${(loraVals[l.key]||0).toFixed(2)}</span></div>`).join("")}</div></details>`;
   }
+  h+=`<label>Variants</label><select id="nvar">${[1,2,3,4].map(n=>`<option value="${n}" ${n===nVar?"selected":""}>${n}</option>`).join("")}</select>
+    <div class="hint">Each variant is a separate job with its own seed. The model stays loaded, so extra variants are fast.</div>`;
   h+=`<details><summary>Seed</summary><div class="row"><input type="number" id="seed" placeholder="random"><span></span></div></details>`;
   $("#fields").innerHTML=h;
+  $("#nvar").onchange=e=>nVar=+e.target.value;
   document.querySelectorAll("#fields .chips").forEach(c=>c.onclick=e=>{const x=e.target.closest(".chip");if(!x)return;c.querySelectorAll(".chip").forEach(y=>y.classList.remove("on"));x.classList.add("on")});
   const sec=$("#sec"); if(sec) sec.oninput=()=>$("#secv").textContent=sec.value;
   const L=$("#loras"); if(L){L.oninput=e=>{if(e.target.dataset.k){loraVals[e.target.dataset.k]=+e.target.value;e.target.nextElementSibling.textContent=(+e.target.value).toFixed(2)}};
@@ -142,6 +145,7 @@ function startPick(){picking=true;$("#pickbar").style.display="flex";$("#picktxt
 $("#pickdone").onclick=()=>{picking=false;$("#pickbar").style.display="none";renderInputs();$("#form").scrollIntoView({behavior:"smooth"})};
 function chipVal(id){const c=document.querySelector(`#${id} .chip.on`);return c?c.dataset.v:null}
 
+let nVar=1;
 $("#go").onclick=async()=>{
   $("#err").textContent=""; const F=M.families[fam]; const req={family:fam,model:$("#model").value,prompt:$("#prompt").value.trim()};
   if(!req.prompt&&fam!=="qwen_aio"){$("#err").textContent="Write a prompt";return}
@@ -151,9 +155,11 @@ $("#go").onclick=async()=>{
   const sec=$("#sec"); if(sec) req.seconds=+sec.value;
   const mp=chipVal("mp"); if(mp) req.megapixels=+mp; const ar=chipVal("aspect"); if(ar) req.aspect=ar;
   const lo={}; F.loras.forEach(l=>{if((loraVals[l.key]||0)>0) lo[l.key]=loraVals[l.key]}); req.loras=lo;
-  const sd=$("#seed").value; if(sd!=="") req.seed=+sd;
+  const sd=$("#seed").value; const n=+($("#nvar")?.value||1);
   $("#go").disabled=true;
-  try{await api("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});poll()}
+  try{for(let k=0;k<n;k++){const r={...req}; if(sd!=="") r.seed=+sd+k;   // fixed seed -> seed, seed+1, ...; otherwise random per job
+      await api("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(r)})}
+    poll()}
   catch(e){$("#err").textContent=e.message} finally{setTimeout(()=>$("#go").disabled=false,600)}
 };
 
