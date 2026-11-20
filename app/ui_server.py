@@ -88,7 +88,7 @@ def worker():
                 o.pop("b64", None)
             job.update(status="done", result=res)
             if not res.get("outputs"):
-                job["note"] = "результат удалён фильтром" if res.get("removed") else "нет результата"
+                job["note"] = "result removed by the age filter" if res.get("removed") else "no result"
         except ValueError as e:
             job.update(status="error", error=str(e))
         except Exception as e:
@@ -120,7 +120,7 @@ async def generate(request: Request):
         raise HTTPException(400, "unknown family")
     v = H.prompt_violation(inp.get("prompt"))
     if v:
-        raise HTTPException(400, "Промпт отклонён: контент с несовершеннолетними запрещён")
+        raise HTTPException(400, "Prompt refused: content involving minors is not allowed")
     jid = uuid.uuid4().hex[:12]
     with LOCK:
         JOBS[jid] = {"id": jid, "status": "queued", "input": inp, "created": time.time()}
