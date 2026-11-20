@@ -1,0 +1,11 @@
+runpod>=1.7
+boto3
+pyyaml
+requests
+huggingface_hub
+hf_transfer
+transformers
+pillow
+opencv-python-headless
+insightface
+onnxruntime-gpu
