@@ -131,7 +131,7 @@ def models_info():
     return {"families": fams, "mode": P.MODE}
 
 
-def generate(inp, job_id, progress=lambda m: None):
+def generate(inp, job_id, progress=None):
     fam = inp["family"]
     f = R.family(fam)
     if f.get("template") is None:
@@ -160,8 +160,8 @@ def generate(inp, job_id, progress=lambda m: None):
         kw["loras"] = {}
     kw["prefix"] = f"{f['kind']}/{job_id}"
     wf = T.build(fam, **kw)
-    progress(f"queued {fam}")
-    kept, info = zc.run(wf, {"job": job_id, "family": fam, "model": inp.get("model"), "seed": wf_seed(wf)})
+    kept, info = zc.run(wf, {"job": job_id, "family": fam, "model": inp.get("model"), "seed": wf_seed(wf)},
+                        progress=progress)
     return {"outputs": [publish(p, job_id) for p in kept], "removed": info["removed"], "gate": info["gate"],
             "secs": info["secs"], "seed": wf_seed(wf)}
 
@@ -182,10 +182,17 @@ def handler(job):
         if not zc.wait_ready(600):
             return {"error": "ComfyUI did not start"}
 
-        def progress(msg):
+        last = {"t": 0, "k": None}
+
+        def progress(st):
+            # throttle: report a stage change at once, otherwise at most every 3 s
+            k = (st.get("stage"), st.get("detail"))
+            if k[0] == last["k"] and time.time() - last["t"] < 3:
+                return
+            last.update(t=time.time(), k=k[0])
             try:
                 import runpod
-                runpod.serverless.progress_update(job, msg)
+                runpod.serverless.progress_update(job, json.dumps(st))
             except Exception:
                 pass
         return generate(inp, job_id, progress)

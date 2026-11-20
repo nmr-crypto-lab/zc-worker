@@ -236,19 +236,196 @@ def fill_defaults(workflow):
     return workflow
 
 
-def run(workflow, meta, timeout=3600):
-    """Queue an API-format workflow, wait, age-gate every output. Returns (kept_paths, info)."""
+# ----------------------------------------------------------------- progress
+LOADERS = ("Loader", "LoraLoader")            # class_type substrings that read model files
+ENCODERS = ("TextEncode", "CLIPTextEncode")
+SAMPLERS = ("KSampler", "SamplerCustom")
+DECODERS = ("VAEDecode", "DecodeAudio")
+MODEL_EXT = (".safetensors", ".gguf", ".ckpt", ".pt", ".pth", ".bin", ".sft")
+RATE_FILE = f"{P.STATE}/load_rate.json"
+
+
+def _stage_of(cls):
+    if any(k in cls for k in SAMPLERS):
+        return "generating"
+    if any(k in cls for k in DECODERS):
+        return "decoding"
+    if any(k in cls for k in ENCODERS):
+        return "encoding prompt"
+    if any(k in cls for k in LOADERS):
+        return "loading models"
+    if cls.startswith("Save") or cls.startswith("Create"):
+        return "saving"
+    return None
+
+
+def _model_bytes(workflow):
+    """Total size of model files referenced by loader nodes -> {node_id: bytes}."""
+    out = {}
+    for nid, n in workflow.items():
+        if not any(k in n["class_type"] for k in LOADERS):
+            continue
+        b = 0
+        for v in n["inputs"].values():
+            if isinstance(v, str) and v.lower().endswith(MODEL_EXT):
+                for root in ("diffusion_models", "checkpoints", "text_encoders", "vae", "loras", "clip", "unet",
+                             "clip_vision", "upscale_models"):
+                    f = os.path.join(MODELS, root, v)
+                    if os.path.isfile(f):
+                        b += os.path.getsize(f)
+                        break
+        if b:
+            out[nid] = b
+    return out
+
+
+def _rate():
+    try:
+        return max(30e6, json.load(open(RATE_FILE))["bps"])
+    except Exception:
+        return 120e6          # global volume reads ~100-150 MB/s
+
+
+def _save_rate(bps):
+    try:
+        old = _rate()
+        json.dump({"bps": 0.6 * old + 0.4 * bps}, open(RATE_FILE, "w"))
+    except Exception:
+        pass
+
+
+class Progress:
+    """Turns ComfyUI websocket events into {stage, frac, detail, eta} for the UI.
+    Sampling progress is exact (step n/N). Model loading has no native progress: it is estimated from the size of the
+    model files that are not already cached in ComfyUI and the measured volume read rate."""
+
+    def __init__(self, workflow, cb):
+        self.wf, self.cb = workflow, cb
+        self.sizes = _model_bytes(workflow)
+        self.samplers = [nid for nid, n in workflow.items() if any(k in n["class_type"] for k in SAMPLERS)]
+        self.cached = set()
+        self.t0 = time.time()
+        self.load_bytes = None
+        self.first_step_t = None
+        self.step_t = {}
+        self.state = {"stage": "queued", "frac": 0, "detail": "", "eta": None}
+
+    def _emit(self, **kw):
+        self.state.update(kw)
+        try:
+            self.cb(dict(self.state))
+        except Exception:
+            pass
+
+    def on(self, msg):
+        t, d = msg.get("type"), msg.get("data") or {}
+        if t == "execution_cached":
+            self.cached |= set(d.get("nodes") or [])
+        elif t == "execution_start":
+            self.t0 = time.time()
+        elif t == "executing" and d.get("node"):
+            nid = str(d["node"])
+            st = _stage_of(self.wf.get(nid, {}).get("class_type", ""))
+            if st == "generating":
+                self._preparing(nid)
+            elif st:
+                self._emit(stage=st, frac=0 if st != self.state["stage"] else self.state["frac"], detail="", eta=None)
+        elif t == "progress":
+            nid, v, mx = str(d.get("node")), int(d.get("value", 0)), max(1, int(d.get("max", 1)))
+            if nid not in self.samplers:            # decoders etc. also report progress
+                self._emit(frac=v / mx, detail=f"{v}/{mx}")
+                return
+            now = time.time()
+            if self.first_step_t is None:
+                self.first_step_t = now
+                if self.load_bytes:
+                    _save_rate(self.load_bytes / max(1.0, now - self.t0))
+            ts = self.step_t.setdefault(nid, [])
+            ts.append(now)
+            per = (ts[-1] - ts[0]) / (len(ts) - 1) if len(ts) > 1 else None
+            k = self.samplers.index(nid)
+            passes = f" · pass {k + 1}/{len(self.samplers)}" if len(self.samplers) > 1 else ""
+            left = (mx - v) + mx * (len(self.samplers) - k - 1)
+            self._emit(stage="generating", frac=(k + v / mx) / len(self.samplers), detail=f"step {v}/{mx}{passes}",
+                       eta=round(per * left) if per else None)
+
+    def _preparing(self, nid):
+        """Sampler started but no step yet: weights are being read / moved to the GPU."""
+        if self.load_bytes is None:
+            self.load_bytes = sum(b for n, b in self.sizes.items() if n not in self.cached)
+        if self.state["stage"] != "loading models":
+            self._emit(stage="loading models" if self.load_bytes else "generating", frac=0, detail="", eta=None)
+
+    def tick(self):
+        """Called about once a second while waiting: advance the estimated loading bar."""
+        if self.state["stage"] == "loading models" or (self.state["stage"] in ("queued", "encoding prompt")
+                                                        and self.first_step_t is None):
+            lb = self.load_bytes if self.load_bytes is not None else \
+                sum(b for n, b in self.sizes.items() if n not in self.cached)
+            if not lb:
+                return
+            done = (time.time() - self.t0) * _rate()
+            gb = lb / 1e9
+            self._emit(stage="loading models", frac=min(0.95, done / lb),
+                       detail=f"~{gb:.0f} GB" if gb >= 1 else f"~{lb / 1e6:.0f} MB",
+                       eta=max(0, round((lb - done) / _rate())))
+
+
+def _listen(cid, prog, stop):
+    try:
+        import websocket   # websocket-client
+    except ImportError:
+        return
+    url = COMFY.replace("http", "ws", 1) + f"/ws?clientId={cid}"
+    try:
+        ws = websocket.create_connection(url, timeout=5)
+    except Exception:
+        return
+    ws.settimeout(1)
+    while not stop.is_set():
+        try:
+            m = ws.recv()
+        except websocket.WebSocketTimeoutException:
+            continue
+        except Exception:
+            break
+        if isinstance(m, str):
+            try:
+                prog.on(json.loads(m))
+            except Exception:
+                pass
+    try:
+        ws.close()
+    except Exception:
+        pass
+
+
+def run(workflow, meta, timeout=3600, progress=None):
+    """Queue an API-format workflow, wait, age-gate every output. Returns (kept_paths, info).
+    progress(dict) is called with {stage, frac, detail, eta} while the job runs (optional)."""
+    import threading
     fill_defaults(workflow)
     cid = str(uuid.uuid4())
     t0 = time.time()
-    pid = _req("/prompt", {"prompt": workflow, "client_id": cid})["prompt_id"]
-    while True:
-        h = _req(f"/history/{pid}")
-        if pid in h:
-            break
-        if time.time() - t0 > timeout:
-            raise TimeoutError(meta)
-        time.sleep(1)
+    prog = Progress(workflow, progress or (lambda s: None))
+    stop = threading.Event()
+    th = threading.Thread(target=_listen, args=(cid, prog, stop), daemon=True)
+    th.start()
+    time.sleep(0.3)                     # let the socket connect before queueing (so no early event is missed)
+    try:
+        pid = _req("/prompt", {"prompt": workflow, "client_id": cid})["prompt_id"]
+        while True:
+            h = _req(f"/history/{pid}")
+            if pid in h:
+                break
+            if time.time() - t0 > timeout:
+                raise TimeoutError(meta)
+            prog.tick()
+            time.sleep(1)
+    finally:
+        stop.set()
+    if progress:
+        prog._emit(stage="age check", frac=0, detail="", eta=None)
     secs = time.time() - t0
     hist = h[pid]
     st = hist.get("status", {})

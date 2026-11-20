@@ -83,7 +83,7 @@ def worker():
         job = JOBS[jid]
         job.update(status="running", started=time.time())
         try:
-            res = H.generate(dict(job["input"]), jid)
+            res = H.generate(dict(job["input"]), jid, progress=lambda st, job=job: job.__setitem__("progress", st))
             for o in res.get("outputs", []):
                 o.pop("b64", None)
             job.update(status="done", result=res)
@@ -94,6 +94,7 @@ def worker():
         except Exception as e:
             traceback.print_exc()
             job.update(status="error", error=f"{e.__class__.__name__}: {str(e)[:300]}")
+        job.pop("progress", None)
         job["finished"] = time.time()
         _save(job)
         Q.task_done()
@@ -135,7 +136,7 @@ def jobs():
     out = []
     for jid in reversed(ORDER[-50:]):
         j = JOBS[jid]
-        d = {k: j.get(k) for k in ("id", "status", "error", "note")}
+        d = {k: j.get(k) for k in ("id", "status", "error", "note", "progress")}
         d["family"] = j["input"].get("family")
         d["prompt"] = (j["input"].get("prompt") or "")[:120]
         d["queue_pos"] = None
@@ -153,7 +154,8 @@ def jobs():
 @app.get("/api/gallery")
 def gallery(limit: int = 120, kind: str = ""):
     items = []
-    for root, _, files in os.walk(OUT):
+    for root, dirs, files in os.walk(OUT):
+        dirs[:] = [x for x in dirs if not x.startswith(".")]      # skip .ipynb_checkpoints etc.
         for f in files:
             if f.lower().endswith(MEDIA):
                 p = os.path.join(root, f)
@@ -178,6 +180,24 @@ def files(path: str):
     if not p.startswith(OUT + os.sep) or not os.path.isfile(p):
         raise HTTPException(404)
     return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream")
+
+
+TRASH = os.path.realpath(f"{P.ROOT}/trash")
+
+
+@app.delete("/api/files/{path:path}")
+def delete_file(path: str):
+    """Move a result out of the gallery into <volume>/zc/trash (recoverable; empty the folder to free space)."""
+    p = os.path.realpath(os.path.join(OUT, path))
+    if not p.startswith(OUT + os.sep) or not os.path.isfile(p) or not p.lower().endswith(MEDIA):
+        raise HTTPException(404)
+    dst = os.path.join(TRASH, os.path.relpath(p, OUT))
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    os.replace(p, dst) if os.stat(p).st_dev == os.stat(os.path.dirname(dst)).st_dev else \
+        __import__("shutil").move(p, dst)
+    with open(JOBS_LOG, "a") as f:
+        f.write(json.dumps({"deleted": path, "ts": time.time()}) + "\n")
+    return {"ok": True}
 
 
 @app.get("/api/status")
