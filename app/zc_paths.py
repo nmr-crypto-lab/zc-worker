@@ -24,7 +24,9 @@ MODELS = f"{ROOT}/models"
 STATE = f"{ROOT}/state"
 MANIFEST = f"{STATE}/models.json"
 MODE = os.environ.get("ZC_MODE", "serverless" if ROOT.startswith("/runpod-volume") else "pod")
-OUTPUT = os.environ.get("ZC_OUTPUT") or (f"{ROOT}/output" if MODE == "pod" else "/tmp/zc_output")
+# results go to the volume in both modes unless an object store (R2) is configured for serverless
+USE_R2 = bool(os.environ.get("ZC_R2_BUCKET"))
+OUTPUT = os.environ.get("ZC_OUTPUT") or ("/tmp/zc_output" if (MODE == "serverless" and USE_R2) else f"{ROOT}/output")
 LOGS = os.environ.get("ZC_LOGS", "/root/zclogs")
 SAFETY_LOG = os.environ.get("ZC_SAFETY_LOG", f"{LOGS}/safety.jsonl")
 COMFY_DIR = os.environ.get("COMFY_DIR", "/opt/ComfyUI")

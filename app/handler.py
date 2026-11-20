@@ -9,14 +9,16 @@ Job input:
    "prompt": "...", "negative": "...", "seed": 123,
    "loras": {"<registry key>": 0.8},
    "width": 832, "height": 1216, "seconds": 5, "megapixels": 0.9, "aspect": "9:16", "turbo": true,
-   "images": [{"r2_key": "outputs/..."}]}  # inputs: ONLY our own earlier results (see INPUT RULES)
+   "images": [{"path": "image/<job>/x.png"}]}  # inputs: ONLY our own earlier results (see INPUT RULES)
   {"action": "models"}                     # registry for the UI: families, models, LoRAs, defaults
 
-Output: {"outputs": [{"key", "url", "type"}], "removed": n, "gate": [...], "secs": t}
+Output: {"outputs": [{"path", "type", "b64"?, "key"?, "url"?}], "removed": n, "gate": [...], "secs": t}
+  path = location under <volume>/zc/output (pods and serverless); b64 = inline copy for small files when no
+  object store is configured (the site cannot read the volume); key/url only if R2 is configured (optional).
 
-INPUT RULES (no real people): input images must be objects in our R2 bucket under ZC_R2_INPUT_PREFIX
-(default "outputs/", i.e. images this service generated and already age-gated). Arbitrary uploads / URLs are
-refused unless ZC_ALLOW_B64=1 (off by default). Every input is age-gated again before use.
+INPUT RULES (no real people): input images must be results this service generated: {"path": ...} under
+<volume>/zc/output, or {"r2_key": ...} if R2 is configured. Arbitrary uploads / URLs are refused.
+Every input is age-gated again before use.
 Every output is age-gated before upload; flagged/uncheckable outputs are deleted, only metadata is logged.
 """
 import base64, os, re, sys, time, uuid, json, traceback, mimetypes
@@ -31,8 +33,8 @@ R2_BUCKET = os.environ.get("ZC_R2_BUCKET", "")
 R2_INPUT_PREFIX = os.environ.get("ZC_R2_INPUT_PREFIX", "outputs/")
 R2_OUTPUT_PREFIX = os.environ.get("ZC_R2_OUTPUT_PREFIX", "outputs/")
 URL_TTL = int(os.environ.get("ZC_URL_TTL", "86400"))
-ALLOW_B64 = os.environ.get("ZC_ALLOW_B64", "0") == "1"
-KEEP_LOCAL = os.environ.get("ZC_KEEP_LOCAL", "1" if P.MODE == "pod" else "0") == "1"
+KEEP_LOCAL = not P.USE_R2 or os.environ.get("ZC_KEEP_LOCAL", "1" if P.MODE == "pod" else "0") == "1"
+INLINE_MAX = int(os.environ.get("ZC_INLINE_MAX", str(15 * 1024 * 1024)))
 
 # prompts asking for minors are refused before anything is generated (output gate still runs on everything)
 _BLOCK = re.compile(
@@ -70,7 +72,12 @@ def s3():
 
 def fetch_input(item, job_id, i):
     """returns a file name inside ComfyUI's input folder"""
-    if "r2_key" in item:
+    if "path" in item:
+        base = os.path.realpath(f"{P.ROOT}/output")
+        local = os.path.realpath(os.path.join(base, item["path"]))
+        if not local.startswith(base + os.sep) or not os.path.isfile(local):
+            raise ValueError("input must be one of our own generated results (path under zc/output)")
+    elif "r2_key" in item:
         key = item["r2_key"]
         if not s3():
             raise ValueError("R2 not configured")
@@ -78,13 +85,6 @@ def fetch_input(item, job_id, i):
             raise ValueError("input must be one of our own generated images")
         local = f"/tmp/zc_in_{job_id}_{i}{os.path.splitext(key)[1] or '.png'}"
         s3().download_file(R2_BUCKET, key, local)
-    elif "b64" in item and ALLOW_B64:
-        local = f"/tmp/zc_in_{job_id}_{i}.png"
-        open(local, "wb").write(base64.b64decode(item["b64"]))
-    elif "local" in item and P.MODE == "pod":
-        local = item["local"]
-        if not os.path.realpath(local).startswith(os.path.realpath(P.OUTPUT)):
-            raise ValueError("local input must be one of our own outputs")
     else:
         raise ValueError("unsupported input (only our own generated images are accepted)")
     g = zc.gate().check(local)
@@ -98,6 +98,7 @@ def publish(path, job_id):
     name = os.path.basename(path)
     out = {"type": "video" if path.lower().endswith((".mp4", ".webm", ".webp", ".gif", ".mov")) else "image",
            "name": name}
+    out["path"] = os.path.relpath(path, f"{P.ROOT}/output") if path.startswith(f"{P.ROOT}/output") else path
     if s3():
         key = f"{R2_OUTPUT_PREFIX}{time.strftime('%Y/%m/%d')}/{job_id}/{name}"
         ct = mimetypes.guess_type(name)[0] or "application/octet-stream"
@@ -105,8 +106,8 @@ def publish(path, job_id):
         out["key"] = key
         out["url"] = s3().generate_presigned_url("get_object", Params={"Bucket": R2_BUCKET, "Key": key},
                                                  ExpiresIn=URL_TTL)
-    else:
-        out["local"] = path
+    elif P.MODE == "serverless" and os.path.getsize(path) <= INLINE_MAX:
+        out["b64"] = base64.b64encode(open(path, "rb").read()).decode()
     if not KEEP_LOCAL:
         try:
             os.remove(path)
@@ -141,7 +142,7 @@ def generate(inp, job_id, progress=lambda m: None):
         raise ValueError("prompt refused: content involving minors is not allowed")
     names = [fetch_input(it, job_id, i) for i, it in enumerate(inp.get("images") or [])]
     kw = {k: inp[k] for k in ("model", "prompt", "negative", "seed", "loras", "width", "height", "seconds",
-                              "megapixels", "aspect", "turbo", "steps") if k in inp}
+                              "megapixels", "aspect", "turbo", "steps", "length") if k in inp}
     if fam in ("qwen_aio", "wan22_i2v", "h3_fl2va"):
         if not names:
             raise ValueError(f"{fam} needs an input image")
@@ -152,6 +153,9 @@ def generate(inp, job_id, progress=lambda m: None):
         if not names:
             raise ValueError("h3_ref2va needs 1-9 reference images")
         kw["refs"] = names
+    if fam == "wan22_i2v" and "seconds" in inp and "length" not in kw:
+        kw["length"] = int(float(inp["seconds"]) * 16) + 1   # Wan: 16 fps, length must be 4n+1
+        kw["length"] -= (kw["length"] - 1) % 4
     if "loras" not in kw:
         kw["loras"] = {}
     kw["prefix"] = f"{f['kind']}/{job_id}"
