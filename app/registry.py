@@ -15,6 +15,18 @@ REG_PATH = P.registry_path()
 MANIFEST = P.MANIFEST
 
 
+def _here(p):
+    """Manifest paths are absolute (/workspace/zc/models/... on pods). Map them onto this machine's volume mount so the
+    same manifest works on serverless (/runpod-volume/zc/models/...)."""
+    if not p or os.path.exists(p):
+        return p
+    if "/zc/models/" in p:
+        q = f"{MODELS_DIR}/{p.split('/zc/models/', 1)[1]}"
+        if os.path.exists(q):
+            return q
+    return p
+
+
 def load():
     reg = yaml.safe_load(open(REG_PATH))
     man = json.load(open(MANIFEST)) if os.path.exists(MANIFEST) else {}
@@ -22,8 +34,9 @@ def load():
         fam = m.get("family")
         m["families"] = fam if isinstance(fam, list) else [fam]
         e = man.get(m["key"], {})
-        paths = [p for p in ([e.get("path")] if e.get("path") else []) + (e.get("paths") or []) if p and os.path.exists(p)]
-        parts = e.get("parts") or {}
+        paths = [_here(p) for p in ([e.get("path")] if e.get("path") else []) + (e.get("paths") or [])]
+        paths = [p for p in paths if p and os.path.exists(p)]
+        parts = {k: _here(v) for k, v in (e.get("parts") or {}).items()}
         m["paths"] = paths
         m["ready"] = bool(paths) and (not ("high" in m.get("civitai", {})) or ("high" in parts and "low" in parts))
         top = m["dest"].split("/")[0]
