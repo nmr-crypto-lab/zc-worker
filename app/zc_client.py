@@ -308,6 +308,7 @@ class Progress:
         self.load_bytes = None
         self.first_step_t = None
         self.step_t = {}
+        self.started = False          # True once ComfyUI actually starts OUR prompt (not waiting behind another one)
         self.state = {"stage": "queued", "frac": 0, "detail": "", "eta": None}
 
     def _emit(self, **kw):
@@ -323,6 +324,7 @@ class Progress:
             self.cached |= set(d.get("nodes") or [])
         elif t == "execution_start":
             self.t0 = time.time()
+            self.started = True
         elif t == "executing" and d.get("node"):
             nid = str(d["node"])
             st = _stage_of(self.wf.get(nid, {}).get("class_type", ""))
@@ -358,6 +360,10 @@ class Progress:
 
     def tick(self):
         """Called about once a second while waiting: advance the estimated loading bar."""
+        if not self.started:
+            if self.state["stage"] != "waiting for GPU":
+                self._emit(stage="waiting for GPU", frac=0, detail="another job is running", eta=None)
+            return
         if self.state["stage"] == "loading models" or (self.state["stage"] in ("queued", "encoding prompt")
                                                         and self.first_step_t is None):
             lb = self.load_bytes if self.load_bytes is not None else \
