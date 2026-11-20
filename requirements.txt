@@ -11,3 +11,4 @@ insightface
 onnxruntime-gpu
 fastapi
 uvicorn
+websocket-client
