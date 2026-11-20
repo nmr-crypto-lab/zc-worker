@@ -35,6 +35,11 @@ h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .jobs{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-bottom:16px}
 .job{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12px}
 .job .s{min-width:84px;font-weight:600}.job .p{color:var(--mut);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.job .bar{flex-basis:100%;height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.job .bar i{display:block;height:100%;background:var(--warn);transition:width .8s linear}
+.job .bar i.est{background:repeating-linear-gradient(45deg,var(--warn) 0 8px,#0000 8px 14px),var(--warn);opacity:.75}
+.job .ps{flex-basis:100%;color:var(--mut);font-size:11px}
+#lb .a button.danger{border-color:var(--err);color:var(--err)}#lb .a button.danger.armed{background:var(--err);color:#fff}
 .s.queued{color:var(--mut)}.s.running{color:var(--warn)}.s.done{color:var(--ok)}.s.error{color:var(--err)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--panel2);cursor:pointer;border:2px solid transparent}
@@ -159,11 +164,20 @@ async function poll(){
     const [js,s]=await Promise.all([api("/api/jobs"),api("/api/status")]);
     $("#st").textContent=`${(s.gpu.name||"GPU…").replace(/^cuda:\d+\s*/,"").split(" : ")[0]} · free ${s.gpu.vram_free_gb??"?"}/${s.gpu.vram_total_gb??"?"} GB · queued ${s.queued}${s.running?" · generating":""}`;
     $("#jobs").innerHTML=js.length?js.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
-      <span class="p">${j.family} · ${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>
+      <span class="p">${j.family} · ${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${progHtml(j)}
       ${j.error?`<span style="color:var(--err)">${j.error.replace(/</g,"&lt;")}</span>`:""}${j.note?`<span style="color:var(--warn)">${j.note}</span>`:""}
       ${(j.outputs||[]).map(o=>`<a href="#" data-p="${o.path}" style="color:var(--acc)">open</a>`).join(" ")}</div>`).join(""):`<div class="hint">Nothing yet</div>`;
     const d=js.filter(j=>j.status==="done").map(j=>j.id).join(); if(d!==lastDone){lastDone=d;loadGallery()}
   }catch(e){$("#st").textContent="no connection to the server"}
+}
+const fmtT=s=>s==null?"":s>=60?`${Math.floor(s/60)}m ${String(s%60).padStart(2,"0")}s`:`${s}s`;
+const STAGE={"queued":"Starting","loading models":"Loading models","encoding prompt":"Encoding prompt","generating":"Generating",
+  "decoding":"Decoding","saving":"Saving","age check":"Age check"};
+function progHtml(j){
+  const p=j.progress; if(j.status!=="running"||!p) return "";
+  const est=p.stage==="loading models", pct=Math.round(100*Math.min(1,p.frac||0));
+  const txt=[STAGE[p.stage]||p.stage, p.detail, est?"(estimate)":"", p.eta!=null?`· ~${fmtT(p.eta)} left`:""].filter(Boolean).join(" ");
+  return `<div class="bar"><i class="${est?"est":""}" style="width:${["queued","age check","saving"].includes(p.stage)?100:pct}%"></i></div><div class="ps">${txt}</div>`;
 }
 $("#jobs").onclick=e=>{const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p)}};
 document.querySelectorAll("#gf .chip").forEach(c=>c.onclick=()=>{gkind=c.dataset.k;document.querySelectorAll("#gf .chip").forEach(x=>x.classList.toggle("on",x===c));loadGallery()});
@@ -179,10 +193,14 @@ function openLb(p){
   $("#lbm").innerHTML=isVid(p)?`<video src="${fileUrl(p)}" controls autoplay playsinline></video>`:`<img src="${fileUrl(p)}">`;
   const acts=[`<a href="${fileUrl(p)}" download>Download</a>`];
   if(!isVid(p)){acts.push(`<button data-a="edit">Edit</button>`,`<button data-a="wan22_i2v">Video (Wan)</button>`,`<button data-a="h3_fl2va">Video (H3)</button>`,`<button data-a="h3_ref2va">Add to H3 references</button>`)}
-  acts.push(`<button data-a="close">Close</button>`);
+  acts.push(`<button data-a="del" class="danger">Delete</button>`,`<button data-a="close">Close</button>`);
   $("#lba").innerHTML=acts.join(""); $("#lb").style.display="flex"; $("#lb").dataset.p=p;
 }
 $("#lb").onclick=e=>{const a=e.target.dataset.a; if(e.target.id==="lb"||a==="close"){$("#lb").style.display="none";$("#lbm").innerHTML="";return}
+  if(a==="del"){const b=e.target, p=$("#lb").dataset.p;
+    if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Tap again to delete";setTimeout(()=>{b.classList.remove("armed");b.textContent="Delete"},4000);return}
+    api("/api/files/"+p.split("/").map(encodeURIComponent).join("/"),{method:"DELETE"}).then(()=>{inputs=inputs.filter(x=>x!==p);
+      $("#lb").style.display="none";$("#lbm").innerHTML="";loadGallery();try{renderInputs()}catch(_){}}).catch(err=>{b.textContent="Error: "+err.message});return}
   if(a){const p=$("#lb").dataset.p; const f=a==="edit"?"qwen_aio":a; if(!M.families[f])return;
     if(f==="h3_ref2va"&&fam==="h3_ref2va"){if(!inputs.includes(p)&&inputs.length<9)inputs.push(p)} else inputs=[p];
     $("#lb").style.display="none";$("#lbm").innerHTML=""; setFam(f); $("#form").scrollIntoView({behavior:"smooth"})}};
