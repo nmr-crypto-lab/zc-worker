@@ -1,0 +1,127 @@
+# ZC model registry — the single list of everything on the volume.
+#
+# Add a model / LoRA of a KNOWN family  -> add one entry under `models`, run fetch_models.py. No code changes.
+# Add a NEW family                      -> add it under `families` + a template in templates.py (code).
+#
+# Sources (one per entry):
+#   hf:      {repos: [...], rx: <regex on repo path>, exclude: <regex>, rename: <file name>}
+#   hf_snapshot: <repo>                     (multi-file models, e.g. classifiers)
+#   civitai: {version: <id>, file_rx: <regex>}          single file
+#   civitai: {high: <version id>, low: <version id>}    Wan 2.2 high/low pairs
+# Roles: main (selectable model), lora, speed_lora (always on), te, vae, aux
+# `key` must stay stable: it is the id in state/models.json (files already downloaded are never fetched again).
+
+families:
+  zimage:      {label: "Изображение: реализм (Z-Image)", kind: image, template: zimage, status: ready}
+  illustrious: {label: "Изображение: аниме (Illustrious)", kind: image, template: illustrious, status: testing}
+  qwen_aio:    {label: "Редактирование (Qwen Rapid-AIO)", kind: edit, template: qwen_aio, status: ready}
+  wan22_i2v:   {label: "Видео: Wan 2.2 (без звука)", kind: video, template: wan22_i2v, status: ready}
+  h3_fl2va:    {label: "Видео: MiniMax H3 (со звуком)", kind: video, template: h3_fl2va, status: testing}
+  h3_ref2va:   {label: "Видео: MiniMax H3 по референсам", kind: video, template: h3_ref2va, status: testing}
+  safety:      {label: "Фильтр возраста", kind: aux, template: null, status: ready}
+
+models:
+  # ------------------------------------------------------------------ Z-Image
+  - {key: zimage_turbo, family: zimage, role: main, label: "Z-Image Turbo", dest: diffusion_models,
+     defaults: {steps: 8, cfg: 1.0, sampler: euler, scheduler: simple, shift: 3.0},
+     hf: {repos: [Comfy-Org/z_image_turbo], rx: 'diffusion_models/z_image_turbo_bf16\.safetensors$'}}
+  - {key: zimage_base, family: zimage, role: main, label: "Z-Image Base", dest: diffusion_models,
+     defaults: {steps: 28, cfg: 4.0, sampler: euler, scheduler: simple, shift: 3.0},
+     hf: {repos: [Comfy-Org/z_image, Comfy-Org/z_image_base, Comfy-Org/Z-Image_ComfyUI], rx: 'diffusion_models/z_image.*bf16\.safetensors$', exclude: turbo}}
+  - {key: pm_turbo_v35, family: zimage, role: main, label: "PornMaster Turbo V3.5", default: true, dest: diffusion_models/civitai,
+     defaults: {steps: 8, cfg: 1.0, sampler: euler, scheduler: simple, shift: 3.0},
+     civitai: {version: 2903129, file_rx: 'bf16'}}
+  - {key: pm_base_v1, family: zimage, role: main, label: "PornMaster Base V1", dest: diffusion_models/civitai,
+     defaults: {steps: 28, cfg: 4.0, sampler: euler, scheduler: simple, shift: 3.0},
+     civitai: {version: 2918406, file_rx: 'fp8'}}
+  - {key: zimage_te, family: zimage, role: te, dest: text_encoders, clip_type: lumina2,
+     hf: {repos: [Comfy-Org/z_image_turbo], rx: 'text_encoders/qwen_3_4b\.safetensors$'}}
+  - {key: zimage_vae, family: zimage, role: vae, dest: vae,
+     hf: {repos: [Comfy-Org/z_image_turbo], rx: 'vae/ae\.safetensors$', rename: zimage_ae.safetensors}}
+
+  # ------------------------------------------------------------------ Anime (Illustrious / SDXL, VAE baked in)
+  - {key: il_wai_v17, family: illustrious, role: main, label: "WAI Illustrious v17", default: true, dest: checkpoints/civitai,
+     defaults: {steps: 28, cfg: 6.0, sampler: euler_ancestral, scheduler: normal, clip_skip: -2},
+     prompt_prefix: "masterpiece, best quality, amazing quality, mature female, adult, ",
+     negative: "lowres, bad anatomy, bad hands, worst quality, low quality, child, loli, petite, flat chest, school uniform, watermark",
+     civitai: {version: 2883731}}
+  - {key: il_pm_anime_v5, family: illustrious, role: main, label: "PornMaster Anime IL-V5", dest: checkpoints/civitai,
+     defaults: {steps: 28, cfg: 6.0, sampler: euler_ancestral, scheduler: normal, clip_skip: -2},
+     prompt_prefix: "masterpiece, best quality, highres, mature female, adult, ",
+     negative: "lowres, bad anatomy, bad hands, worst quality, low quality, child, loli, petite, flat chest, school uniform, watermark",
+     civitai: {version: 2518034}}
+
+  # ------------------------------------------------------------------ Edit
+  - {key: qwen_edit_aio_nsfw, family: qwen_aio, role: main, label: "Qwen Edit Rapid-AIO NSFW", default: true, dest: checkpoints,
+     defaults: {steps: 4, cfg: 1.0, sampler: euler_ancestral, scheduler: beta},
+     hf: {repos: [Phr00t/Qwen-Image-Edit-Rapid-AIO, Aramon/Qwen-Image-Edit-Rapid-AIO], rx: '(?i)^v2[0-9]/[^/]*nsfw[^/]*\.safetensors$', newest: true}}
+
+  # ------------------------------------------------------------------ Wan 2.2 I2V
+  - {key: wan_high, family: wan22_i2v, role: main, part: high, label: "Wan 2.2 I2V A14B fp8", default: true, dest: diffusion_models,
+     defaults: {steps: 4, cfg: 1.0, sampler: euler, scheduler: simple, shift: 8.0, fps: 16, width: 480, height: 832, length: 81},
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'diffusion_models/wan2\.2_i2v_high_noise_14B_fp8_scaled\.safetensors$'}}
+  - {key: wan_low, family: wan22_i2v, role: main, part: low, dest: diffusion_models,
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'diffusion_models/wan2\.2_i2v_low_noise_14B_fp8_scaled\.safetensors$'}}
+  - {key: wan_te, family: wan22_i2v, role: te, dest: text_encoders, clip_type: wan,
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'text_encoders/umt5_xxl_fp8_e4m3fn_scaled\.safetensors$'}}
+  - {key: wan_vae, family: wan22_i2v, role: vae, dest: vae,
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'vae/wan_2\.1_vae\.safetensors$'}}
+  - {key: wan_lightning_high, family: wan22_i2v, role: speed_lora, part: high, dest: loras,
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'loras/wan2\.2_i2v_lightx2v_4steps_lora_v1_high_noise\.safetensors$'}}
+  - {key: wan_lightning_low, family: wan22_i2v, role: speed_lora, part: low, dest: loras,
+     hf: {repos: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged], rx: 'loras/wan2\.2_i2v_lightx2v_4steps_lora_v1_low_noise\.safetensors$'}}
+  - {key: lora_dr34ml4y_v2, family: wan22_i2v, role: lora, label: "DR34ML4Y", dest: loras/civitai,
+     triggers: "m15510n4ry, bl0wj0b, d0gg1e, c0wg1rl", civitai: {high: 2553151, low: 2553271}}
+  - {key: lora_general_nsfw_v2, family: wan22_i2v, role: lora, label: "General NSFW", dest: loras/civitai,
+     civitai: {high: 2073605, low: 2083303}}
+  - {key: lora_posing_nude_v2, family: wan22_i2v, role: lora, label: "Posing Nude", dest: loras/civitai,
+     civitai: {high: 2391828, low: 2391829}}
+
+  # ------------------------------------------------------------------ MiniMax H3 (video + audio)
+  - {key: h3_fl2va_pruned_bf16, family: h3_fl2va, role: main, label: "H3 FL2VA bf16", default: true, dest: diffusion_models,
+     defaults: {steps: 8, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_fl2va_pruned_bf16\.safetensors$'}}
+  - {key: h3_fl2va_pruned_int8, family: h3_fl2va, role: main, label: "H3 FL2VA int8 (быстрее/меньше)", dest: diffusion_models,
+     defaults: {steps: 8, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_fl2va_pruned_int8_convrot\.safetensors$'}}
+  - {key: h3_ref2va_pruned_bf16, family: h3_ref2va, role: main, label: "H3 Ref2VA bf16", default: true, dest: diffusion_models,
+     defaults: {steps: 25, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_ref2va_pruned_bf16\.safetensors$'}}
+  - {key: h3_ref2va_pruned_int8, family: h3_ref2va, role: main, label: "H3 Ref2VA int8", dest: diffusion_models,
+     defaults: {steps: 25, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_ref2va_pruned_int8_convrot\.safetensors$'}}
+  - {key: h3_te_int8, family: [h3_fl2va, h3_ref2va], role: te, dest: text_encoders,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^text_encoders/qwen3vl_32b_minimax_h3_int8_convrot\.safetensors$'}}
+  - {key: h3_video_vae, family: [h3_fl2va, h3_ref2va], role: vae, dest: vae,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^vae/minimax_h3_video_vae_fp16\.safetensors$'}}
+  - {key: h3_audio_vae, family: [h3_fl2va, h3_ref2va], role: aux, dest: vae,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^vae/minimax_h3_audio_vae_fp32\.safetensors$'}}
+  - {key: h3_turbo_8step, family: h3_fl2va, role: speed_lora, label: "Turbo 8 шагов", dest: loras,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^loras/minimax_h3_fl2v_turbo_8step_v1\.0_comfyui_bf16\.safetensors$'}}
+  - {key: h3_turbo_4step, family: h3_fl2va, role: speed_lora, label: "Turbo 4 шага", optional: true, dest: loras,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^loras/minimax_h3_fl2v_turbo_4step_v1\.0_768p_comfyui_bf16\.safetensors$'}}
+  - {key: h3_ref_turbo_4step, family: h3_ref2va, role: speed_lora, label: "Turbo 4 шага (ref)", optional: true, dest: loras,
+     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^loras/minimax_h3_ref2v_turbo_4step_v0\.1_comfyui_bf16\.safetensors$'}}
+  # H3 NSFW LoRAs (fl2va). Character/face-swap LoRAs (e.g. BFS) are deliberately NOT allowed.
+  - {key: h3_lora_dr34ml4y, family: h3_fl2va, role: lora, label: "DR34ML4Y H3", dest: loras/civitai/h3,
+     triggers: "m15510n4ry, bl0wj0b, d0ubl3_bj, d0gg1e, c0wg1rl", civitai: {version: 3405852}}
+  - {key: h3_lora_mysticxxx, family: h3_fl2va, role: lora, label: "Mystic XXX v5", dest: loras/civitai/h3,
+     civitai: {version: 3416478, file_rx: '^MysticXXX_MMH3-V5\.safetensors$'}}
+  - {key: h3_lora_mysticxxx_ref, family: h3_ref2va, role: lora, label: "Mystic XXX v5 (ref)", dest: loras/civitai/h3,
+     civitai: {version: 3416478, file_rx: 'ref2va'}}
+  - {key: h3_lora_hmnsfw, family: h3_fl2va, role: lora, label: "HMNSFW AIO", dest: loras/civitai/h3, civitai: {version: 3446189}}
+  - {key: h3_lora_unlocked, family: h3_fl2va, role: lora, label: "H3 NSFW Unlocked", dest: loras/civitai/h3, civitai: {version: 3478361}}
+  - {key: h3_lora_hmpussy, family: h3_fl2va, role: lora, label: "HMPussy", triggers: "pussy, vagina, anus", dest: loras/civitai/h3, civitai: {version: 3436891}}
+  - {key: h3_lora_hmbreasts, family: h3_fl2va, role: lora, label: "HMBreasts", triggers: "tits", dest: loras/civitai/h3, civitai: {version: 3268969}}
+  - {key: h3_lora_hmcumshot, family: h3_fl2va, role: lora, label: "HMCumshot", triggers: "cumshot", dest: loras/civitai/h3, civitai: {version: 3441237}}
+  - {key: h3_lora_bounce, family: h3_fl2va, role: lora, label: "Bouncing Boobs", triggers: "her breast is bouncing up and down", dest: loras/civitai/h3, civitai: {version: 3258590}}
+  - {key: h3_lora_motion, family: h3_fl2va, role: lora, label: "Motion Booster", triggers: "dynv2", dest: loras/civitai/h3, civitai: {version: 3228867}}
+
+  # ------------------------------------------------------------------ Upscale / safety
+  - {key: seedvr2_3b, family: aux, role: aux, dest: SEEDVR2,
+     hf: {repos: [numz/SeedVR2_comfyUI], rx: 'seedvr2_ema_3b_fp8_e4m3fn\.safetensors$'}}
+  - {key: seedvr2_vae, family: aux, role: aux, dest: SEEDVR2,
+     hf: {repos: [numz/SeedVR2_comfyUI], rx: 'ema_vae_fp16\.safetensors$'}}
+  - {key: age_classifier, family: safety, role: aux, dest: safety/vit-age-classifier, hf_snapshot: nateraw/vit-age-classifier}
+  - {key: anime_tagger, family: safety, role: aux, dest: safety/wd-eva02-large-tagger-v3, hf_snapshot: SmilingWolf/wd-eva02-large-tagger-v3,
+     allow: ["model.onnx", "selected_tags.csv", "config.json"]}
