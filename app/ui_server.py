@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 
 import handler as H
 import registry as R
+import projects as PJ
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.realpath(f"{P.ROOT}/output")
@@ -120,6 +121,8 @@ def worker():
         job.update(status="running", started=time.time())
         try:
             res = H.generate(dict(job["input"]), jid, progress=lambda st, job=job: job.__setitem__("progress", st))
+            if job["input"].get("_project"):
+                PJ.on_done(job, res)           # final clip name 000_1.mp4 + what it was made with
             for o in res.get("outputs", []):
                 o.pop("b64", None)
             job.update(status="done", result=res)
@@ -151,34 +154,44 @@ def models():
     return H.models_info()
 
 
-@app.post("/api/generate")
-async def generate(request: Request):
-    inp = await request.json()
-    if inp.get("family") not in H.models_info()["families"]:
-        raise HTTPException(400, "unknown family")
-    v = H.prompt_violation(inp.get("prompt"))
-    if v:
-        raise HTTPException(400, "Prompt refused: content involving minors is not allowed")
+def enqueue(inp):
     jid = uuid.uuid4().hex[:12]
     with LOCK:
         JOBS[jid] = {"id": jid, "status": "queued", "input": inp, "created": time.time()}
         ORDER.append(jid)
     Q.put(jid)
-    return {"id": jid}
+    return jid
+
+
+@app.post("/api/generate")
+async def generate(request: Request):
+    inp = await request.json()
+    for k in ("out_prefix", "_project"):          # internal keys, set only by the project runner
+        inp.pop(k, None)
+    if inp.get("family") not in H.models_info()["families"]:
+        raise HTTPException(400, "unknown family")
+    v = H.prompt_violation(inp.get("prompt"))
+    if v:
+        raise HTTPException(400, "Prompt refused: content involving minors is not allowed")
+    return {"id": enqueue(inp)}
 
 
 @app.get("/api/jobs")
 def jobs():
     now = time.time()
     out = []
-    for jid in reversed(ORDER[-50:]):
+    active = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running")]
+    recent = [k for k in ORDER if JOBS[k]["status"] not in ("queued", "running")][-30:]
+    qpos = {k: n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued")}
+    for jid in reversed(sorted(set(active + recent), key=ORDER.index)):
         j = JOBS[jid]
         d = {k: j.get(k) for k in ("id", "status", "error", "note", "progress")}
         d["family"] = j["input"].get("family")
+        pj = j["input"].get("_project")
+        if pj:
+            d["label"] = f"{pj['slug']} · {PJ.cname(pj['i'], pj['v'])}"
         d["prompt"] = (j["input"].get("prompt") or "")[:120]
-        d["queue_pos"] = None
-        if j["status"] == "queued":
-            d["queue_pos"] = sum(1 for k in ORDER if JOBS[k]["status"] == "queued" and JOBS[k]["created"] <= j["created"])
+        d["queue_pos"] = qpos.get(jid)
         t0 = j.get("started") or j["created"]
         d["secs"] = round((j.get("finished") or now) - t0)
         if j.get("result"):
@@ -193,6 +206,8 @@ def gallery(limit: int = 120, kind: str = ""):
     items = []
     for root, dirs, files in os.walk(OUT):
         dirs[:] = [x for x in dirs if not x.startswith(".")]      # skip .ipynb_checkpoints etc.
+        if root == OUT and "projects" in dirs:                    # projects have their own page
+            dirs.remove("projects")
         for f in files:
             if f.lower().endswith(MEDIA):
                 p = os.path.join(root, f)
@@ -219,10 +234,12 @@ def _media(path):
 
 
 @app.get("/files/{path:path}")
-def files(path: str):
+def files(path: str, dl: int = 0):
     p = _media(path)
-    return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream",
-                        headers={"Cache-Control": "private, max-age=86400"})
+    h = {"Cache-Control": "private, max-age=86400"}
+    if dl:
+        h["Content-Disposition"] = f'attachment; filename="{os.path.basename(p)}"'
+    return FileResponse(p, media_type=mimetypes.guess_type(p)[0] or "application/octet-stream", headers=h)
 
 
 THUMBS = os.environ.get("ZC_THUMBS", "/root/zcthumbs")
@@ -259,6 +276,8 @@ def thumb(path: str):
 @app.delete("/api/files/{path:path}")
 def delete_file(path: str):
     """Permanently delete a result (the UI asks for a second tap first)."""
+    if path.startswith("projects/"):
+        raise HTTPException(403, "project files are managed on the project page")
     p = os.path.realpath(os.path.join(OUT, path))
     if not p.startswith(OUT + os.sep) or not os.path.isfile(p) or not p.lower().endswith(MEDIA):
         raise HTTPException(404)
@@ -266,6 +285,128 @@ def delete_file(path: str):
     with open(JOBS_LOG, "a") as f:
         f.write(json.dumps({"deleted": path, "ts": time.time()}) + "\n")
     return {"ok": True}
+
+
+# ------------------------------------------------------------------ Create Movie projects
+def _pj(fn, *a, **kw):
+    try:
+        return fn(*a, **kw)
+    except PJ.ProjectError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/ui/movie.js")
+def movie_js():
+    return Response(open(f"{APP_DIR}/ui/movie.js", encoding="utf-8").read(), media_type="application/javascript")
+
+
+@app.get("/api/projects")
+def projects_list():
+    return PJ.list_projects()
+
+
+@app.post("/api/projects")
+async def projects_create(request: Request):
+    return {"slug": _pj(PJ.create, (await request.json()).get("title"))}
+
+
+@app.get("/api/projects/{slug}")
+def project_get(slug: str):
+    return _pj(PJ.state, slug, sorted(JOBS.values(), key=lambda j: j.get("created") or 0))
+
+
+@app.delete("/api/projects/{slug}")
+def project_delete(slug: str):
+    if any((j["input"].get("_project") or {}).get("slug") == slug and j["status"] in ("queued", "running")
+           for j in JOBS.values()):
+        raise HTTPException(400, "the project still has clips in the queue")
+    _pj(PJ.delete_project, slug)
+    return {"ok": True}
+
+
+@app.post("/api/projects/{slug}/refs")
+async def project_add_ref(slug: str, request: Request):
+    b = await request.json()
+    return {"name": _pj(PJ.add_ref, slug, b.get("name"), b.get("path"), b.get("desc", ""))}
+
+
+@app.patch("/api/projects/{slug}/refs/{name}")
+async def project_ref_desc(slug: str, name: str, request: Request):
+    _pj(PJ.set_ref_desc, slug, name, (await request.json()).get("desc", ""))
+    return {"ok": True}
+
+
+@app.delete("/api/projects/{slug}/refs/{name}")
+def project_del_ref(slug: str, name: str):
+    _pj(PJ.delete_ref, slug, name)
+    return {"ok": True}
+
+
+@app.put("/api/projects/{slug}/plan")
+async def project_plan(slug: str, request: Request):
+    b = await request.json()
+    return {"warnings": _pj(PJ.save_plan, slug, b.get("plan"), H.prompt_violation)}
+
+
+def _active(slug):
+    return {(j["input"]["_project"]["i"], j["input"]["_project"]["v"]) for j in JOBS.values()
+            if (j["input"].get("_project") or {}).get("slug") == slug and j["status"] in ("queued", "running")}
+
+
+@app.post("/api/projects/{slug}/generate")
+def project_generate(slug: str):
+    """queue every clip variant that is not on disk and not already queued: 000_1..000_N, 001_1, ..."""
+    p, m = _pj(PJ.plan, slug), _pj(PJ.meta, slug)
+    if not p:
+        raise HTTPException(400, "upload the JSON plan first")
+    files, busy = PJ.clip_files(slug), _active(slug)
+    todo = [(i, v) for i in range(len(p["clips"])) for v in range(1, p["variants"] + 1)
+            if (i, v) not in files and (i, v) not in busy]
+    inputs = [_pj(PJ.job_input, slug, i, v, p, m) for i, v in todo]      # validate all before queueing any
+    for inp in inputs:
+        enqueue(inp)
+    return {"queued": len(inputs)}
+
+
+@app.post("/api/projects/{slug}/clips/{i}/{v}/regenerate")
+def project_regen(slug: str, i: int, v: int):
+    if (i, v) in _active(slug):
+        raise HTTPException(400, "this clip is already in the queue")
+    inp = _pj(PJ.job_input, slug, i, v)
+    inp.pop("seed", None)                         # a new take: always a fresh random seed
+    return {"id": enqueue(inp)}
+
+
+@app.delete("/api/projects/{slug}/clips/{i}/{v}")
+def project_del_clip(slug: str, i: int, v: int):
+    _pj(PJ.delete_clip, slug, i, v)
+    return {"ok": True}
+
+
+@app.post("/api/projects/{slug}/select/{i}/{v}")
+def project_select(slug: str, i: int, v: int):
+    return {"selection": _pj(PJ.select, slug, i, v)}
+
+
+@app.post("/api/projects/{slug}/montage")
+async def project_montage(slug: str, request: Request):
+    b = await request.json()
+    if b.get("custom"):
+        return _pj(PJ.montage, slug, custom=True)
+    return _pj(PJ.montage, slug, variant=int(b.get("variant") or 1), fallback=bool(b.get("fallback")))
+
+
+@app.delete("/api/projects/{slug}/movies/{name}")
+def project_del_movie(slug: str, name: str):
+    _pj(PJ.delete_movie, slug, name)
+    return {"ok": True}
+
+
+@app.get("/api/projects/{slug}/export")
+def project_export(slug: str):
+    data = _pj(PJ.export_zip, slug)
+    return Response(data, media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{slug}-for-llm.zip"'})
 
 
 @app.get("/api/status")

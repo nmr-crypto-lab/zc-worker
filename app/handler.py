@@ -165,6 +165,11 @@ def generate(inp, job_id, progress=None):
     if "loras" not in kw:
         kw["loras"] = {}
     kw["prefix"] = f"{f['kind']}/{job_id}"
+    op = inp.get("out_prefix")          # set only by the project runner (Create Movie), never from user input
+    if op:
+        if not re.fullmatch(r"projects/[a-z0-9_-]+/clips/\d{3}_\d+", op):
+            raise ValueError("bad out_prefix")
+        kw["prefix"] = op
     wf = T.build(fam, **kw)
     kept, info = zc.run(wf, {"job": job_id, "family": fam, "model": inp.get("model"), "seed": wf_seed(wf)},
                         progress=progress)
