@@ -55,11 +55,50 @@ h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .err{color:var(--err);font-size:12px;margin-top:8px;min-height:16px}
 .pickbar{display:none;background:var(--acc2);color:#fff;padding:8px 12px;border-radius:8px;margin-bottom:10px;font-size:13px;justify-content:space-between;align-items:center}
 .pickbar button{background:#fff2;border:0;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer}
+header b{white-space:nowrap}header .nav{white-space:nowrap;padding:5px 10px;border-radius:8px;cursor:pointer;color:var(--mut);font-size:13px;border:1px solid transparent}
+header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel2)}
+.jmore{color:var(--mut);font-size:12px;padding:4px 10px}
+/* Create Movie */
+#movie{padding:16px;max-width:1500px;margin:0 auto}@media(max-width:860px){#movie{padding:12px}}@media(max-width:520px){header{gap:6px;padding:8px 10px}header .nav{padding:4px 7px;font-size:12px}}
+.mv-wrap{display:flex;flex-direction:column;gap:16px}
+.mv-btn{display:inline-flex;align-items:center;justify-content:center;background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;text-decoration:none;white-space:nowrap}
+.mv-btn.pri{background:var(--acc2);border-color:var(--acc2);color:#fff}.mv-btn:disabled{opacity:.45;cursor:default}
+.mv-btn.sm{padding:4px 9px;font-size:12px}.mv-btn.danger{border-color:var(--err);color:var(--err)}.mv-btn.danger.armed,.mv-btn.armed{background:var(--err);color:#fff;border-color:var(--err)}
+.mv-msg{min-height:18px;margin-top:8px;font-size:12px;color:var(--ok)}.mv-msg.err{color:var(--err)}
+.mv-new{gap:8px}.mv-plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:12px}
+.mv-pcard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.mv-pcard span{color:var(--mut);font-size:12px}
+.mv-refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;margin-top:10px}
+.mv-ref{background:var(--panel2);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.mv-ref img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer}
+.mv-ref .n{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis}.mv-ref .d,.mv-ref .u{color:var(--mut);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-clips{display:flex;flex-direction:column;gap:10px}
+.mv-clip{background:var(--panel2);border-radius:8px;padding:10px;min-width:0}.mv-ch{font-size:13px}.mv-ch .miss{color:var(--err);text-decoration:line-through}
+.mv-cp{color:var(--mut);font-size:12px;margin:4px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mv-vs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.mv-tile{position:relative;flex:0 0 120px;aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:var(--panel);border:2px solid transparent;cursor:pointer}
+.mv-tile img{width:100%;height:100%;object-fit:cover;display:block}.mv-tile.sel{border-color:var(--ok)}
+.mv-tile .vph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:22px}
+.mv-tile .b{position:absolute;left:4px;bottom:4px;background:#000b;padding:1px 5px;border-radius:5px;font-size:10px}
+.mv-tile .o{position:absolute;right:4px;top:4px;background:var(--warn);color:#000;padding:0 5px;border-radius:5px;font-size:10px}
+.mv-tile.st-running{border-color:var(--warn)}.mv-tile.st-error{border-color:var(--err)}
+.mv-movies{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.mv-movie{display:flex;gap:10px;align-items:center;background:var(--panel2);border-radius:8px;padding:8px}
+.mv-movie .vph{flex:0 0 72px;height:48px;border-radius:6px;background:var(--panel);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mut);overflow:hidden;position:relative}.mv-movie .vph img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}.mv-movie .vph span{position:relative;text-shadow:0 0 4px #000}
+#mv-lb{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;padding:12px}
+#mv-lb .m{max-width:min(960px,96vw);max-height:80vh;overflow:auto}#mv-lb .m img,#mv-lb .m video{max-width:96vw;max-height:70vh;border-radius:8px;display:block;margin:0 auto}
+#mv-lb .a{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+#mv-lb .a button,#mv-lb .a a{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font-size:13px}
+#mv-lb .a button.on{border-color:var(--ok);color:var(--ok)}#mv-lb .a button.danger{border-color:var(--err);color:var(--err)}#mv-lb .a button.armed{background:var(--err);color:#fff}
+.mv-form{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;width:min(900px,92vw)}
+.mv-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;max-height:45vh;overflow:auto;margin-bottom:10px}
+.ep-clip{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}.ep-clip textarea{min-height:70px;margin-top:6px}
+.mv-cap{max-width:min(900px,92vw);margin-bottom:8px}
 </style>
 </head>
 <body>
-<header><b>ZC Studio</b><span id="st">…</span></header>
-<main>
+<header><b>ZC Studio</b><span class="nav on" data-v="studio">Studio</span><span class="nav" data-v="movie">Create Movie</span><span id="st">…</span></header>
+<main id="studio">
   <section class="card" id="form">
     <div class="tabs" id="tabs"></div>
     <div id="fields"></div>
@@ -77,6 +116,7 @@ h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
     </div>
   </section>
 </main>
+<div id="movie" style="display:none"></div>
 <div id="lb"><div class="m" id="lbm"></div><div class="a" id="lba"></div></div>
 <script>
 const $=s=>document.querySelector(s), FAM_INPUTS={qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
@@ -172,10 +212,13 @@ async function poll(){
     const [js,s]=await Promise.all([api("/api/jobs"),api("/api/status")]);
     if(!!s.thumbs!==THUMBS){THUMBS=!!s.thumbs;loadGallery(true)}
     $("#st").textContent=`${(s.gpu.name||"GPU…").replace(/^cuda:\d+\s*/,"").split(" : ")[0]} · free ${s.gpu.vram_free_gb??"?"}/${s.gpu.vram_total_gb??"?"} GB · queued ${s.queued}${s.running?" · generating":""}`;
-    $("#jobs").innerHTML=js.length?js.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
-      <span class="p">${j.family} · ${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${progHtml(j)}
+    const qd=js.filter(j=>j.status==="queued"), shown=js.filter(j=>j.status!=="queued").concat(qd.slice(-5));
+    const order=j=>({running:0,queued:1}[j.status]??2), vis=shown.sort((a,b)=>order(a)-order(b)||(a.status==="queued"?a.queue_pos-b.queue_pos:0));
+    $("#jobs").innerHTML=js.length?vis.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
+      <span class="p">${j.label?`<b>${j.label}</b> · `:`${j.family} · `}${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${progHtml(j)}
       ${j.error?`<span style="color:var(--err)">${j.error.replace(/</g,"&lt;")}</span>`:""}${j.note?`<span style="color:var(--warn)">${j.note}</span>`:""}
-      ${(j.outputs||[]).map(o=>`<a href="#" data-p="${o.path}" style="color:var(--acc)">open</a>`).join(" ")}</div>`).join(""):`<div class="hint">Nothing yet</div>`;
+      ${j.label?"":(j.outputs||[]).map(o=>`<a href="#" data-p="${o.path}" style="color:var(--acc)">open</a>`).join(" ")}</div>`).join("")
+      +(qd.length>5?`<div class="jmore">+ ${qd.length-5} more in the queue</div>`:""):`<div class="hint">Nothing yet</div>`;
     const d=js.filter(j=>j.status==="done").map(j=>j.id).join(); if(d!==lastDone){lastDone=d;loadGallery()}
   }catch(e){$("#st").textContent="no connection to the server"}
 }
@@ -227,5 +270,6 @@ $("#lb").onclick=e=>{const a=e.target.dataset.a; if(e.target.id==="lb"||a==="clo
     $("#lb").style.display="none";$("#lbm").innerHTML=""; setFam(f); $("#form").scrollIntoView({behavior:"smooth"})}};
 init().catch(e=>{$("#st").textContent="Loading error: "+e.message});
 </script>
+<script src="/ui/movie.js"></script>
 </body>
 </html>
