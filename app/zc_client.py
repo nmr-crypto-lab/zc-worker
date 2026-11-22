@@ -409,9 +409,14 @@ def _listen(cid, prog, stop):
         pass
 
 
-def run(workflow, meta, timeout=3600, progress=None):
+class Cancelled(Exception):
+    pass
+
+
+def run(workflow, meta, timeout=3600, progress=None, cancel=None):
     """Queue an API-format workflow, wait, age-gate every output. Returns (kept_paths, info).
-    progress(dict) is called with {stage, frac, detail, eta} while the job runs (optional)."""
+    progress(dict) is called with {stage, frac, detail, eta} while the job runs (optional).
+    cancel() -> True stops the job: removes it from the ComfyUI queue / interrupts it, raises Cancelled."""
     import threading
     fill_defaults(workflow)
     cid = str(uuid.uuid4())
@@ -429,6 +434,13 @@ def run(workflow, meta, timeout=3600, progress=None):
                 break
             if time.time() - t0 > timeout:
                 raise TimeoutError(meta)
+            if cancel and cancel():
+                for path, body in (("/queue", {"delete": [pid]}), ("/interrupt", {})):
+                    try:
+                        _req(path, body)
+                    except Exception:
+                        pass
+                raise Cancelled("cancelled")
             prog.tick()
             time.sleep(1)
     finally:
