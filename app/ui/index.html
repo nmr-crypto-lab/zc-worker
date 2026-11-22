@@ -40,7 +40,7 @@ h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .job .bar i.est{background:repeating-linear-gradient(45deg,var(--warn) 0 8px,#0000 8px 14px),var(--warn);opacity:.75}
 .job .ps{flex-basis:100%;color:var(--mut);font-size:11px}
 #lb .a button.danger{border-color:var(--err);color:var(--err)}#lb .a button.danger.armed{background:var(--err);color:#fff}
-.s.queued{color:var(--mut)}.s.running{color:var(--warn)}.s.done{color:var(--ok)}.s.error{color:var(--err)}
+.s.cancelled{color:var(--mut)}.job .x{background:none;border:1px solid var(--line);color:var(--mut);border-radius:6px;padding:1px 7px;cursor:pointer;font:inherit;font-size:12px}.job .x:hover,.job .x.arm{color:var(--err);border-color:var(--err)}#qclr{float:right;font-size:12px;font-weight:400}.s.queued{color:var(--mut)}.s.running{color:var(--warn)}.s.done{color:var(--ok)}.s.error{color:var(--err)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--panel2);cursor:pointer;border:2px solid transparent}
 .item img,.item video{width:100%;height:100%;object-fit:cover;display:block}
@@ -106,7 +106,7 @@ header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel
     <div class="err" id="err"></div>
   </section>
   <section>
-    <div class="card" style="margin-bottom:16px"><h3>Queue</h3><div class="jobs" id="jobs"><div class="hint">Nothing yet</div></div></div>
+    <div class="card" style="margin-bottom:16px"><h3>Queue <button class="x" id="qclr" style="display:none">Clear queue</button></h3><div class="jobs" id="jobs"><div class="hint">Nothing yet</div></div></div>
     <div class="card">
       <div class="pickbar" id="pickbar"><span id="picktxt"></span><button id="pickdone">Done</button></div>
       <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Gallery</h3>
@@ -119,10 +119,12 @@ header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel
 <div id="movie" style="display:none"></div>
 <div id="lb"><div class="m" id="lbm"></div><div class="a" id="lba"></div></div>
 <script>
-const $=s=>document.querySelector(s), FAM_INPUTS={qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
+const $=s=>document.querySelector(s), FAM_INPUTS={qwen_image21:[0,10],flux3_klein:[0,10],qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
 const HINTS={
  zimage:"Plain English description. Turbo models: 8 steps, the negative prompt is ignored.",
  illustrious:"Danbooru tags separated by commas (1girl, long hair, …). \"mature female, adult\" is added automatically.",
+ qwen_image21:"Plain English. Without references: text-to-image. With references: say what each one is — \"the man from image 1 sits at the desk in the room from image 2\" — or give an edit instruction and choose \"Same as reference 1\".",
+ flux3_klein:"Plain English. With references, name them in order: \"the man from the first image at the desk in the room from the second image\". Safe-for-work only: this model is not trained on nudity — for NSFW, edit the result with Qwen Rapid-AIO.",
  qwen_aio:"What to change in the image. Example: change the dress to red, keep everything else the same.",
  wan22_i2v:"Describe the motion and the camera. No sound, 16 fps, up to 5 s.",
  h3_fl2va:"Scene, motion, speech in quotes, and sounds. The image is &lt;Picture 1&gt;. A second image (optional) becomes the last frame.",
@@ -134,7 +136,7 @@ const isVid=p=>/\.(mp4|webm|mov)$/i.test(p);
 
 async function init(){
   M=await api("/api/models");
-  const order=["zimage","illustrious","qwen_aio","wan22_i2v","h3_fl2va","h3_ref2va"];
+  const order=["zimage","qwen_image21","flux3_klein","illustrious","qwen_aio","wan22_i2v","h3_fl2va","h3_ref2va"];
   const fams=order.filter(f=>M.families[f]&&M.families[f].models.length);
   $("#tabs").innerHTML=fams.map(f=>`<button class="tab" data-f="${f}">${M.families[f].label.replace(/^(Image|Video): /,"").replace(/^./,c=>c.toUpperCase())}${M.families[f].status!=="ready"?"<small>β</small>":""}</button>`).join("");
   $("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b)setFam(b.dataset.f)};
@@ -147,12 +149,13 @@ function setFam(f){
   const F=M.families[f], dm=F.models.find(m=>m.default)||F.models[0];
   inputs=inputs.slice(0,(FAM_INPUTS[f]||[0,0])[1]);
   let h=`<label>Model</label><select id="model">${F.models.map(m=>`<option value="${m.key}" ${m===dm?"selected":""}>${m.label}</option>`).join("")}</select>`;
-  if(FAM_INPUTS[f]) h+=`<label>${f==="h3_ref2va"?"References (up to 9, from the gallery)":f==="h3_fl2va"?"First frame (+ optional last frame)":"Source image"}</label><div class="inputs" id="inputs"></div>`;
+  if(FAM_INPUTS[f]) h+=`<label>${f==="h3_ref2va"?"References (up to 9, from the gallery)":(f==="qwen_image21"||f==="flux3_klein")?"References (optional, up to 10, from the gallery)":f==="h3_fl2va"?"First frame (+ optional last frame)":"Source image"}</label><div class="inputs" id="inputs"></div>`;
   h+=`<label>Prompt</label><textarea id="prompt" placeholder="…"></textarea><div class="hint">${HINTS[f]||""}</div>`;
   if(f==="zimage"||f==="illustrious"){
     h+=`<label>Size</label><div class="chips" id="size">${[["832x1216","Portrait"],["1024x1024","Square"],["1216x832","Landscape"]].map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>
        <details><summary>Negative prompt</summary><textarea id="neg" style="min-height:60px" placeholder="model default"></textarea></details>`;
   }
+  if(f==="qwen_image21"||f==="flux3_klein") h+=`<label>Size</label><div class="chips" id="size">${[["896x1344","Portrait"],["1152x1152","Square"],["1344x896","Landscape"],["1536x864","Wide 16:9"]].concat(f==="qwen_image21"?[["same","Same as reference 1"]]:[]).map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>`;
   if(f==="wan22_i2v") h+=`<label>Length: <span id="secv">5</span> s</label><input type="range" id="sec" min="1" max="5" step="1" value="5" style="width:100%">
      <label>Size</label><div class="chips" id="size">${[["480x832","Vertical 480p"],["832x480","Horizontal 480p"],["720x1280","Vertical 720p"]].map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>`;
   if(f==="h3_fl2va"||f==="h3_ref2va") h+=`<label>Length: <span id="secv">5</span> s</label><input type="range" id="sec" min="4" max="15" step="1" value="5" style="width:100%">
@@ -192,7 +195,7 @@ $("#go").onclick=async()=>{
   $("#err").textContent=""; const F=M.families[fam]; const req={family:fam,model:$("#model").value,prompt:$("#prompt").value.trim()};
   if(!req.prompt&&fam!=="qwen_aio"){$("#err").textContent="Write a prompt";return}
   if(FAM_INPUTS[fam]){ if(inputs.length<FAM_INPUTS[fam][0]){$("#err").textContent="Pick an image from the gallery";return} req.images=inputs.map(p=>({path:p})) }
-  const sz=chipVal("size"); if(sz){const [w,h]=sz.split("x").map(Number);req.width=w;req.height=h}
+  const sz=chipVal("size"); if(sz==="same"){ if(!inputs.length){$("#err").textContent="\"Same as reference 1\" needs a reference image";return} req.keep_size=true } else if(sz){const [w,h]=sz.split("x").map(Number);req.width=w;req.height=h}
   const neg=$("#neg"); if(neg&&neg.value.trim()) req.negative=neg.value.trim();
   const sec=$("#sec"); if(sec) req.seconds=+sec.value;
   const mp=chipVal("mp"); if(mp) req.megapixels=+mp; const ar=chipVal("aspect"); if(ar) req.aspect=ar;
@@ -205,7 +208,8 @@ $("#go").onclick=async()=>{
   catch(e){$("#err").textContent=e.message} finally{setTimeout(()=>$("#go").disabled=false,600)}
 };
 
-const ST={queued:"queued",running:"generating",done:"done",error:"error"};
+const ARM={stop:null,until:0,clr:0};
+const ST={queued:"queued",running:"generating",done:"done",error:"error",cancelled:"cancelled"};
 let lastDone="";
 async function poll(){
   try{
@@ -215,10 +219,12 @@ async function poll(){
     const qd=js.filter(j=>j.status==="queued"), shown=js.filter(j=>j.status!=="queued").concat(qd.slice(-5));
     const order=j=>({running:0,queued:1}[j.status]??2), vis=shown.sort((a,b)=>order(a)-order(b)||(a.status==="queued"?a.queue_pos-b.queue_pos:0));
     $("#jobs").innerHTML=js.length?vis.map(j=>`<div class="job"><span class="s ${j.status}">${ST[j.status]}${j.status==="queued"&&j.queue_pos?" #"+j.queue_pos:""}</span>
-      <span class="p">${j.label?`<b>${j.label}</b> · `:`${j.family} · `}${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${progHtml(j)}
+      <span class="p">${j.label?`<b>${j.label}</b> · `:`${j.family} · `}${(j.prompt||"").replace(/</g,"&lt;")}</span><span>${j.secs}s</span>${j.status==="queued"?`<button class="x" data-c="${j.id}" title="Remove from the queue">✕</button>`:j.status==="running"?(j.cancel?`<span class="ps" style="flex-basis:auto">stopping…</span>`:(ARM.stop===j.id&&ARM.until>Date.now()?`<button class="x arm" data-c="${j.id}" data-run="1">Stop? tap again</button>`:`<button class="x" data-c="${j.id}" data-run="1" title="Stop this job">Stop</button>`)):""}${progHtml(j)}
       ${j.error?`<span style="color:var(--err)">${j.error.replace(/</g,"&lt;")}</span>`:""}${j.note?`<span style="color:var(--warn)">${j.note}</span>`:""}
       ${j.label?"":(j.outputs||[]).map(o=>`<a href="#" data-p="${o.path}" style="color:var(--acc)">open</a>`).join(" ")}</div>`).join("")
       +(qd.length>5?`<div class="jmore">+ ${qd.length-5} more in the queue</div>`:""):`<div class="hint">Nothing yet</div>`;
+    const ca=ARM.clr>Date.now(); $("#qclr").style.display=qd.length>1?"":"none"; $("#qclr").classList.toggle("arm",ca);
+    $("#qclr").textContent=ca?"Remove all queued? tap again":`Clear queue (${qd.length})`;
     const d=js.filter(j=>j.status==="done").map(j=>j.id).join(); if(d!==lastDone){lastDone=d;loadGallery()}
   }catch(e){$("#st").textContent="no connection to the server"}
 }
@@ -231,7 +237,14 @@ function progHtml(j){
   const txt=[STAGE[p.stage]||p.stage, p.detail, est?"(estimate)":"", p.eta!=null?`· ~${fmtT(p.eta)} left`:""].filter(Boolean).join(" ");
   return `<div class="bar"><i class="${est?"est":""}" style="width:${["queued","waiting for GPU","age check","saving"].includes(p.stage)?100:pct}%"></i></div><div class="ps">${txt}</div>`;
 }
-$("#jobs").onclick=e=>{const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p)}};
+$("#jobs").onclick=async e=>{
+  const a=e.target.closest("a[data-p]");if(a){e.preventDefault();openLb(a.dataset.p);return}
+  const b=e.target.closest("button[data-c]");if(!b)return;
+  if(b.dataset.run&&!(ARM.stop===b.dataset.c&&ARM.until>Date.now())){ARM.stop=b.dataset.c;ARM.until=Date.now()+4000;b.classList.add("arm");b.textContent="Stop? tap again";return}
+  ARM.stop=null;
+  b.disabled=true;try{await api(`/api/jobs/${b.dataset.c}/cancel`,{method:"POST"})}catch(err){}poll()};
+$("#qclr").onclick=async()=>{const b=$("#qclr");if(!(ARM.clr>Date.now())){ARM.clr=Date.now()+4000;b.classList.add("arm");b.textContent="Remove all queued? tap again";return}
+  ARM.clr=0;b.disabled=true;try{await api("/api/jobs/cancel_queued",{method:"POST"})}catch(err){}b.disabled=false;poll()};
 document.querySelectorAll("#gf .chip").forEach(c=>c.onclick=()=>{gkind=c.dataset.k;document.querySelectorAll("#gf .chip").forEach(x=>x.classList.toggle("on",x===c));loadGallery()});
 let gSig="", gLimit=60, THUMBS=false;
 function tile(i){
