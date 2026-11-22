@@ -96,6 +96,91 @@ def illustrious(prompt="describe the image here (danbooru tags work best)", nega
     return wf
 
 
+# ------------------------------------------------------------------ image: Qwen-Image 2.1 (text-to-image, or up to 10 references)
+# Graph = the official ComfyUI templates (image_qwen_image_2_1[_turbo]_{t2i,image_edit}.json) without the optional
+# prompt-enhancer subgraph. refs -> TextEncodeQwenImage21 images.image_N (+ vae, so they are spliced in as latents).
+# keep_size=True (edit an image): the output takes the size of reference 1, like the template's default.
+def qwen_image21(prompt="describe the image here", negative="", seed=0, width=1024, height=1024, model=None,
+                 refs=None, keep_size=False, prefix="image/qwen21", **_):
+    m = _main("qwen_image21", model)
+    te, vae = R.one("qwen_image21", "te"), R.one("qwen_image21", "vae")
+    refs = list(refs or [])[:10]
+    wf = {
+        "1": _n("UNETLoader", {"unet_name": m["rel"], "weight_dtype": "default"}, "Model"),
+        "2": _n("QwenImage21Cache", {"model": ["1", 0], "device": "auto", "dtype": "default"}),
+        "3": _n("CLIPLoader", {"clip_name": te["rel"], "type": te.get("clip_type", "qwen_image"), "device": "default"}),
+        "4": _n("VAELoader", {"vae_name": vae["rel"]}),
+    }
+    enc = {"clip": ["3", 0], "prompt": prompt, "negative_prompt": negative or "",
+           "resolution": 0 if keep_size else 1024}
+    for i, name in enumerate(refs):
+        wf[str(20 + i)] = _n("LoadImage", {"image": name}, f"Reference {i + 1} (our own generated image)")
+        enc[f"images.image_{i + 1}"] = [str(20 + i), 0]
+    if refs:
+        enc["vae"] = ["4", 0]
+    wf["5"] = _n("TextEncodeQwenImage21", enc, TITLE_PROMPT)
+    if keep_size and refs:
+        latent = ["5", 2]
+    else:
+        wf["6"] = _n("EmptyLatentImage", {"width": int(width), "height": int(height), "batch_size": 1})
+        latent = ["6", 0]
+    sig = _d(m, "sigmas")
+    if sig:                       # Turbo: fixed 8-step schedule from the official template
+        wf.update({
+            "7": _n("RandomNoise", {"noise_seed": seed}),
+            "8": _n("KSamplerSelect", {"sampler_name": _d(m, "sampler", "euler")}),
+            "9": _n("ManualSigmas", {"sigmas": sig}),
+            "10": _n("CFGGuider", {"model": ["2", 0], "positive": ["5", 0], "negative": ["5", 1], "cfg": _d(m, "cfg", 1.0)}),
+            "11": _n("SamplerCustomAdvanced", {"noise": ["7", 0], "guider": ["10", 0], "sampler": ["8", 0],
+                                               "sigmas": ["9", 0], "latent_image": latent}),
+        })
+        out = ["11", 0]
+    else:
+        wf["11"] = _n("KSampler", {"model": ["2", 0], "positive": ["5", 0], "negative": ["5", 1], "latent_image": latent,
+                                   "seed": seed, "steps": _d(m, "steps", 25), "cfg": _d(m, "cfg", 1.0),
+                                   "sampler_name": _d(m, "sampler", "euler"), "scheduler": _d(m, "scheduler", "simple"),
+                                   "denoise": 1.0})
+        out = ["11", 0]
+    wf["12"] = _n("VAEDecode", {"samples": out, "vae": ["4", 0]})
+    wf["13"] = _n("SaveImage", {"images": ["12", 0], "filename_prefix": prefix})
+    return wf
+
+
+# ------------------------------------------------------------------ image: FLUX 3 Image Klein (text-to-image, or up to 10 references)
+# Graph = BFL's ComfyUI pack workflows flux3_klein_bf16_{t2i,mi2i}.json without the optional prompt-upsampler subgraph.
+def flux3_klein(prompt="describe the image here", seed=0, width=1024, height=1024, model=None, refs=None,
+                prefix="image/klein", **_):
+    import math
+    m = _main("flux3_klein", model)
+    te, vae = R.one("flux3_klein", "te"), R.one("flux3_klein", "vae")
+    shift = round(math.log(float(_d(m, "alpha", 16))), 5)
+    w, h = int(width) // 16 * 16, int(height) // 16 * 16
+    wf = {
+        "1": _n("UNETLoader", {"unet_name": m["rel"], "weight_dtype": "default"}, "Model"),
+        "2": _n("ModelSamplingFlux", {"model": ["1", 0], "max_shift": shift, "base_shift": shift, "width": 1024, "height": 1024}),
+        "3": _n("CLIPLoader", {"clip_name": te["rel"], "type": te.get("clip_type", "flux3"), "device": "default"}),
+        "4": _n("VAELoader", {"vae_name": vae["rel"]}),
+        "5": _n("CLIPTextEncode", {"clip": ["3", 0], "text": prompt}, TITLE_PROMPT),
+        "6": _n("CLIPTextEncode", {"clip": ["3", 0], "text": ""}, TITLE_NEG),
+        "7": _n("EmptyFlux2LatentImage", {"width": w, "height": h, "batch_size": 1}),
+    }
+    pos, neg = ["5", 0], ["6", 0]
+    refs = list(refs or [])[:10]
+    if refs:
+        ref = {"positive": pos, "negative": neg, "vae": ["4", 0], "resolution": "resize", "resolution.megapixels": 1.0}
+        for i, name in enumerate(refs):
+            wf[str(20 + i)] = _n("LoadImage", {"image": name}, f"Reference {i + 1} (our own generated image)")
+            ref[f"images.image{i}"] = [str(20 + i), 0]
+        wf["8"] = _n("ReferenceMultiLatent", ref)
+        pos, neg = ["8", 0], ["8", 1]
+    wf["9"] = _n("KSampler", {"model": ["2", 0], "positive": pos, "negative": neg, "latent_image": ["7", 0], "seed": seed,
+                             "steps": _d(m, "steps", 16), "cfg": _d(m, "cfg", 1.0), "sampler_name": _d(m, "sampler", "euler"),
+                             "scheduler": _d(m, "scheduler", "simple"), "denoise": 1.0})
+    wf["10"] = _n("VAEDecode", {"samples": ["9", 0], "vae": ["4", 0]})
+    wf["11"] = _n("SaveImage", {"images": ["10", 0], "filename_prefix": prefix})
+    return wf
+
+
 # ------------------------------------------------------------------ edit: Qwen Rapid-AIO
 def qwen_aio(image="example.png", prompt="describe the edit here", seed=0, model=None, prefix="edit/qwen_aio", **_):
     m = _main("qwen_aio", model)
@@ -180,9 +265,11 @@ def h3_ref2va(**kw):
     return _h3("h3_ref2va", **kw)
 
 
-BUILDERS = {"zimage": zimage, "illustrious": illustrious, "qwen_aio": qwen_aio, "wan22_i2v": wan22_i2v,
+BUILDERS = {"zimage": zimage, "illustrious": illustrious, "qwen_image21": qwen_image21, "flux3_klein": flux3_klein, "qwen_aio": qwen_aio, "wan22_i2v": wan22_i2v,
             "h3_fl2va": h3_fl2va, "h3_ref2va": h3_ref2va}
 UI_NAMES = {"zimage": "ZC 1 - image (Z-Image family)", "illustrious": "ZC 4 - image anime (Illustrious)",
+            "qwen_image21": "ZC 7 - image by text or references (Qwen-Image 2.1)",
+            "flux3_klein": "ZC 8 - image by text or references (FLUX 3 Klein)",
             "qwen_aio": "ZC 2 - edit (Qwen Rapid-AIO NSFW)", "wan22_i2v": "ZC 3 - video (Wan 2.2 I2V + LoRA)",
             "h3_fl2va": "ZC 5 - video+audio (MiniMax H3 + LoRA)", "h3_ref2va": "ZC 6 - video+audio by references (H3)"}
 
