@@ -14,6 +14,8 @@
 families:
   zimage:      {label: "Image: realistic (Z-Image)", kind: image, template: zimage, status: ready}
   illustrious: {label: "Image: anime (Illustrious)", kind: image, template: illustrious, status: testing}
+  qwen_image21: {label: "Image: Qwen-Image 2.1 (text or references)", kind: image, template: qwen_image21, status: testing}
+  flux3_klein: {label: "Image: FLUX 3 Klein (text or references)", kind: image, template: flux3_klein, status: testing}
   qwen_aio:    {label: "Edit (Qwen Rapid-AIO)", kind: edit, template: qwen_aio, status: ready}
   wan22_i2v:   {label: "Video: Wan 2.2 (no sound)", kind: video, template: wan22_i2v, status: ready}
   h3_fl2va:    {label: "Video: MiniMax H3 (with sound)", kind: video, template: h3_fl2va, status: testing}
@@ -25,15 +27,9 @@ models:
   - {key: zimage_turbo, family: zimage, role: main, label: "Z-Image Turbo", dest: diffusion_models,
      defaults: {steps: 8, cfg: 1.0, sampler: euler, scheduler: simple, shift: 3.0},
      hf: {repos: [Comfy-Org/z_image_turbo], rx: 'diffusion_models/z_image_turbo_bf16\.safetensors$'}}
-  - {key: zimage_base, family: zimage, role: main, label: "Z-Image Base", dest: diffusion_models,
-     defaults: {steps: 28, cfg: 4.0, sampler: euler, scheduler: simple, shift: 3.0},
-     hf: {repos: [Comfy-Org/z_image, Comfy-Org/z_image_base, Comfy-Org/Z-Image_ComfyUI], rx: 'diffusion_models/z_image.*bf16\.safetensors$', exclude: turbo}}
   - {key: pm_turbo_v35, family: zimage, role: main, label: "PornMaster Turbo V3.5", default: true, dest: diffusion_models/civitai,
      defaults: {steps: 8, cfg: 1.0, sampler: euler, scheduler: simple, shift: 3.0},
      civitai: {version: 2903129, file_rx: 'bf16'}}
-  - {key: pm_base_v1, family: zimage, role: main, label: "PornMaster Base V1", dest: diffusion_models/civitai,
-     defaults: {steps: 28, cfg: 4.0, sampler: euler, scheduler: simple, shift: 3.0},
-     civitai: {version: 2918406, file_rx: 'fp8'}}
   - {key: zimage_te, family: zimage, role: te, dest: text_encoders, clip_type: lumina2,
      hf: {repos: [Comfy-Org/z_image_turbo], rx: 'text_encoders/qwen_3_4b\.safetensors$'}}
   - {key: zimage_vae, family: zimage, role: vae, dest: vae,
@@ -50,6 +46,27 @@ models:
      prompt_prefix: "masterpiece, best quality, highres, mature female, adult, ",
      negative: "lowres, bad anatomy, bad hands, worst quality, low quality, child, loli, petite, flat chest, school uniform, watermark",
      civitai: {version: 2518034}}
+
+  # ------------------------------------------------------------------ Qwen-Image 2.1 (t2i + up to 10 references / edit, one model)
+  - {key: qwen21_turbo, family: qwen_image21, role: main, label: "Qwen-Image 2.1 Turbo", default: true, dest: diffusion_models,
+     defaults: {steps: 8, cfg: 1.0, sampler: euler, sigmas: "1.0, 0.978453, 0.95418, 0.926626, 0.89508, 0.845148, 0.704534, 0.414568, 0"},
+     hf: {repos: [Comfy-Org/Qwen-Image-2.1], rx: '^diffusion_models/qwen_image_2\.1_turbo_bf16\.safetensors$'}}
+  - {key: qwen21_base, family: qwen_image21, role: main, label: "Qwen-Image 2.1 (best quality, slow)", dest: diffusion_models,
+     defaults: {steps: 25, cfg: 1.0, sampler: euler, scheduler: simple},
+     hf: {repos: [Comfy-Org/Qwen-Image-2.1], rx: '^diffusion_models/qwen_image_2\.1_bf16\.safetensors$'}}
+  - {key: qwen21_te, family: qwen_image21, role: te, dest: text_encoders, clip_type: qwen_image,
+     hf: {repos: [Comfy-Org/Qwen-Image-2.1], rx: '^text_encoders/qwen3vl_8b_int8_convrot\.safetensors$'}}
+  - {key: qwen21_vae, family: qwen_image21, role: vae, dest: vae,
+     hf: {repos: [Comfy-Org/Qwen-Image-2.1], rx: '^vae/qwen_image_2\.1_vae_bf16\.safetensors$'}}
+
+  # ------------------------------------------------------------------ FLUX 3 Image Klein (gated on HF: accept the licence, HF_TOKEN)
+  - {key: klein_distilled, family: flux3_klein, role: main, label: "FLUX 3 Klein (distilled)", default: true, dest: diffusion_models,
+     defaults: {steps: 16, cfg: 1.0, sampler: euler, scheduler: simple, alpha: 16},
+     hf: {repos: [black-forest-labs/flux-3-image-klein-comfy], rx: '^diffusion_models/flux3-image-klein-bf16\.safetensors$'}}
+  - {key: klein_te, family: flux3_klein, role: te, dest: text_encoders, clip_type: flux3,
+     hf: {repos: [black-forest-labs/flux-3-image-klein-comfy], rx: '^text_encoders/qwen3vl_4b_bf16\.safetensors$'}}
+  - {key: klein_vae, family: flux3_klein, role: vae, dest: vae,
+     hf: {repos: [black-forest-labs/flux-3-image-klein-comfy], rx: '^vae/flux2-vae\.safetensors$'}}
 
   # ------------------------------------------------------------------ Edit
   - {key: qwen_edit_aio_nsfw, family: qwen_aio, role: main, label: "Qwen Edit Rapid-AIO NSFW", default: true, dest: checkpoints,
@@ -81,15 +98,9 @@ models:
   - {key: h3_fl2va_pruned_bf16, family: h3_fl2va, role: main, label: "H3 FL2VA bf16", default: true, dest: diffusion_models,
      defaults: {steps: 8, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
      hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_fl2va_pruned_bf16\.safetensors$'}}
-  - {key: h3_fl2va_pruned_int8, family: h3_fl2va, role: main, label: "H3 FL2VA int8 (smaller)", dest: diffusion_models,
-     defaults: {steps: 8, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
-     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_fl2va_pruned_int8_convrot\.safetensors$'}}
   - {key: h3_ref2va_pruned_bf16, family: h3_ref2va, role: main, label: "H3 Ref2VA bf16", default: true, dest: diffusion_models,
      defaults: {steps: 25, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
      hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_ref2va_pruned_bf16\.safetensors$'}}
-  - {key: h3_ref2va_pruned_int8, family: h3_ref2va, role: main, label: "H3 Ref2VA int8", dest: diffusion_models,
-     defaults: {steps: 25, sampler: res_multistep, scheduler: simple, shift: 12, audio_shift: 3, fps: 24, width: 768, height: 1344, seconds: 5},
-     hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^diffusion_models/minimax_h3_ref2va_pruned_int8_convrot\.safetensors$'}}
   - {key: h3_te_int8, family: [h3_fl2va, h3_ref2va], role: te, dest: text_encoders,
      hf: {repos: [Comfy-Org/MiniMax-H3], rx: '^text_encoders/qwen3vl_32b_minimax_h3_int8_convrot\.safetensors$'}}
   - {key: h3_video_vae, family: [h3_fl2va, h3_ref2va], role: vae, dest: vae,
@@ -118,10 +129,6 @@ models:
   - {key: h3_lora_motion, family: h3_fl2va, role: lora, label: "Motion Booster", triggers: "dynv2", dest: loras/civitai/h3, civitai: {version: 3228867}}
 
   # ------------------------------------------------------------------ Upscale / safety
-  - {key: seedvr2_3b, family: aux, role: aux, dest: SEEDVR2,
-     hf: {repos: [numz/SeedVR2_comfyUI], rx: 'seedvr2_ema_3b_fp8_e4m3fn\.safetensors$'}}
-  - {key: seedvr2_vae, family: aux, role: aux, dest: SEEDVR2,
-     hf: {repos: [numz/SeedVR2_comfyUI], rx: 'ema_vae_fp16\.safetensors$'}}
   - {key: age_classifier, family: safety, role: aux, dest: safety/vit-age-classifier, hf_snapshot: nateraw/vit-age-classifier}
   - {key: anime_tagger, family: safety, role: aux, dest: safety/wd-eva02-large-tagger-v3, hf_snapshot: SmilingWolf/wd-eva02-large-tagger-v3,
      allow: ["model.onnx", "selected_tags.csv", "config.json"]}

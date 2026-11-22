@@ -4,7 +4,7 @@
 
 Job input:
   {"action": "generate",                   # default
-   "family": "zimage" | "illustrious" | "qwen_aio" | "wan22_i2v" | "h3_fl2va" | "h3_ref2va",
+   "family": "zimage" | "illustrious" | "qwen_image21" | "flux3_klein" | "qwen_aio" | "wan22_i2v" | "h3_fl2va" | "h3_ref2va",
    "model": "<registry key>",              # optional, family default otherwise
    "prompt": "...", "negative": "...", "seed": 123,
    "loras": {"<registry key>": 0.8},
@@ -137,7 +137,7 @@ def models_info():
     return {"families": fams, "mode": P.MODE}
 
 
-def generate(inp, job_id, progress=None):
+def generate(inp, job_id, progress=None, cancel=None):
     fam = inp["family"]
     f = R.family(fam)
     if f.get("template") is None:
@@ -148,13 +148,15 @@ def generate(inp, job_id, progress=None):
         raise ValueError("prompt refused: content involving minors is not allowed")
     names = [fetch_input(it, job_id, i) for i, it in enumerate(inp.get("images") or [])]
     kw = {k: inp[k] for k in ("model", "prompt", "negative", "seed", "loras", "width", "height", "seconds",
-                              "megapixels", "aspect", "turbo", "steps", "length") if k in inp}
+                              "megapixels", "aspect", "turbo", "steps", "length", "keep_size") if k in inp}
     if fam in ("qwen_aio", "wan22_i2v", "h3_fl2va"):
         if not names:
             raise ValueError(f"{fam} needs an input image")
         kw["image"] = names[0]
         if fam == "h3_fl2va" and len(names) > 1:
             kw["last_image"] = names[1]
+    if fam in ("qwen_image21", "flux3_klein"):
+        kw["refs"] = names          # 0 refs = text-to-image
     if fam == "h3_ref2va":
         if not names:
             raise ValueError("h3_ref2va needs 1-9 reference images")
@@ -172,7 +174,7 @@ def generate(inp, job_id, progress=None):
         kw["prefix"] = op
     wf = T.build(fam, **kw)
     kept, info = zc.run(wf, {"job": job_id, "family": fam, "model": inp.get("model"), "seed": wf_seed(wf)},
-                        progress=progress)
+                        progress=progress, cancel=cancel)
     return {"outputs": [publish(p, job_id) for p in kept], "removed": info["removed"], "gate": info["gate"],
             "secs": info["secs"], "seed": wf_seed(wf)}
 
