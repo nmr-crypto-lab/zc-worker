@@ -118,9 +118,13 @@ def worker():
     while True:
         jid = Q.get()
         job = JOBS[jid]
+        if job["status"] != "queued":          # cancelled while waiting
+            Q.task_done()
+            continue
         job.update(status="running", started=time.time())
         try:
-            res = H.generate(dict(job["input"]), jid, progress=lambda st, job=job: job.__setitem__("progress", st))
+            res = H.generate(dict(job["input"]), jid, progress=lambda st, job=job: job.__setitem__("progress", st),
+                             cancel=lambda job=job: job.get("cancel", False))
             if job["input"].get("_project"):
                 PJ.on_done(job, res)           # final clip name 000_1.mp4 + what it was made with
             for o in res.get("outputs", []):
@@ -131,8 +135,11 @@ def worker():
         except ValueError as e:
             job.update(status="error", error=str(e))
         except Exception as e:
-            traceback.print_exc()
-            job.update(status="error", error=f"{e.__class__.__name__}: {str(e)[:300]}")
+            if job.get("cancel"):
+                job.update(status="cancelled")
+            else:
+                traceback.print_exc()
+                job.update(status="error", error=f"{e.__class__.__name__}: {str(e)[:300]}")
         job.pop("progress", None)
         job["finished"] = time.time()
         _save(job)
@@ -176,6 +183,35 @@ async def generate(request: Request):
     return {"id": enqueue(inp)}
 
 
+def _cancel(job):
+    if job["status"] == "queued":
+        job.update(status="cancelled", finished=time.time())
+        _save(job)
+        return True
+    if job["status"] == "running":
+        job["cancel"] = True           # the worker interrupts ComfyUI and marks it cancelled
+        return True
+    return False
+
+
+@app.post("/api/jobs/{jid}/cancel")
+def cancel_job(jid: str):
+    job = JOBS.get(jid)
+    if not job:
+        raise HTTPException(404, "no such job")
+    with LOCK:
+        if not _cancel(job):
+            raise HTTPException(409, f"job is already {job['status']}")
+    return {"ok": True}
+
+
+@app.post("/api/jobs/cancel_queued")
+def cancel_queued():
+    with LOCK:
+        n = sum(_cancel(j) for j in list(JOBS.values()) if j["status"] == "queued")
+    return {"cancelled": n}
+
+
 @app.get("/api/jobs")
 def jobs():
     now = time.time()
@@ -185,7 +221,7 @@ def jobs():
     qpos = {k: n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued")}
     for jid in reversed(sorted(set(active + recent), key=ORDER.index)):
         j = JOBS[jid]
-        d = {k: j.get(k) for k in ("id", "status", "error", "note", "progress")}
+        d = {k: j.get(k) for k in ("id", "status", "error", "note", "progress", "cancel")}
         d["family"] = j["input"].get("family")
         pj = j["input"].get("_project")
         if pj:
