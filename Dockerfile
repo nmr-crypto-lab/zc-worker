@@ -8,7 +8,7 @@ ARG COMFY_TAG=v0.45.6
 ENV PIP_BREAK_SYSTEM_PACKAGES=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_ROOT_USER_ACTION=ignore PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 HF_HUB_ENABLE_HF_TRANSFER=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends git ffmpeg libgl1 libglib2.0-0 build-essential python3-dev && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends git ffmpeg fonts-dejavu-core libgl1 libglib2.0-0 build-essential python3-dev && rm -rf /var/lib/apt/lists/* \
  && command -v python >/dev/null || ln -sf "$(command -v python3)" /usr/local/bin/python
 
 # ComfyUI core only: every template (Z-Image, SDXL/Illustrious, Qwen edit, Wan 2.2, MiniMax H3) uses built-in nodes
