@@ -204,7 +204,8 @@ def qwen_aio(image="example.png", prompt="describe the edit here", seed=0, model
 # ------------------------------------------------------------------ video: Wan 2.2 I2V (high/low pair)
 def wan22_i2v(image="example.png", prompt="describe the motion and the scene here",
               negative="static, blurry, distorted, low quality", seed=0, loras=None, width=None, height=None,
-              length=None, prefix="video/wan22", **_):
+              length=None, prefix="video/wan22", end_image=None, mp4=False, **_):
+    """end_image -> WanFirstLastFrameToVideo (end_image == image gives a seamless loop); mp4 -> CreateVideo+SaveVideo"""
     m = _main("wan22_i2v", None)
     low = next(x for x in R.reg()["models"] if x["key"] == "wan_low")
     lh, ll = R.one("wan22_i2v", "speed_lora", "high"), R.one("wan22_i2v", "speed_lora", "low")
@@ -226,7 +227,8 @@ def wan22_i2v(image="example.png", prompt="describe the motion and the scene her
         "9": _n("CLIPTextEncode", {"clip": ["7", 0], "text": prompt}, "✏️ MOTION PROMPT — write here (English)"),
         "10": _n("CLIPTextEncode", {"clip": ["7", 0], "text": negative}, TITLE_NEG),
         "11": _n("LoadImage", {"image": image}, "Start image (our own generated image)"),
-        "12": _n("WanImageToVideo", {"positive": ["9", 0], "negative": ["10", 0], "vae": ["8", 0], "start_image": ["11", 0],
+        "12": _n("WanFirstLastFrameToVideo" if end_image else "WanImageToVideo",
+                 {"positive": ["9", 0], "negative": ["10", 0], "vae": ["8", 0], "start_image": ["11", 0],
                                      "width": width or _d(m, "width", 480), "height": height or _d(m, "height", 832),
                                      "length": length or _d(m, "length", 81), "batch_size": 1},
                 "Size + length (frames = 16*seconds+1)"),
@@ -242,6 +244,15 @@ def wan22_i2v(image="example.png", prompt="describe the motion and the scene her
         "16": _n("SaveAnimatedWEBP", {"images": ["15", 0], "filename_prefix": prefix, "fps": float(_d(m, "fps", 16)),
                                       "lossless": False, "quality": 85, "method": "default"}),
     })
+    if end_image:
+        if end_image == image:
+            wf["12"]["inputs"]["end_image"] = ["11", 0]
+        else:
+            wf["17"] = _n("LoadImage", {"image": end_image}, "End image")
+            wf["12"]["inputs"]["end_image"] = ["17", 0]
+    if mp4:
+        wf["16"] = _n("CreateVideo", {"images": ["15", 0], "fps": float(_d(m, "fps", 16))})
+        wf["18"] = _n("SaveVideo", {"video": ["16", 0], "filename_prefix": prefix, "format": "auto", "codec": "auto"})
     return wf
 
 

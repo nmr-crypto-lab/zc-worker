@@ -20,6 +20,7 @@ families:
   wan22_i2v:   {label: "Video: Wan 2.2 (no sound)", kind: video, template: wan22_i2v, status: ready}
   h3_fl2va:    {label: "Video: MiniMax H3 (with sound)", kind: video, template: h3_fl2va, status: testing}
   h3_ref2va:   {label: "Video: MiniMax H3 from references", kind: video, template: h3_ref2va, status: testing}
+  gif:         {label: "GIF greeting", kind: gif, template: gif, status: testing}
   safety:      {label: "Age filter", kind: aux, template: null, status: ready}
 
 models:

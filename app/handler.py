@@ -4,12 +4,13 @@
 
 Job input:
   {"action": "generate",                   # default
-   "family": "zimage" | "illustrious" | "qwen_image21" | "flux3_klein" | "qwen_aio" | "wan22_i2v" | "h3_fl2va" | "h3_ref2va",
+   "family": "gif" | "zimage" | "illustrious" | "qwen_image21" | "flux3_klein" | "qwen_aio" | "wan22_i2v" | "h3_fl2va" | "h3_ref2va",
    "model": "<registry key>",              # optional, family default otherwise
    "prompt": "...", "negative": "...", "seed": 123,
    "loras": {"<registry key>": 0.8},
    "width": 832, "height": 1216, "seconds": 5, "megapixels": 0.9, "aspect": "9:16", "turbo": true,
    "images": [{"path": "image/<job>/x.png"}]}  # inputs: ONLY our own earlier results (see INPUT RULES)
+  gif: {"family": "gif", "prompt": "...", "text": "Good morning!", "text_pos": "top|middle|bottom"} -> .gif + .mp4
   {"action": "models"}                     # registry for the UI: families, models, LoRAs, defaults
 
 Output: {"outputs": [{"path", "type", "b64"?, "key"?, "url"?}], "removed": n, "gate": [...], "secs": t}
@@ -129,6 +130,12 @@ def models_info():
     for name, f in reg["families"].items():
         if f.get("template") is None:
             continue
+        if name == "gif":
+            import gif as G
+            fams[name] = {"label": f["label"], "kind": f["kind"], "status": f["status"], "loras": [],
+                          "models": [{"key": "gif", "label": "Qwen-Image 2.1 + Wan 2.2 loop", "default": True,
+                                      "defaults": {}}] if G.available() else []}
+            continue
         fams[name] = {"label": f["label"], "kind": f["kind"], "status": f["status"],
                       "models": [{"key": m["key"], "label": m.get("label", m["key"]), "default": bool(m.get("default")),
                                   "defaults": m.get("defaults", {})} for m in R.mains(name)],
@@ -146,6 +153,15 @@ def generate(inp, job_id, progress=None, cancel=None):
     if v:
         zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})
         raise ValueError("prompt refused: content involving minors is not allowed")
+    if fam == "gif":
+        import gif as G
+        v = prompt_violation(inp.get("text")) or prompt_violation(inp.get("motion"))
+        if v:
+            zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})
+            raise ValueError("prompt refused: content involving minors is not allowed")
+        outs, info = G.make(inp, job_id, progress=progress, cancel=cancel)
+        return {"outputs": [publish(p, job_id) for p in outs], "removed": info["removed"], "gate": info["gate"],
+                "secs": info["secs"], "seed": info["seed"]}
     names = [fetch_input(it, job_id, i) for i, it in enumerate(inp.get("images") or [])]
     kw = {k: inp[k] for k in ("model", "prompt", "negative", "seed", "loras", "width", "height", "seconds",
                               "megapixels", "aspect", "turbo", "steps", "length", "keep_size") if k in inp}
