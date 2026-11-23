@@ -121,6 +121,7 @@ header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel
 <script>
 const $=s=>document.querySelector(s), FAM_INPUTS={qwen_image21:[0,10],flux3_klein:[0,10],qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
 const HINTS={
+ gif:"Describe the picture in plain words (English works best). It comes alive as a short seamless loop, ~3 s. Safe-for-work only.",
  zimage:"Plain English description. Turbo models: 8 steps, the negative prompt is ignored.",
  illustrious:"Danbooru tags separated by commas (1girl, long hair, …). \"mature female, adult\" is added automatically.",
  qwen_image21:"Plain English. Without references: text-to-image. With references: say what each one is — \"the man from image 1 sits at the desk in the room from image 2\" — or give an edit instruction and choose \"Same as reference 1\".",
@@ -136,7 +137,7 @@ const isVid=p=>/\.(mp4|webm|mov)$/i.test(p);
 
 async function init(){
   M=await api("/api/models");
-  const order=["zimage","qwen_image21","flux3_klein","illustrious","qwen_aio","wan22_i2v","h3_fl2va","h3_ref2va"];
+  const order=["gif","zimage","qwen_image21","flux3_klein","illustrious","qwen_aio","wan22_i2v","h3_fl2va","h3_ref2va"];
   const fams=order.filter(f=>M.families[f]&&M.families[f].models.length);
   $("#tabs").innerHTML=fams.map(f=>`<button class="tab" data-f="${f}">${M.families[f].label.replace(/^(Image|Video): /,"").replace(/^./,c=>c.toUpperCase())}${M.families[f].status!=="ready"?"<small>β</small>":""}</button>`).join("");
   $("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b)setFam(b.dataset.f)};
@@ -148,9 +149,12 @@ function setFam(f){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.f===f));
   const F=M.families[f], dm=F.models.find(m=>m.default)||F.models[0];
   inputs=inputs.slice(0,(FAM_INPUTS[f]||[0,0])[1]);
-  let h=`<label>Model</label><select id="model">${F.models.map(m=>`<option value="${m.key}" ${m===dm?"selected":""}>${m.label}</option>`).join("")}</select>`;
+  let h=`<div ${f==="gif"?'style="display:none"':""}><label>Model</label><select id="model">${F.models.map(m=>`<option value="${m.key}" ${m===dm?"selected":""}>${m.label}</option>`).join("")}</select></div>`;
   if(FAM_INPUTS[f]) h+=`<label>${f==="h3_ref2va"?"References (up to 9, from the gallery)":(f==="qwen_image21"||f==="flux3_klein")?"References (optional, up to 10, from the gallery)":f==="h3_fl2va"?"First frame (+ optional last frame)":"Source image"}</label><div class="inputs" id="inputs"></div>`;
   h+=`<label>Prompt</label><textarea id="prompt" placeholder="…"></textarea><div class="hint">${HINTS[f]||""}</div>`;
+  if(f==="gif") h+=`<label>Ideas</label><div class="chips" id="gifx">${GIF_IDEAS.map((x,i)=>`<span class="chip" data-i="${i}">${x[0]}</span>`).join("")}</div>
+     <label>Text on the GIF (optional)</label><input type="text" id="gtext" maxlength="80" placeholder="Good morning!">
+     <label>Text position</label><div class="chips" id="tpos"><span class="chip" data-v="top">Top</span><span class="chip" data-v="middle">Middle</span><span class="chip on" data-v="bottom">Bottom</span></div>`;
   if(f==="zimage"||f==="illustrious"){
     h+=`<label>Size</label><div class="chips" id="size">${[["832x1216","Portrait"],["1024x1024","Square"],["1216x832","Landscape"]].map((s,i)=>`<span class="chip ${i?"":"on"}" data-v="${s[0]}">${s[1]}</span>`).join("")}</div>
        <details><summary>Negative prompt</summary><textarea id="neg" style="min-height:60px" placeholder="model default"></textarea></details>`;
@@ -172,6 +176,7 @@ function setFam(f){
   $("#fields").innerHTML=h;
   $("#nvar").onchange=e=>nVar=+e.target.value;
   document.querySelectorAll("#fields .chips").forEach(c=>c.onclick=e=>{const x=e.target.closest(".chip");if(!x)return;c.querySelectorAll(".chip").forEach(y=>y.classList.remove("on"));x.classList.add("on")});
+  const gx=$("#gifx"); if(gx) gx.onclick=e=>{const c=e.target.closest(".chip");if(!c)return;const x=GIF_IDEAS[+c.dataset.i];$("#prompt").value=x[1];$("#gtext").value=x[2]};
   const sec=$("#sec"); if(sec) sec.oninput=()=>$("#secv").textContent=sec.value;
   const L=$("#loras"); if(L){L.oninput=e=>{if(e.target.dataset.k){loraVals[e.target.dataset.k]=+e.target.value;e.target.nextElementSibling.textContent=(+e.target.value).toFixed(2)}};
     L.onclick=e=>{const t=e.target.closest(".t");if(t){const p=$("#prompt");p.value=(p.value?p.value.replace(/\s*$/,", "):"")+t.dataset.t}}}
@@ -191,6 +196,13 @@ $("#pickdone").onclick=()=>{picking=false;$("#pickbar").style.display="none";ren
 function chipVal(id){const c=document.querySelector(`#${id} .chip.on`);return c?c.dataset.v:null}
 
 let nVar=1;
+const GIF_IDEAS=[
+ ["Good morning","a steaming cup of coffee on a sunny windowsill, morning light, flowers in a vase, steam rising","Good morning!"],
+ ["Good night","a cozy moonlit night sky over a quiet village, twinkling stars, soft clouds drifting","Good night!"],
+ ["Weekend","a hammock between palm trees on a tropical beach, gentle waves, sunny day","Have a great weekend!"],
+ ["Birthday","a birthday cake with lit candles, colorful balloons and confetti, festive","Happy birthday!"],
+ ["Thank you","a bouquet of pink roses with sparkles, soft pastel background","Thank you!"],
+ ["Rainy day","a cute kitten looking out of a window at the rain, cozy room, raindrops on the glass","Have a cozy day"]];
 $("#go").onclick=async()=>{
   $("#err").textContent=""; const F=M.families[fam]; const req={family:fam,model:$("#model").value,prompt:$("#prompt").value.trim()};
   if(!req.prompt&&fam!=="qwen_aio"){$("#err").textContent="Write a prompt";return}
@@ -198,6 +210,7 @@ $("#go").onclick=async()=>{
   const sz=chipVal("size"); if(sz==="same"){ if(!inputs.length){$("#err").textContent="\"Same as reference 1\" needs a reference image";return} req.keep_size=true } else if(sz){const [w,h]=sz.split("x").map(Number);req.width=w;req.height=h}
   const neg=$("#neg"); if(neg&&neg.value.trim()) req.negative=neg.value.trim();
   const sec=$("#sec"); if(sec) req.seconds=+sec.value;
+  if(fam==="gif"){const t=$("#gtext").value.trim(); if(t) req.text=t; req.text_pos=chipVal("tpos")||"bottom"}
   const mp=chipVal("mp"); if(mp) req.megapixels=+mp; const ar=chipVal("aspect"); if(ar) req.aspect=ar;
   const lo={}; F.loras.forEach(l=>{if((loraVals[l.key]||0)>0) lo[l.key]=loraVals[l.key]}); req.loras=lo;
   const sd=$("#seed").value; const n=+($("#nvar")?.value||1);
@@ -268,12 +281,21 @@ $("#grid").onclick=e=>{const it=e.target.closest(".item");if(!it)return;const p=
   openLb(p)};
 function openLb(p){
   $("#lbm").innerHTML=isVid(p)?`<video src="${fileUrl(p)}" controls autoplay playsinline preload="auto"></video>`:`<img src="${fileUrl(p)}">`;
-  const acts=[`<a href="${fileUrl(p)}" download>Download</a>`];
-  if(!isVid(p)){acts.push(`<button data-a="edit">Edit</button>`,`<button data-a="wan22_i2v">Video (Wan)</button>`,`<button data-a="h3_fl2va">Video (H3)</button>`,`<button data-a="h3_ref2va">Add to H3 references</button>`)}
+  const acts=[`<a href="${fileUrl(p)}?dl=1" download>Download</a>`];
+  SHARE=null; if(navigator.canShare&&/\.(gif|mp4)$/i.test(p)){acts.unshift(`<button data-a="share" style="border-color:var(--ok);color:var(--ok)">Share…</button>`);
+    // greeting GIFs: share the MP4 — messengers (WhatsApp) send a shared .gif as a still picture; a short MP4 can be sent as GIF
+    const sp=/^gif\/.*\.gif$/i.test(p)?p.replace(/\.gif$/i,".mp4"):p;
+    fetch(fileUrl(sp)).then(r=>r.blob()).then(b=>{const f=new File([b],sp.split("/").pop(),{type:b.type||(/gif$/i.test(sp)?"image/gif":"video/mp4")});
+      if(navigator.canShare({files:[f]})) SHARE=f}).catch(()=>{})}
+  if(/^gif\//.test(p)){const o=p.replace(/\.(gif|mp4)$/i,m=>m.toLowerCase()===".gif"?".mp4":".gif");acts.splice(1,0,`<a href="${fileUrl(o)}?dl=1" download>${/gif$/i.test(p)?"MP4":"GIF"}</a>`)}
+  if(!isVid(p)&&!/\.gif$/i.test(p)){acts.push(`<button data-a="edit">Edit</button>`,`<button data-a="wan22_i2v">Video (Wan)</button>`,`<button data-a="h3_fl2va">Video (H3)</button>`,`<button data-a="h3_ref2va">Add to H3 references</button>`)}
   acts.push(`<button data-a="del" class="danger">Delete</button>`,`<button data-a="close">Close</button>`);
   $("#lba").innerHTML=acts.join(""); $("#lb").style.display="flex"; $("#lb").dataset.p=p;
 }
-$("#lb").onclick=e=>{const a=e.target.dataset.a; if(e.target.id==="lb"||a==="close"){$("#lb").style.display="none";$("#lbm").innerHTML="";return}
+let SHARE=null;
+$("#lb").onclick=e=>{const a=e.target.dataset.a;
+  if(a==="share"){ if(!SHARE){e.target.textContent="Preparing… tap again";return}
+    navigator.share({files:[SHARE]}).catch(err=>{if(err.name!=="AbortError")e.target.textContent="Sharing not available: use Download"});return} if(e.target.id==="lb"||a==="close"){$("#lb").style.display="none";$("#lbm").innerHTML="";return}
   if(a==="del"){const b=e.target, p=$("#lb").dataset.p;
     if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Tap again to delete";setTimeout(()=>{b.classList.remove("armed");b.textContent="Delete"},4000);return}
     api("/api/files/"+p.split("/").map(encodeURIComponent).join("/"),{method:"DELETE"}).then(()=>{inputs=inputs.filter(x=>x!==p);
