@@ -93,10 +93,102 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 .tee{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;background:#eef2f8;display:flex;align-items:center;justify-content:center}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .gate{padding:70px 24px 0;text-align:center}
+#movie,#mv-lb{--panel:#fff;--panel2:#f3f6fb;--line:#e3e8f0;--text:#172033;--mut:#4a5568;--acc:#1d4ed8;--acc2:#172033;--ok:#15803d;--warn:#b45309;--err:#dc2626;--r:16px;color:var(--text);font-size:14px;line-height:1.45}
+#movie{max-width:480px;margin:0 auto;padding:12px 16px 110px;background:var(--bg)}#movie .card{margin-bottom:12px}#movie .mv-wrap{gap:12px}
+#mv-lb .mv-form{max-height:86vh;overflow:auto}
+#movie .card,#mv-lb .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+#movie .tabs,#mv-lb .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+#movie .tab,#mv-lb .tab{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+#movie .tab.on,#mv-lb .tab.on{background:var(--acc2);border-color:var(--acc2)}
+#movie .tab small,#mv-lb .tab small{color:#ffd28a;margin-left:4px}
+#movie label,#mv-lb label{display:block;color:var(--mut);font-size:12px;margin:10px 0 4px}
+#movie select,#mv-lb select,#movie textarea,#mv-lb textarea,#movie input[type=number],#mv-lb input[type=number],#movie input[type=text],#mv-lb input[type=text]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+#movie textarea,#mv-lb textarea{min-height:96px;resize:vertical}
+#movie .row,#mv-lb .row{display:flex;gap:8px;align-items:center}
+#movie .row>*,#mv-lb .row>*{flex:1}
+#movie .chips,#mv-lb .chips{display:flex;flex-wrap:wrap;gap:6px}
+#movie .chip,#mv-lb .chip{padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);cursor:pointer;font-size:12px}
+#movie .chip.on,#mv-lb .chip.on{border-color:var(--acc);color:var(--acc)}
+#movie button.go,#mv-lb button.go{width:100%;margin-top:14px;padding:12px;border:0;border-radius:9px;background:var(--acc2);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+#movie button.go:disabled,#mv-lb button.go:disabled{opacity:.5}
+#movie .hint,#mv-lb .hint{color:var(--mut);font-size:12px;margin-top:4px}
+#movie .lora,#mv-lb .lora{display:grid;grid-template-columns:1fr 110px 38px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+#movie .lora:first-child,#mv-lb .lora:first-child{border-top:0}
+#movie .lora .n,#mv-lb .lora .n{font-size:13px}
+#movie .lora .t,#mv-lb .lora .t{color:var(--mut);font-size:11px;cursor:pointer}
+#movie .lora input[type=range],#mv-lb .lora input[type=range]{width:100%}
+#movie .lora .v,#mv-lb .lora .v{font-variant-numeric:tabular-nums;color:var(--mut);font-size:12px;text-align:right}
+#movie details>summary,#mv-lb details>summary{cursor:pointer;color:var(--mut);font-size:12px;margin-top:10px}
+#movie .inputs,#mv-lb .inputs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+#movie .inputs .slot,#mv-lb .inputs .slot{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--panel2)}
+#movie .inputs img,#mv-lb .inputs img{width:100%;height:100%;object-fit:cover}
+#movie .inputs .x,#mv-lb .inputs .x{position:absolute;top:2px;right:2px;background:#000a;border:0;color:#fff;border-radius:6px;cursor:pointer;font-size:11px;padding:1px 5px}
+#movie .inputs .empty,#mv-lb .inputs .empty{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:11px;text-align:center;padding:4px}
+#movie h3,#mv-lb h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
+#movie .grid,#mv-lb .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+#movie .item,#mv-lb .item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--panel2);cursor:pointer;border:2px solid transparent}
+#movie .item img,#mv-lb .item img,#movie .item video,#mv-lb .item video{width:100%;height:100%;object-fit:cover;display:block}
+#movie .item .vph,#mv-lb .item .vph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--mut);background:var(--panel2)}
+#movie .grid .more,#mv-lb .grid .more{grid-column:1/-1;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
+#movie .item .b,#mv-lb .item .b{position:absolute;left:6px;bottom:6px;background:#000b;padding:1px 6px;border-radius:6px;font-size:11px}
+#movie .item.pick,#mv-lb .item.pick{border-color:var(--acc)}
+#movie .err,#mv-lb .err{color:var(--err);font-size:12px;margin-top:8px;min-height:16px}
+#movie .mv-wrap,#mv-lb .mv-wrap{display:flex;flex-direction:column;gap:16px}
+#movie .mv-btn,#mv-lb .mv-btn{display:inline-flex;align-items:center;justify-content:center;background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;text-decoration:none;white-space:nowrap}
+#movie .mv-btn.pri,#mv-lb .mv-btn.pri{background:var(--acc2);border-color:var(--acc2);color:#fff}
+#movie .mv-btn:disabled,#mv-lb .mv-btn:disabled{opacity:.45;cursor:default}
+#movie .mv-btn.sm,#mv-lb .mv-btn.sm{padding:4px 9px;font-size:12px}
+#movie .mv-btn.danger,#mv-lb .mv-btn.danger{border-color:var(--err);color:var(--err)}
+#movie .mv-btn.danger.armed,#mv-lb .mv-btn.danger.armed,#movie .mv-btn.armed,#mv-lb .mv-btn.armed{background:var(--err);color:#fff;border-color:var(--err)}
+#movie .mv-msg,#mv-lb .mv-msg{min-height:18px;margin-top:8px;font-size:12px;color:var(--ok)}
+#movie .mv-msg.err,#mv-lb .mv-msg.err{color:var(--err)}
+#movie .mv-new,#mv-lb .mv-new{gap:8px}
+#movie .mv-plist,#mv-lb .mv-plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:12px}
+#movie .mv-pcard,#mv-lb .mv-pcard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+#movie .mv-pcard span,#mv-lb .mv-pcard span{color:var(--mut);font-size:12px}
+#movie .mv-refs,#mv-lb .mv-refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;margin-top:10px}
+#movie .mv-ref,#mv-lb .mv-ref{background:var(--panel2);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+#movie .mv-ref img,#mv-lb .mv-ref img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer}
+#movie .mv-ref .n,#mv-lb .mv-ref .n{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis}
+#movie .mv-ref .d,#mv-lb .mv-ref .d,#movie .mv-ref .u,#mv-lb .mv-ref .u{color:var(--mut);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#movie .mv-clips,#mv-lb .mv-clips{display:flex;flex-direction:column;gap:10px}
+#movie .mv-clip,#mv-lb .mv-clip{background:var(--panel2);border-radius:8px;padding:10px;min-width:0}
+#movie .mv-ch,#mv-lb .mv-ch{font-size:13px}
+#movie .mv-ch .miss,#mv-lb .mv-ch .miss{color:var(--err);text-decoration:line-through}
+#movie .mv-cp,#mv-lb .mv-cp{color:var(--mut);font-size:12px;margin:4px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#movie .mv-vs,#mv-lb .mv-vs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+#movie .mv-tile,#mv-lb .mv-tile{position:relative;flex:0 0 120px;aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:var(--panel);border:2px solid transparent;cursor:pointer}
+#movie .mv-tile img,#mv-lb .mv-tile img{width:100%;height:100%;object-fit:cover;display:block}
+#movie .mv-tile.sel,#mv-lb .mv-tile.sel{border-color:var(--ok)}
+#movie .mv-tile .vph,#mv-lb .mv-tile .vph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:22px}
+#movie .mv-tile .b,#mv-lb .mv-tile .b{position:absolute;left:4px;bottom:4px;background:#000b;padding:1px 5px;border-radius:5px;font-size:10px}
+#movie .mv-tile .o,#mv-lb .mv-tile .o{position:absolute;right:4px;top:4px;background:var(--warn);color:#000;padding:0 5px;border-radius:5px;font-size:10px}
+#movie .mv-tile.st-running,#mv-lb .mv-tile.st-running{border-color:var(--warn)}
+#movie .mv-tile.st-error,#mv-lb .mv-tile.st-error{border-color:var(--err)}
+#movie .mv-movies,#mv-lb .mv-movies{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+#movie .mv-movie,#mv-lb .mv-movie{display:flex;gap:10px;align-items:center;background:var(--panel2);border-radius:8px;padding:8px}
+#movie .mv-movie .vph,#mv-lb .mv-movie .vph{flex:0 0 72px;height:48px;border-radius:6px;background:var(--panel);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mut);overflow:hidden;position:relative}
+#movie .mv-movie .vph img,#mv-lb .mv-movie .vph img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+#movie .mv-movie .vph span,#mv-lb .mv-movie .vph span{position:relative;text-shadow:0 0 4px #000}
+#mv-lb{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;padding:12px}
+#mv-lb .m{max-width:min(960px,96vw);max-height:80vh;overflow:auto}
+#mv-lb .m img,#mv-lb .m video{max-width:96vw;max-height:70vh;border-radius:8px;display:block;margin:0 auto}
+#mv-lb .a{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+#mv-lb .a button,#mv-lb .a a{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font-size:13px}
+#mv-lb .a button.on{border-color:var(--ok);color:var(--ok)}
+#mv-lb .a button.danger{border-color:var(--err);color:var(--err)}
+#mv-lb .a button.armed{background:var(--err);color:#fff}
+#movie .mv-form,#mv-lb .mv-form{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;width:min(900px,92vw)}
+#movie .mv-pick,#mv-lb .mv-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;max-height:45vh;overflow:auto;margin-bottom:10px}
+#movie .ep-clip,#mv-lb .ep-clip{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+#movie .ep-clip textarea,#mv-lb .ep-clip textarea{min-height:70px;margin-top:6px}
+#movie .mv-cap,#mv-lb .mv-cap{max-width:min(900px,92vw);margin-bottom:8px}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="movie" hidden></div>
+<div id="studio" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 <script>
 'use strict';
@@ -121,7 +213,7 @@ const ICON = {
 const S = {
   lang: LS.get('lang', 'en'), screen: 'home', sec: null, task: null, step: 'preview',
   ans: {}, jobs: [], picked: 0, layer: null, chatOpen: false, chat: [], adultOk: LS.get('adultOk', false),
-  studio: { type: 0, model: 0, prompt: '', size: 0, count: 2, more: false, jobs: [] }, works: LS.get('works', [])
+  studio: { tab: 'pic', fam: {}, model: {}, inputs: [], prompt: {}, size: {}, sec: {}, mp: '0.5', aspect: '9:16', neg: {}, loras: {}, nvar: 2, seed: '', gkind: '', glimit: 30, gallery: null, jobs: [], picking: false, pickGal: [], view: null, delArm: false, advOpen: false, err: '', M: null }, works: LS.get('works', [])
 };
 const L = (en, ru, id) => ({ en, ru, id })[S.lang] || en;
 let toastT = 0;
@@ -562,32 +654,197 @@ function vAdult() {
   <div class="pad"><div class="card small" style="font-size:13px">${esc(L('Only made-up adult characters (21+ in every prompt). Photos of real people cannot be uploaded here, and pictures from the everyday section cannot be brought in. Content is stored separately.', 'Только выдуманные взрослые персонажи (21+ в каждом промпте). Фото реальных людей сюда загрузить нельзя, картинки из обычного раздела перенести тоже нельзя. Хранится отдельно.', 'Hanya karakter dewasa rekaan (21+). Foto orang nyata tidak bisa diunggah di sini. Disimpan terpisah.'))}</div></div>
   ${footer(true)}`;
 }
-const STUDIO_TYPES = () => [L('Picture', 'Картинка', 'Gambar'), L('Edit', 'Правка', 'Edit'), L('Video', 'Видео', 'Video'), L('With sound', 'Со звуком', 'Bersuara')];
-const STUDIO_MODELS = () => [
-  [['qwen_image21', 'Qwen-Image 2.1', L('Universal, understands references and text', 'Универсальная, понимает референсы и текст', 'Serbaguna, paham referensi dan teks')], ['flux3_klein', 'FLUX 3 Klein', L('Great interiors and light, SFW only', 'Отличные интерьеры и свет, только SFW', 'Interior dan cahaya bagus, hanya SFW')], ['zimage', 'Z-Image', L('Fast realistic photos', 'Быстрые реалистичные фото', 'Foto realistis cepat')]],
-  [['qwen_aio', 'Qwen Edit', L('Change background, clothes, details', 'Сменить фон, одежду, детали', 'Ganti latar, pakaian, detail')]],
-  [['wan22_i2v', 'Wan 2.2', L('Bring a picture to life, up to 5 s, no sound', 'Оживить картинку, до 5 с, без звука', 'Hidupkan gambar, hingga 5 dtk')]],
-  [['h3_fl2va', 'MiniMax H3 — from a picture', L('Speech, sounds, music, up to 15 s', 'Речь, звуки, музыка, до 15 с', 'Ucapan, suara, musik, hingga 15 dtk')], ['h3_ref2va', 'MiniMax H3 — from references', L('Up to 9 references', 'До 9 референсов', 'Hingga 9 referensi')]]
+/* ---------------- Studio for pros: every model and option of the admin, in a friendlier shape ---------------- */
+const SFAM_INPUTS = { qwen_image21: [0, 10], flux3_klein: [0, 10], qwen_aio: [1, 1], wan22_i2v: [1, 1], h3_fl2va: [1, 2], h3_ref2va: [1, 9] };
+const STABS = () => [
+  { id: 'pic', n: L('Picture', 'Картинка', 'Gambar'), fams: ['zimage', 'illustrious', 'qwen_image21', 'flux3_klein'] },
+  { id: 'edit', n: L('Edit', 'Правка', 'Edit'), fams: ['qwen_aio'] },
+  { id: 'video', n: L('Video', 'Видео', 'Video'), fams: ['wan22_i2v'] },
+  { id: 'sound', n: L('With sound', 'Со звуком', 'Bersuara'), fams: ['h3_fl2va', 'h3_ref2va'] },
+  { id: 'movie', n: L('Movie', 'Фильм', 'Film'), fams: [] }
 ];
-function vStudio() {
-  const st = S.studio, models = STUDIO_MODELS()[st.type], sizes = [['1:1', 1152, 1152], ['9:16', 896, 1344], ['16:9', 1344, 896]];
-  const picture = st.type === 0;
-  return `${topBar({ back: true, studio: true })}
-  <div class="pad"><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:rgba(127,140,160,.18);border-radius:12px;padding:4px">
-    ${STUDIO_TYPES().map((n, i) => `<button data-act="stType" data-v="${i}" style="height:38px;border:0;border-radius:9px;font-size:13px;font-weight:900;background:${st.type === i ? 'var(--card)' : 'transparent'}">${esc(n)}</button>`).join('')}</div></div>
-  <div class="pad"><div class="card"><div class="small" style="font-weight:900">${esc(L('Model', 'Модель', 'Model'))}</div>
-    <div class="stack" style="gap:6px;margin-top:6px">${models.map((m, i) => `<button data-act="stModel" data-v="${i}" style="text-align:left;padding:8px 10px;border-radius:12px;border:2px solid ${st.model === i ? 'var(--ink)' : 'var(--line)'};background:var(--card)"><span style="display:block;font-size:15px;font-weight:900">${esc(m[1])}</span><span style="display:block;font-size:12px;color:var(--muted)">${esc(m[2])}</span></button>`).join('')}</div></div></div>
-  ${picture ? `<div class="pad"><div class="card"><label class="small" for="st-prompt" style="font-weight:900">${esc(L('Prompt', 'Промпт', 'Prompt'))}</label>
-    <textarea id="st-prompt" class="field" rows="4" style="margin-top:6px" data-st="prompt" placeholder="${esc(L('a cozy café at dawn, warm light, film photo', 'уютное кафе на рассвете, тёплый свет, плёночное фото', 'kafe nyaman saat fajar, cahaya hangat'))}">${esc(st.prompt)}</textarea>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px">
-      <div><div class="small" style="font-weight:900">${esc(L('Size', 'Размер', 'Ukuran'))}</div><div class="row" style="gap:4px;margin-top:6px">${sizes.map((z, i) => `<button class="chip ${st.size === i ? 'on' : ''}" style="flex:1;min-height:38px;padding:0;font-size:13px;border-radius:10px" data-act="stSize" data-v="${i}">${z[0]}</button>`).join('')}</div></div>
-      <div><div class="small" style="font-weight:900">${esc(L('Versions', 'Варианты', 'Versi'))}</div><div class="row" style="gap:4px;margin-top:6px">${[1, 2, 4].map((c) => `<button class="chip ${st.count === c ? 'on' : ''}" style="flex:1;min-height:38px;padding:0;font-size:13px;border-radius:10px" data-act="stCount" data-v="${c}">${c}</button>`).join('')}</div></div></div>
-    <button class="btn" style="margin-top:12px;background:#172033" data-act="stCreate">${esc(L('Create', 'Создать', 'Buat'))}</button></div></div>` :
-    `<div class="pad"><div class="card small" style="font-size:14px">${esc(L('In this test build, editing and video run in the full studio. Your gallery and references are there.', 'В этой тестовой версии правка и видео работают в полной студии. Там же галерея и референсы.', 'Di versi uji ini, edit dan video ada di studio lengkap.'))}
-      <a class="btn2" style="display:flex;align-items:center;justify-content:center;margin-top:10px;text-decoration:none" href="/admin">${esc(L('Open the full studio', 'Открыть полную студию', 'Buka studio lengkap'))}</a></div></div>`}
-  ${st.jobs.length ? `<div class="pad h2" style="font-size:16px">${esc(L('Results', 'Результаты', 'Hasil'))}</div><div class="pad"><div class="vgrid">${st.jobs.map((j) => j.status === 'done' && j.outputs ? j.outputs.map((o) => `<a class="vthumb" href="${fileUrl(o.path)}" target="_blank" rel="noopener"><img src="${fileUrl(o.path)}" alt=""></a>`).join('') : `<div class="vthumb" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#475569">${esc(j.status === 'error' ? L('error', 'ошибка', 'galat') : j.queue_pos ? '#' + j.queue_pos : '…')}</div>`).join('')}</div></div>` : ''}
-  ${footer()}`;
+const SFAM = () => ({
+  zimage: { t: L('Realistic photo', 'Реалистичное фото', 'Foto realistis'), d: L('Fast photorealism from plain words', 'Быстрый фотореализм по обычному описанию', 'Fotorealisme cepat dari kata biasa'),
+    hint: L('Describe the picture in plain English. Turbo models use 8 steps and ignore the negative prompt.', 'Опишите картинку обычными словами, лучше по-английски. Turbo-модели делают 8 шагов и не используют негативный промпт.', 'Jelaskan gambar dengan bahasa Inggris biasa. Model Turbo memakai 8 langkah dan mengabaikan prompt negatif.') },
+  illustrious: { t: L('Anime & illustration', 'Аниме и иллюстрации', 'Anime & ilustrasi'), d: L('Drawn styles, works with tags', 'Рисованные стили, понимает теги', 'Gaya gambar, memakai tag'),
+    hint: L('Danbooru-style tags separated by commas: 1girl, long hair, smile, city at night… "mature female, adult" is added automatically.', 'Теги через запятую в стиле Danbooru: 1girl, long hair, smile, city at night… «mature female, adult» добавляется автоматически.', 'Tag dipisah koma gaya Danbooru: 1girl, long hair, smile… "mature female, adult" ditambahkan otomatis.') },
+  qwen_image21: { t: L('Universal + references', 'Универсальная + референсы', 'Universal + referensi'), d: L('Understands references, text on images, edits', 'Понимает референсы, текст на картинке, правки', 'Paham referensi, teks, edit'),
+    hint: L('Without references: text to image. With references, say what each one is: "the man from image 1 at the desk in the room from image 2", or give an edit instruction and pick "Same as reference 1".', 'Без референсов — картинка по тексту. С референсами скажите, что есть что: «мужчина с картинки 1 за столом в комнате с картинки 2», или дайте инструкцию правки и выберите размер «Как у референса 1».', 'Tanpa referensi: teks ke gambar. Dengan referensi, sebutkan masing-masing: "pria dari gambar 1 di meja di ruangan dari gambar 2".') },
+  flux3_klein: { t: L('Interiors & light', 'Интерьеры и свет', 'Interior & cahaya'), d: L('Beautiful light and spaces, safe-for-work only', 'Красивый свет и пространство, только без обнажёнки', 'Cahaya indah, hanya SFW'),
+    hint: L('Plain English. With references, name them in order: "the man from the first image at the desk in the room from the second image". Not trained on nudity.', 'Обычными словами по-английски. С референсами называйте их по порядку: «мужчина с первой картинки за столом в комнате со второй». Обнажёнку не умеет.', 'Bahasa Inggris biasa. Dengan referensi, sebut berurutan. Tidak dilatih untuk ketelanjangan.') },
+  qwen_aio: { t: L('Edit a picture', 'Правка картинки', 'Edit gambar'), d: L('Change background, clothes, details — keep the rest', 'Сменить фон, одежду, детали — остальное не трогать', 'Ganti latar, pakaian, detail'),
+    hint: L('Say what to change: "change the dress to red, keep everything else the same".', 'Скажите, что поменять: «сделай платье красным, всё остальное оставь как есть».', 'Katakan apa yang diubah: "ubah gaun jadi merah, sisanya tetap".') },
+  wan22_i2v: { t: L('Bring a picture to life', 'Оживить картинку', 'Hidupkan gambar'), d: L('Up to 5 s, no sound', 'До 5 секунд, без звука', 'Hingga 5 dtk, tanpa suara'),
+    hint: L('Describe the motion and the camera. No sound, 16 fps.', 'Опишите движение и камеру. Без звука, 16 кадров в секунду.', 'Jelaskan gerakan dan kamera. Tanpa suara, 16 fps.') },
+  h3_fl2va: { t: L('From a picture', 'По картинке', 'Dari gambar'), d: L('Speech, sounds, music, up to 15 s', 'Речь, звуки, музыка, до 15 секунд', 'Ucapan, suara, musik, hingga 15 dtk'),
+    hint: L('Scene, motion, speech in quotes and sounds. The picture is <Picture 1>; a second picture (optional) becomes the last frame.', 'Сцена, движение, реплики в кавычках и звуки. Картинка — это <Picture 1>; вторая (необязательно) станет последним кадром.', 'Adegan, gerakan, ucapan dalam tanda kutip, suara. Gambar adalah <Picture 1>.') },
+  h3_ref2va: { t: L('From references', 'По референсам', 'Dari referensi'), d: L('Up to 9 characters or objects in one scene', 'До 9 персонажей или предметов в одной сцене', 'Hingga 9 karakter dalam satu adegan'),
+    hint: L('Call the references <Picture 1>, <Picture 2>… Describe the scene, actions, speech and sounds.', 'Называйте референсы <Picture 1>, <Picture 2>… Опишите сцену, действия, реплики и звуки.', 'Sebut referensi <Picture 1>, <Picture 2>… Jelaskan adegan, aksi, ucapan, suara.') }
+});
+const SSIZES = () => ({
+  sd: [['832x1216', L('Portrait', 'Портрет', 'Potret')], ['1024x1024', L('Square', 'Квадрат', 'Persegi')], ['1216x832', L('Landscape', 'Пейзаж', 'Lanskap')]],
+  qw: [['896x1344', L('Portrait', 'Портрет', 'Potret')], ['1152x1152', L('Square', 'Квадрат', 'Persegi')], ['1344x896', L('Landscape', 'Пейзаж', 'Lanskap')], ['1536x864', L('Wide 16:9', 'Широкий 16:9', 'Lebar 16:9')]],
+  wan: [['480x832', L('Vertical 480p', 'Вертикально 480p', 'Vertikal 480p')], ['832x480', L('Horizontal 480p', 'Горизонтально 480p', 'Horizontal 480p')], ['720x1280', L('Vertical 720p', 'Вертикально 720p', 'Vertikal 720p')]]
+});
+function sizesFor(f) {
+  const z = SSIZES();
+  if (f === 'zimage' || f === 'illustrious') return z.sd;
+  if (f === 'qwen_image21') return z.qw.concat([['same', L('Same as reference 1', 'Как у референса 1', 'Sama dengan referensi 1')]]);
+  if (f === 'flux3_klein') return z.qw;
+  if (f === 'wan22_i2v') return z.wan;
+  return null;
 }
+const SS = () => S.studio;
+function sFam() { const st = SS(), tab = STABS().find((t) => t.id === st.tab); const av = tab.fams.filter((f) => st.M && st.M.families[f] && st.M.families[f].models.length); if (!av.includes(st.fam[st.tab])) st.fam[st.tab] = av[0]; return { fam: st.fam[st.tab], av }; }
+async function studioEnter() {
+  const st = SS();
+  if (!st.M) { try { st.M = await api('/api/models'); } catch (e) { st.err = e.message; } }
+  render.keep = true; render(); studioTick();
+}
+let sTickT = 0, sDoneSig = '';
+async function studioTick() {
+  clearTimeout(sTickT);
+  if (S.screen !== 'studio') return;
+  const st = SS();
+  try {
+    st.jobs = await api('/api/jobs');
+    const done = st.jobs.filter((j) => j.status === 'done').map((j) => j.id).join();
+    if (done !== sDoneSig || !st.gallery) { sDoneSig = done; st.gallery = await api(`/api/gallery?limit=${st.glimit}${st.gkind ? '&kind=' + st.gkind : ''}`); }
+  } catch (e) {}
+  const box = $('#stres'); if (box) box.innerHTML = vStudioResults();
+  const pk = $('#stpick'); if (pk && st.picking) pk.outerHTML = vStudioPicker();
+  sTickT = setTimeout(studioTick, 2500);
+}
+function chipRow(key, opts, cur) { return `<div class="chips" style="margin-top:8px">${opts.map(([v, n]) => `<button class="chip ${String(cur) === String(v) ? 'on' : ''}" style="min-height:40px;font-size:14px" data-act="stSet" data-k="${key}" data-v="${esc(v)}">${esc(n)}</button>`).join('')}</div>`; }
+function vStudio() {
+  const st = SS(), tabs = STABS();
+  let h = `${topBar({ back: true, studio: true })}
+  <div class="pad"><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;background:rgba(127,140,160,.18);border-radius:12px;padding:4px">
+    ${tabs.map((t) => `<button data-act="stTab" data-v="${t.id}" style="height:38px;border:0;border-radius:9px;font-size:12px;font-weight:900;padding:0 2px;background:${st.tab === t.id ? 'var(--card)' : 'transparent'}">${esc(t.n)}</button>`).join('')}</div></div>`;
+  if (st.tab === 'movie') return h + `<div class="pad small" style="font-size:14px">${esc(L('Movie projects: references with names, a plan of clips, takes and montage.', 'Проекты фильмов: именованные референсы, план клипов, дубли и монтаж.', 'Proyek film: referensi bernama, rencana klip, take dan montase.'))}</div>`;
+  if (!st.M) return h + `<div class="pad small">${esc(st.err || L('Loading models…', 'Загружаю модели…', 'Memuat model…'))}</div>`;
+  const { fam, av } = sFam();
+  if (!fam) return h + `<div class="pad small">${esc(L('These models are not installed on this server yet.', 'Эти модели ещё не установлены на сервере.', 'Model ini belum terpasang.'))}</div>`;
+  const F = st.M.families[fam], meta = SFAM()[fam] || { t: F.label, d: '', hint: '' };
+  const mkey = st.model[fam] || (F.models.find((m) => m.default) || F.models[0]).key;
+  const inp = SFAM_INPUTS[fam], sizes = sizesFor(fam);
+  h += `<div class="pad stack" style="gap:8px">${av.map((f) => { const m = SFAM()[f] || { t: st.M.families[f].label, d: '' }, beta = st.M.families[f].status !== 'ready';
+    return `<button class="intent" style="padding:12px;align-items:center;${f === fam ? 'outline:3px solid var(--acc);' : ''}" data-act="stFam" data-v="${f}">
+      <span style="flex-grow:1;min-width:0"><span style="display:block;font-size:16px;font-weight:900">${esc(m.t)}${beta ? ' <span class="pill grey">beta</span>' : ''}</span><span style="display:block;font-size:13px;color:var(--muted);margin-top:2px">${esc(m.d)}</span></span></button>`; }).join('')}</div>`;
+  h += `<div class="pad"><div class="card">`;
+  if (F.models.length > 1) h += `<div class="small" style="font-weight:900">${esc(L('Model', 'Модель', 'Model'))}</div>${chipRow('model', F.models.map((m) => [m.key, m.label]), mkey)}<div style="height:12px"></div>`;
+  if (inp) {
+    const lab = fam === 'h3_ref2va' ? L('References (1–9)', 'Референсы (1–9)', 'Referensi (1–9)') : (fam === 'qwen_image21' || fam === 'flux3_klein') ? L('References (optional, up to 10)', 'Референсы (необязательно, до 10)', 'Referensi (opsional, maks 10)') : fam === 'h3_fl2va' ? L('First frame (+ optional last frame)', 'Первый кадр (+ последний, необязательно)', 'Frame pertama (+ terakhir, opsional)') : L('Source picture', 'Исходная картинка', 'Gambar sumber');
+    h += `<div class="small" style="font-weight:900">${esc(lab)}</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px">
+      ${st.inputs.map((p, i) => `<span style="position:relative;width:72px;height:72px;border-radius:12px;overflow:hidden;background:#cbd5e1"><img src="${thumbUrl(p)}" alt="" style="width:100%;height:100%;object-fit:cover"><button data-act="stUnpick" data-v="${i}" aria-label="remove" style="position:absolute;top:3px;right:3px;width:24px;height:24px;border:0;border-radius:8px;background:rgba(0,0,0,.6);color:#fff;font-size:13px">✕</button>${fam.startsWith('h3') ? `<span style="position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;border-radius:5px;padding:0 4px">${i + 1}</span>` : ''}</span>`).join('')}
+      ${st.inputs.length < inp[1] ? `<button data-act="stPick" style="width:72px;height:72px;border:2px dashed var(--chip);border-radius:12px;background:var(--card);font-size:12px;font-weight:800;color:var(--muted)">+ ${esc(L('from results', 'из результатов', 'dari hasil'))}</button>` : ''}</div>
+      <div class="small" style="margin-top:6px">${esc(L('Photo upload from your phone comes in the next test build.', 'Загрузка своих фото появится в следующей тестовой версии.', 'Unggah foto hadir di versi uji berikutnya.'))}</div><div style="height:12px"></div>`;
+  }
+  h += `<label class="small" for="st-prompt" style="font-weight:900">${esc(fam === 'qwen_aio' ? L('What to change', 'Что поменять', 'Apa yang diubah') : L('Prompt', 'Промпт', 'Prompt'))}</label>
+    <textarea id="st-prompt" class="field" rows="4" style="margin-top:6px" data-st="prompt">${esc(st.prompt[fam] || '')}</textarea>
+    <div class="small" style="margin-top:4px">${esc(meta.hint)}</div>`;
+  if (sizes) h += `<div class="small" style="font-weight:900;margin-top:12px">${esc(L('Size', 'Размер', 'Ukuran'))}</div>${chipRow('size', sizes, st.size[fam] || sizes[0][0])}`;
+  if (fam === 'wan22_i2v' || fam.startsWith('h3')) {
+    const mn = fam === 'wan22_i2v' ? 1 : 4, mx = fam === 'wan22_i2v' ? 5 : 15, v = Math.min(mx, Math.max(mn, st.sec[fam] || 5));
+    h += `<div class="small" style="font-weight:900;margin-top:12px">${esc(L('Length', 'Длина', 'Durasi'))}: <span id="st-secv">${v}</span> ${esc(L('s', 'с', 'dtk'))}</div>
+      <input type="range" min="${mn}" max="${mx}" step="1" value="${v}" data-st="sec" style="width:100%;margin-top:6px">`;
+  }
+  if (fam.startsWith('h3')) h += `<div class="small" style="font-weight:900;margin-top:12px">${esc(L('Quality', 'Качество', 'Kualitas'))}</div>${chipRow('mp', [['0.5', L('Fast', 'Быстро', 'Cepat')], ['0.9', L('Standard', 'Стандарт', 'Standar')]], st.mp || '0.5')}`;
+  if (fam === 'h3_ref2va') h += `<div class="small" style="font-weight:900;margin-top:12px">${esc(L('Aspect ratio', 'Пропорции', 'Rasio'))}</div>${chipRow('aspect', ['9:16', '16:9', '1:1', '3:4'].map((a) => [a, a]), st.aspect || '9:16')}`;
+  h += `<div class="small" style="font-weight:900;margin-top:12px">${esc(L('Versions', 'Вариантов', 'Versi'))}</div>${chipRow('nvar', [1, 2, 3, 4].map((n) => [n, n]), st.nvar)}`;
+  const adv = [];
+  if (fam === 'zimage' || fam === 'illustrious') adv.push(`<label class="small" for="st-neg" style="font-weight:900">${esc(L('Negative prompt (what to avoid)', 'Негативный промпт (чего избегать)', 'Prompt negatif'))}</label><textarea id="st-neg" class="field" rows="2" style="margin-top:6px" data-st="neg" placeholder="${esc(L('model default', 'по умолчанию модели', 'bawaan model'))}">${esc(st.neg[fam] || '')}</textarea>`);
+  if (F.loras.length) adv.push(`<div class="small" style="font-weight:900;margin-top:10px">${esc(L('Styles (LoRA)', 'Стили (LoRA)', 'Gaya (LoRA)'))}</div>${F.loras.map((l) => `<div style="display:grid;grid-template-columns:1fr 110px 40px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
+      <span style="min-width:0"><span style="display:block;font-size:14px;font-weight:800">${esc(l.label)}</span>${l.triggers ? `<button data-act="stTrig" data-v="${esc(l.triggers)}" style="border:0;background:none;padding:0;color:var(--blue);font-size:12px;text-align:left">+ ${esc(l.triggers)}</button>` : ''}</span>
+      <input type="range" min="0" max="1.5" step="0.05" value="${st.loras[l.key] || 0}" data-st="lora" data-k="${l.key}"><span class="small" id="lv-${l.key}" style="text-align:right">${(st.loras[l.key] || 0).toFixed(2)}</span></div>`).join('')}`);
+  adv.push(`<label class="small" for="st-seed" style="font-weight:900;display:block;margin-top:10px">${esc(L('Seed (empty = random)', 'Seed (пусто = случайный)', 'Seed (kosong = acak)'))}</label><input id="st-seed" class="field" inputmode="numeric" data-st="seed" value="${esc(st.seed)}" style="margin-top:6px">`);
+  h += `<details style="margin-top:14px" ${st.advOpen ? 'open' : ''} data-act="stAdv"><summary class="small" style="font-weight:900;cursor:pointer">${esc(L('Fine tuning', 'Тонкие настройки', 'Pengaturan lanjut'))}</summary><div style="margin-top:8px">${adv.join('')}</div></details>
+    <button class="btn" style="margin-top:14px;background:#172033" data-act="stGo">${esc(L('Create', 'Создать', 'Buat'))}</button>
+    ${st.err ? `<div class="small" style="color:#dc2626;margin-top:8px">${esc(st.err)}</div>` : ''}</div></div>
+  <div id="stres">${vStudioResults()}</div>`;
+  if (st.picking) h += vStudioPicker();
+  if (st.view) h += vStudioViewer();
+  return h;
+}
+const thumbUrl = (p, m) => '/thumb/' + p.split('/').map(encodeURIComponent).join('/') + (m ? '?v=' + m : '');
+const isVidP = (p) => /\.(mp4|webm|mov)$/i.test(p);
+const SSTAGE = () => ({ queued: L('Starting', 'Старт', 'Mulai'), 'waiting for GPU': L('Waiting for GPU', 'Ждём видеокарту', 'Menunggu GPU'), 'loading models': L('Loading models', 'Загружаю модели', 'Memuat model'), 'encoding prompt': L('Reading the prompt', 'Читаю промпт', 'Membaca prompt'), generating: L('Generating', 'Генерирую', 'Membuat'), decoding: L('Finishing', 'Дорисовываю', 'Menyelesaikan'), saving: L('Saving', 'Сохраняю', 'Menyimpan'), 'age check': L('Safety check', 'Проверка безопасности', 'Cek keamanan') });
+function vStudioResults() {
+  const st = SS(), js = (st.jobs || []).filter((j) => ['queued', 'running'].includes(j.status) || (j.status === 'error' && Date.now() / 1000 - 0 > 0)).slice(0, 8);
+  const act = js.filter((j) => j.status !== 'error'), errs = (st.jobs || []).filter((j) => j.status === 'error').slice(0, 2);
+  let h = '';
+  if (act.length || errs.length) h += `<div class="pad"><div class="card"><div class="h2" style="font-size:16px">${esc(L('In progress', 'В работе', 'Sedang dibuat'))}</div>
+    ${act.concat(errs).map((j) => { const p = j.progress || {}, pct = Math.round(100 * Math.min(1, p.frac || 0));
+      return `<div style="padding:10px 0;border-top:1px solid var(--line)"><div class="row" style="gap:8px"><span style="font-size:13px;font-weight:900;min-width:0;flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(j.label || (SFAM()[j.family] || {}).t || j.family)} · <span style="font-weight:600;color:var(--muted)">${esc(j.prompt || '')}</span></span>
+        ${j.status === 'error' ? '' : `<button class="btn3" style="min-height:34px;font-size:12px" data-act="stCancel" data-v="${j.id}">${esc(j.status === 'running' ? L('Stop', 'Стоп', 'Stop') : L('Remove', 'Убрать', 'Hapus'))}</button>`}</div>
+        ${j.status === 'error' ? `<div class="small" style="color:#dc2626">${esc((j.error || '').slice(0, 160))}</div>` : j.status === 'queued' ? `<div class="small">${esc(L('In line', 'В очереди', 'Antre'))}${j.queue_pos ? ' #' + j.queue_pos : ''}</div>`
+          : `<div class="bar" style="margin-top:6px"><i style="width:${Math.max(6, p.stage === 'generating' || p.stage === 'loading models' ? pct : 100)}%"></i></div><div class="small" style="margin-top:4px">${esc([SSTAGE()[p.stage] || p.stage || '', p.detail || ''].filter(Boolean).join(' · '))}${p.eta != null ? ' · ~' + p.eta + ' ' + L('s left', 'с осталось', 'dtk lagi') : ''}</div>`}</div>`; }).join('')}</div></div>`;
+  const g = st.gallery || [];
+  h += `<div class="pad"><div class="row" style="justify-content:space-between"><div class="h2" style="font-size:16px">${esc(L('My results', 'Мои результаты', 'Hasil saya'))}</div>
+    <div class="chips">${[['', L('All', 'Все', 'Semua')], ['image', L('Pictures', 'Картинки', 'Gambar')], ['video', L('Videos', 'Видео', 'Video')]].map(([k, n]) => `<button class="chip ${st.gkind === k ? 'on' : ''}" style="min-height:34px;font-size:12px;padding:0 10px" data-act="stGk" data-v="${k}">${esc(n)}</button>`).join('')}</div></div>
+    <div class="vgrid" style="margin-top:10px">${g.map((i) => `<button class="vthumb" data-act="stView" data-v="${esc(i.path)}"><img loading="lazy" src="${thumbUrl(i.path, i.mtime)}" alt="">${isVidP(i.path) ? `<span style="position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:0 5px">▶</span>` : ''}</button>`).join('') || `<div class="small">${esc(L('Your pictures and videos will appear here.', 'Здесь появятся ваши картинки и видео.', 'Gambar dan video Anda muncul di sini.'))}</div>`}</div>
+    ${g.length >= st.glimit ? `<button class="btn3" style="width:100%;margin-top:10px" data-act="stMore">${esc(L('Show more', 'Показать ещё', 'Lainnya'))}</button>` : ''}</div>`;
+  return h;
+}
+function vStudioPicker() {
+  const st = SS(), { fam } = sFam(), mx = (SFAM_INPUTS[fam] || [0, 1])[1], g = (st.pickGal || []);
+  return `<div class="sheet" id="stpick" data-act="stPickDone"><div data-stop="1">
+    <div class="row" style="justify-content:space-between"><div class="h2" style="font-size:17px">${esc(L('Pick pictures', 'Выберите картинки', 'Pilih gambar'))} · ${st.inputs.length}/${mx}</div><button class="btn" style="width:auto;min-height:40px;font-size:14px" data-act="stPickDone">${esc(L('Done', 'Готово', 'Selesai'))}</button></div>
+    <div class="vgrid" style="margin-top:10px;overflow-y:auto">${g.map((i) => `<button class="vthumb ${st.inputs.includes(i.path) ? 'on' : ''}" data-act="stPickOne" data-v="${esc(i.path)}"><img loading="lazy" src="${thumbUrl(i.path, i.mtime)}" alt=""></button>`).join('') || `<div class="small">${esc(L('No pictures yet: create one first.', 'Картинок пока нет: сначала создайте.', 'Belum ada gambar.'))}</div>`}</div></div></div>`;
+}
+function vStudioViewer() {
+  const st = SS(), p = st.view, vid = isVidP(p), M = st.M ? st.M.families : {};
+  const acts = [];
+  if (!vid && !/\.gif$/i.test(p)) {
+    if (M.qwen_aio) acts.push(['qwen_aio', L('Edit', 'Править', 'Edit')]);
+    if (M.wan22_i2v) acts.push(['wan22_i2v', L('Bring to life', 'Оживить', 'Hidupkan')]);
+    if (M.h3_fl2va) acts.push(['h3_fl2va', L('Video with sound', 'Видео со звуком', 'Video bersuara')]);
+    if (M.h3_ref2va) acts.push(['h3_ref2va', L('Add to references', 'В референсы', 'Ke referensi')]);
+    if (M.qwen_image21) acts.push(['qwen_image21', L('Use as reference', 'Как референс', 'Jadikan referensi')]);
+  }
+  return `<div class="sheet" data-act="stClose"><div data-stop="1">
+    <div style="border-radius:16px;overflow:hidden;background:#000;max-height:58vh;display:flex;justify-content:center">${vid ? `<video src="${fileUrl(p)}" controls autoplay playsinline style="max-width:100%;max-height:58vh"></video>` : `<img src="${fileUrl(p)}" alt="" style="max-width:100%;max-height:58vh;object-fit:contain">`}</div>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="btn" style="background:var(--ok);flex:1" data-act="stShare">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
+      <a class="btn3" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit" href="${fileUrl(p)}?dl=1" download>${esc(L('Save', 'Сохранить', 'Simpan'))}</a></div>
+    ${acts.length ? `<div class="chips" style="margin-top:10px">${acts.map(([f, n]) => `<button class="chip" data-act="stUse" data-v="${f}">${esc(n)}</button>`).join('')}</div>` : ''}
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn3" style="flex:1;color:#dc2626;border-color:#fca5a5" data-act="stDel">${esc(st.delArm ? L('Tap again to delete', 'Нажмите ещё раз — удалить', 'Ketuk lagi untuk hapus') : L('Delete', 'Удалить', 'Hapus'))}</button>
+      <button class="btn3" style="flex:1" data-act="stClose">${esc(L('Close', 'Закрыть', 'Tutup'))}</button></div></div></div>`;
+}
+async function studioGo() {
+  const st = SS(), { fam } = sFam(), F = st.M.families[fam];
+  st.err = '';
+  const req = { family: fam, model: st.model[fam] || (F.models.find((m) => m.default) || F.models[0]).key, prompt: (st.prompt[fam] || '').trim() };
+  if (!req.prompt && fam !== 'qwen_aio') { st.err = L('Write a prompt first', 'Сначала напишите промпт', 'Tulis prompt dulu'); render.keep = true; render(); return; }
+  const inp = SFAM_INPUTS[fam];
+  if (inp) { if (st.inputs.length < inp[0]) { st.err = L('Pick a picture first', 'Сначала выберите картинку', 'Pilih gambar dulu'); render.keep = true; render(); return; } req.images = st.inputs.map((p) => ({ path: p })); }
+  const sizes = sizesFor(fam), sz = sizes ? (st.size[fam] || sizes[0][0]) : null;
+  if (sz === 'same') { if (!st.inputs.length) { st.err = L('"Same as reference 1" needs a reference', '«Как у референса 1» требует референс', 'Perlu referensi'); render.keep = true; render(); return; } req.keep_size = true; }
+  else if (sz) { const [w, h] = sz.split('x').map(Number); req.width = w; req.height = h; }
+  if ((st.neg[fam] || '').trim()) req.negative = st.neg[fam].trim();
+  if (fam === 'wan22_i2v' || fam.startsWith('h3')) req.seconds = st.sec[fam] || 5;
+  if (fam.startsWith('h3')) req.megapixels = +(st.mp || 0.5);
+  if (fam === 'h3_ref2va') req.aspect = st.aspect || '9:16';
+  const lo = {}; F.loras.forEach((l) => { if ((st.loras[l.key] || 0) > 0) lo[l.key] = st.loras[l.key]; }); req.loras = lo;
+  const sd = String(st.seed).trim();
+  try {
+    for (let k = 0; k < st.nvar; k++) { const r = { ...req }; if (sd !== '' && !isNaN(+sd)) r.seed = +sd + k; await api('/api/generate', r); }
+    toast(L('Added to the queue', 'Добавлено в очередь', 'Masuk antrean'));
+  } catch (e) { st.err = e.message; }
+  render.keep = true; render(); studioTick();
+}
+let movieLoaded = false;
+function studioMovie(on) {
+  const mv = $('#movie');
+  if (on) {
+    mv.hidden = false; $('#app').style.minHeight = '0'; $('#app').style.paddingBottom = '0';
+    if (!movieLoaded) { movieLoaded = true; try { localStorage.setItem('zc_view', 'studio'); } catch (e) {} const s = document.createElement('script'); s.src = '/ui/movie.js'; s.onload = () => window.showView && window.showView('movie'); document.body.appendChild(s); }
+    else if (window.showView) window.showView('movie');
+  } else {
+    if (mv) mv.hidden = true; $('#app').style.minHeight = ''; $('#app').style.paddingBottom = '';
+    if (movieLoaded && window.showView) window.showView('studio');
+  }
+}
+
 function vChat() {
   const adult = S.screen === 'adult';
   return `<div class="sheet" data-act="chatBg"><div data-stop="1">
@@ -619,6 +876,11 @@ function render() {
   window.scrollTo(0, keepScroll ? sy : 0);
   document.querySelectorAll('video').forEach((v) => { v.muted = true; const p = v.play(); if (p && p.catch) p.catch(() => {}); });
   const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight;
+  const movieOn = S.screen === 'studio' && S.studio.tab === 'movie';
+  if (movieOn || movieLoaded || !$('#movie').hidden) studioMovie(movieOn);
+  if (S.screen === 'studio' && !S.studio.M && !studioEnter.busy) { studioEnter.busy = true; studioEnter().finally(() => { studioEnter.busy = false; }); }
+  else if (S.screen === 'studio' && !sTickT) studioTick();
+  if (S.screen !== 'studio') { clearTimeout(sTickT); sTickT = 0; }
 }
 function go(screen, extra) { Object.assign(S, { screen }, extra || {}); history.pushState({ s: screen, sec: S.sec, task: S.task, step: S.step }, ''); render(); }
 window.addEventListener('popstate', (e) => { const st = e.state; if (!st) { S.screen = 'home'; } else { Object.assign(S, { screen: st.s, sec: st.sec, task: st.task, step: st.step || 'preview' }); } S.chatOpen = false; render(); });
@@ -626,7 +888,8 @@ function back() { history.back(); }
 
 /* ---------------- jobs ---------------- */
 async function api(path, body) {
-  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const opts = body && typeof body.method === 'string' ? body : body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {};
+  const r = await fetch(path, opts);
   if (!r.ok) { let m = r.status + ''; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
   return r.json();
 }
@@ -649,14 +912,8 @@ async function poll() {
   S.works = S.works.slice(0, 60); LS.set('works', S.works);
   if (S.screen === 'flow' && S.step === 'gen' && S.jobs.length && S.jobs.every((j) => ['done', 'error', 'cancelled'].includes(j.status)) && S.jobs.some((j) => j.status === 'done')) S.step = 'result';
   if (S.screen === 'flow' && (S.step === 'gen' || S.step === 'result')) { render.keep = true; if (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render(); }
-  if (S.screen === 'studio') { render.keep = true; render(); }
-  const still = [...S.jobs, ...S.studio.jobs].some((j) => j.id !== '-' && !['done', 'error', 'cancelled'].includes(j.status));
+  const still = S.jobs.some((j) => j.id !== '-' && !['done', 'error', 'cancelled'].includes(j.status));
   if (still) pollT = setTimeout(poll, 2000);
-}
-async function studioPoll() {
-  for (const j of S.studio.jobs.filter((j) => !['done', 'error', 'cancelled'].includes(j.status))) { try { Object.assign(j, await api('/api/job/' + j.id)); } catch (e) {} }
-  if (S.screen === 'studio') { render.keep = true; render(); }
-  if (S.studio.jobs.some((j) => !['done', 'error', 'cancelled'].includes(j.status))) setTimeout(studioPoll, 2000);
 }
 
 /* ---------------- export: compose image + text layer ---------------- */
@@ -757,9 +1014,9 @@ document.addEventListener('click', async (e) => {
     case 'uploadSoon': toast(TT().uploadSoon); break;
     case 'orderSoon': toast(L('Ordering printed things comes later. Download the file meanwhile.', 'Заказ печати появится позже. Пока скачайте файл.', 'Pesan cetak hadir nanti.')); break;
     case 'works': go('works'); break;
-    case 'adult': go(S.adultOk ? 'adult' : 'gate'); break;
-    case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go('adult'); break;
-    case 'studio': go('studio'); break;
+    case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); break;
+    case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go(S.after || 'adult'); break;
+    case 'studio': go(S.adultOk ? 'studio' : 'gate', { after: 'studio' }); break;
     case 'ask': { const v = ($('#ask') || {}).value || ''; if (v.trim()) chatSend(v); else { S.chatOpen = true; render.keep = true; render(); } break; }
     case 'chatOpen': S.chatOpen = true; render.keep = true; render(); setTimeout(() => { const i = $('#chat-in'); if (i) i.focus(); }, 50); break;
     case 'chatClose': case 'chatBg': S.chatOpen = false; render.keep = true; render(); break;
@@ -779,23 +1036,44 @@ document.addEventListener('click', async (e) => {
     case 'lay': S.layer[d.k] = d.k === 'size' ? +d.v : d.v; render.keep = true; render(); break;
     case 'share': await doShare(); break;
     case 'download': try { const f = await finalFile(); dl(f.file); } catch (x) { toast(x.message); } break;
-    case 'stType': S.studio.type = +d.v; S.studio.model = 0; render.keep = true; render(); break;
-    case 'stModel': S.studio.model = +d.v; render.keep = true; render(); break;
-    case 'stSize': S.studio.size = +d.v; render.keep = true; render(); break;
-    case 'stCount': S.studio.count = +d.v; render.keep = true; render(); break;
-    case 'stCreate': {
-      const st = S.studio, m = STUDIO_MODELS()[0][st.model], z = [[1152, 1152], [896, 1344], [1344, 896]][st.size];
-      if (!st.prompt.trim()) { toast(L('Write a prompt first', 'Сначала напишите промпт', 'Tulis prompt dulu')); break; }
-      for (let i = 0; i < st.count; i++) { try { const { id } = await api('/api/generate', { family: m[0], prompt: st.prompt, width: z[0], height: z[1] }); st.jobs.unshift({ id, status: 'queued' }); } catch (x) { toast(x.message); break; } }
-      render.keep = true; render(); studioPoll(); break;
-    }
+    case 'stTab': S.studio.tab = d.v; S.studio.err = ''; render.keep = true; render(); break;
+    case 'stFam': S.studio.fam[S.studio.tab] = d.v; S.studio.err = ''; { const mx = (SFAM_INPUTS[d.v] || [0, 0])[1]; S.studio.inputs = S.studio.inputs.slice(0, mx); } render.keep = true; render(); break;
+    case 'stSet': { const st = S.studio, { fam } = sFam(), k = d.k;
+      if (k === 'model' || k === 'size') st[k][fam] = d.v; else if (k === 'nvar') st.nvar = +d.v; else st[k] = d.v;
+      render.keep = true; render(); break; }
+    case 'stTrig': { const st = S.studio, { fam } = sFam(); st.prompt[fam] = ((st.prompt[fam] || '').replace(/\s*$/, '') + (st.prompt[fam] ? ', ' : '') + d.v); render.keep = true; render(); break; }
+    case 'stAdv': setTimeout(() => { const dd = el.closest('details') || el; S.studio.advOpen = dd.open; }, 0); break;
+    case 'stGo': await studioGo(); break;
+    case 'stCancel': try { await api(`/api/jobs/${d.v}/cancel`, {}); } catch (x) {} studioTick(); break;
+    case 'stGk': S.studio.gkind = d.v; S.studio.glimit = 30; S.studio.gallery = null; sDoneSig = ''; studioTick(); render.keep = true; render(); break;
+    case 'stMore': S.studio.glimit += 30; S.studio.gallery = null; sDoneSig = ''; studioTick(); break;
+    case 'stPick': try { S.studio.pickGal = await api('/api/gallery?limit=90&kind=image'); } catch (x) { S.studio.pickGal = []; } S.studio.picking = true; render.keep = true; render(); break;
+    case 'stPickOne': { const st = S.studio, { fam } = sFam(), mx = (SFAM_INPUTS[fam] || [0, 1])[1];
+      if (st.inputs.includes(d.v)) st.inputs = st.inputs.filter((x) => x !== d.v); else if (st.inputs.length < mx) st.inputs.push(d.v);
+      if (mx === 1 && st.inputs.length === 1) st.picking = false; render.keep = true; render(); break; }
+    case 'stPickDone': if (el.dataset.act === 'stPickDone' && e.target.closest('[data-stop]') && !e.target.closest('button')) break; S.studio.picking = false; render.keep = true; render(); break;
+    case 'stUnpick': S.studio.inputs.splice(+d.v, 1); render.keep = true; render(); break;
+    case 'stView': S.studio.view = d.v; S.studio.delArm = false; render.keep = true; render(); break;
+    case 'stClose': if (e.target.closest('[data-stop]') && !e.target.closest('button')) break; S.studio.view = null; render.keep = true; render(); break;
+    case 'stShare': try { const p = S.studio.view, b = await (await fetch(fileUrl(p))).blob(), f = new File([b], p.split('/').pop(), { type: b.type });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f] }); else { dl(f); } } catch (x) { if (x.name !== 'AbortError') toast(x.message); } break;
+    case 'stDel': { const st = S.studio; if (!st.delArm) { st.delArm = true; render.keep = true; render(); setTimeout(() => { st.delArm = false; }, 4000); break; }
+      try { await api('/api/files/' + st.view.split('/').map(encodeURIComponent).join('/'), { method: 'DELETE' }); st.inputs = st.inputs.filter((x) => x !== st.view); st.view = null; st.gallery = null; sDoneSig = ''; } catch (x) { toast(x.message); }
+      render.keep = true; render(); studioTick(); break; }
+    case 'stUse': { const st = S.studio, p = st.view, f = d.v, tab = STABS().find((t) => t.fams.includes(f));
+      if (f === 'h3_ref2va' || f === 'qwen_image21') { if ((st.fam[tab.id] !== f) || !st.inputs.length) st.inputs = []; if (!st.inputs.includes(p)) st.inputs.push(p); } else st.inputs = [p];
+      st.tab = tab.id; st.fam[tab.id] = f; st.view = null; render(); break; }
   }
 });
 document.addEventListener('input', (e) => {
   const el = e.target;
   if (el.dataset.q) { S.ans[el.dataset.q] = el.value; return; }
   if (el.dataset.lay && S.layer) { S.layer.text = el.value; const st = $('.stage'); if (st) { st.querySelectorAll('.layer').forEach((x) => x.remove()); st.insertAdjacentHTML('beforeend', layerCss(S.layer)); } return; }
-  if (el.dataset.st) { S.studio[el.dataset.st] = el.value; }
+  if (el.dataset.st) { const st = S.studio, { fam } = sFam(), k = el.dataset.st;
+    if (k === 'prompt' || k === 'neg') st[k][fam] = el.value;
+    else if (k === 'sec') { st.sec[fam] = +el.value; const v = $('#st-secv'); if (v) v.textContent = el.value; }
+    else if (k === 'lora') { st.loras[el.dataset.k] = +el.value; const v = document.getElementById('lv-' + el.dataset.k); if (v) v.textContent = (+el.value).toFixed(2); }
+    else st[k] = el.value; }
 });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.shiftKey) return;
