@@ -3,20 +3,23 @@
 Generation goes through handler.generate (registry -> family template -> ComfyUI -> age gate), so the UI and the
 serverless worker share exactly the same code path. Jobs run one at a time on the GPU (in-process queue).
 
-Auth: HTTP Basic, user "zc", password = $ZC_UI_PASSWORD or the one generated into <volume>/zc/state/ui_password.txt.
-The admin page (/admin) needs the separate admin password: $ZC_ADMIN_PASSWORD or <volume>/zc/state/admin_password.txt.
+Accounts (closed test): people sign in with a personal invitation link /i/<token> made on the admin page; a signed
+cookie keeps them signed in. Everyone sees only their own jobs, results and movie projects (store.py, SQLite).
+The admin page (/admin) needs the admin password ($ZC_ADMIN_PASSWORD or <volume>/zc/state/admin_password.txt);
+signing in with it makes you the owner account, which sees everything.
 """
-import asyncio, base64, glob, json, os, queue, re, secrets, sys, threading, time, traceback, uuid, mimetypes
+import asyncio, base64, glob, hashlib, hmac, json, os, queue, re, secrets, sys, threading, time, traceback, uuid, mimetypes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import zc_paths as P
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 import handler as H
 import registry as R
 import projects as PJ
+import store as ST
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.realpath(f"{P.ROOT}/output")
@@ -37,39 +40,116 @@ def _password(env="ZC_UI_PASSWORD", name="ui_password.txt"):
         return pw
 
 
-PASSWORD = _password()
 ADMIN_PASSWORD = _password("ZC_ADMIN_PASSWORD", "admin_password.txt")
-ADMIN_ONLY = ("/admin",)          # pages only the owner may open (testers get the user app and the studio)
+ADMIN_ONLY = ("/admin", "/api/admin/")     # owner only: testers get the user app and the studio
+PUBLIC = ("/i/", "/ui/ex/", "/favicon")
+SESSION_DAYS = 120
+
+
+def _secret():
+    f = f"{P.STATE}/session_secret.txt"
+    try:
+        return open(f).read().strip()
+    except OSError:
+        os.makedirs(P.STATE, exist_ok=True)
+        s = secrets.token_urlsafe(32)
+        open(f, "w").write(s)
+        return s
+
+
+SECRET = os.environ.get("ZC_SESSION_SECRET") or _secret()
+
+
+def _sig(uid, exp):
+    return hmac.new(SECRET.encode(), f"{uid}.{exp}".encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def make_session(uid):
+    exp = int(time.time()) + SESSION_DAYS * 86400
+    return f"{uid}.{exp}.{_sig(uid, exp)}"
+
+
+def read_session(tok):
+    try:
+        uid, exp, sig = (tok or "").rsplit(".", 2)
+        if int(exp) < time.time() or not hmac.compare_digest(sig, _sig(uid, exp)):
+            return None
+    except ValueError:
+        return None
+    u = ST.user(uid)
+    return u if u and not u["disabled"] else None
+
+
+def _set_session(resp, uid):
+    resp.set_cookie("zc_s", make_session(uid), max_age=SESSION_DAYS * 86400, httponly=True, secure=True, samesite="lax")
+
+
+_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wishly</title><style>body{margin:0;font-family:system-ui,sans-serif;background:#f3f6fb;color:#172033;display:flex;min-height:100vh;
+align-items:center;justify-content:center;padding:24px;box-sizing:border-box}div{max-width:420px;text-align:center}h1{font-size:28px;margin:0 0 12px}
+p{font-size:17px;line-height:1.45;color:#4a5568;margin:8px 0}</style></head><body><div><h1>Wishly</h1>%s</div></body></html>"""
+LOGIN_HTML = _PAGE % ("<p>Closed testing. Open your personal invitation link to sign in.</p>"
+                      "<p>Закрытое тестирование. Откройте свою персональную ссылку-приглашение.</p>"
+                      "<p>Uji tertutup. Buka tautan undangan pribadi Anda untuk masuk.</p>")
+BAD_INVITE_HTML = _PAGE % ("<p>This invitation link is not valid any more. Ask for a new one.</p>"
+                           "<p>Эта ссылка больше не действует. Попросите новую.</p>"
+                           "<p>Tautan ini sudah tidak berlaku. Minta tautan baru.</p>")
 app = FastAPI(title="ZC")
 
 
 @app.middleware("http")
-async def basic_auth(request: Request, call_next):
-    def eq(x, y):
-        return bool(x) and secrets.compare_digest(x, y)
-    h = request.headers.get("authorization", "")
+async def auth(request: Request, call_next):
+    path = request.url.path
+    if path.startswith(PUBLIC):
+        return await call_next(request)
     pw = ""
+    h = request.headers.get("authorization", "")
     if h.startswith("Basic "):
         try:
             pw = base64.b64decode(h[6:]).decode().partition(":")[2]
         except Exception:
             pw = ""
-    # link-friendly alternative for phones: open /?key=<password> once, a cookie keeps you logged in
     key = request.query_params.get("key") or ""
-    ck_user, ck_admin = request.cookies.get("zc_key") or "", request.cookies.get("zc_admin") or ""
-    admin = eq(pw, ADMIN_PASSWORD) or eq(key, ADMIN_PASSWORD) or eq(ck_admin, ADMIN_PASSWORD)
-    user = admin or eq(pw, PASSWORD) or eq(key, PASSWORD) or eq(ck_user, PASSWORD)
-    path = request.url.path
-    if path.startswith(ADMIN_ONLY) and not admin:
-        # a different realm makes the browser ask again, this time for the admin password
+    u = read_session(request.cookies.get("zc_s"))
+    became_owner = False
+    if (pw and secrets.compare_digest(pw, ADMIN_PASSWORD)) or (key and secrets.compare_digest(key, ADMIN_PASSWORD)):
+        u, became_owner = ST.owner(), True
+    if path.startswith(ADMIN_ONLY) and not (u and u["role"] == "admin"):
+        # a separate realm makes the browser ask for the admin password
         return Response("admin only", status_code=401, headers={"WWW-Authenticate": 'Basic realm="ZC admin"'})
-    if not user:
-        return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="ZC"'})
+    if not u:
+        if path.startswith(("/api/", "/files/", "/thumb/")):
+            return JSONResponse({"detail": "sign in with your invitation link"}, status_code=401)
+        return HTMLResponse(LOGIN_HTML, status_code=401)
+    m = re.match(r"^/(?:api/projects|files/projects|thumb/projects)/([^/?]+)", path)
+    if m and u["role"] != "admin" and ST.project_owner(m.group(1)) != u["id"]:
+        return JSONResponse({"detail": "not found"}, status_code=404)
+    request.state.user = u
     resp = await call_next(request)
-    if key:
-        resp.set_cookie("zc_admin" if eq(key, ADMIN_PASSWORD) else "zc_key", key,
-                        max_age=30 * 86400, httponly=True, secure=True, samesite="lax")
+    if became_owner:
+        _set_session(resp, u["id"])
     return resp
+
+
+def me(request):
+    return request.state.user
+
+
+def is_admin(request):
+    return me(request)["role"] == "admin"
+
+
+def can_file(request, key):
+    """results belong to whoever made them; movie project files to the project owner; the admin sees everything"""
+    if is_admin(request):
+        return True
+    if key.startswith("projects/"):
+        return ST.project_owner(key.split("/")[1]) == me(request)["id"]
+    return ST.file_owner(key) == me(request)["id"]
+
+
+def can_job(request, job):
+    return is_admin(request) or job.get("user") == me(request)["id"]
 
 
 # ------------------------------------------------------------------ job queue (single GPU, one job at a time)
@@ -113,7 +193,7 @@ def _restore():
             continue
         outs = [{"path": p, "type": "video" if p.lower().endswith((".mp4", ".webm", ".mov")) else "image"}
                 for p in (r.get("outputs") or []) if os.path.exists(os.path.join(OUT, p))]
-        job = {k: r.get(k) for k in ("id", "status", "input", "created", "started", "finished", "error", "note")}
+        job = {k: r.get(k) for k in ("id", "status", "input", "created", "started", "finished", "error", "note", "user")}
         job["result"] = {"outputs": outs, "seed": r.get("seed")}
         if job["status"] in ("queued", "running"):
             job.update(status="error", error="interrupted by a server restart")
@@ -153,11 +233,70 @@ def worker():
         job.pop("progress", None)
         job["finished"] = time.time()
         _save(job)
+        try:
+            ST.finish_job(jid, job["status"], job["finished"])
+            for o in (job.get("result") or {}).get("outputs", []):
+                if not o["path"].startswith("projects/"):
+                    ST.add_file(o["path"], job.get("user") or ST.owner()["id"], jid, o.get("type"))
+        except Exception:
+            traceback.print_exc()
         Q.task_done()
 
 
 _restore()
+ST.owner()
+try:
+    ST.adopt_legacy(OUT, MEDIA, [p["slug"] for p in PJ.list_projects()])
+except Exception:
+    traceback.print_exc()
 threading.Thread(target=worker, daemon=True).start()
+
+
+@app.get("/i/{tok}")
+def invite_login(tok: str):
+    u = ST.use_invite(tok)
+    if not u:
+        return HTMLResponse(BAD_INVITE_HTML, status_code=404)
+    ST.event("login", u["id"])
+    r = RedirectResponse("/", status_code=302)
+    _set_session(r, u["id"])
+    return r
+
+
+@app.get("/api/me")
+def whoami(request: Request):
+    u = me(request)
+    return {"id": u["id"], "name": u["name"], "role": u["role"], "daily_limit": u["daily_limit"],
+            "used_24h": ST.jobs_last_24h(u["id"])}
+
+
+# ------------------------------------------------------------------ admin: testers and invitation links
+@app.get("/api/admin/users")
+def admin_users():
+    return ST.users_overview()
+
+
+@app.post("/api/admin/users")
+async def admin_user_create(request: Request):
+    b = await request.json()
+    uid = ST.create_user(b.get("name"), b.get("role") or "user", int(b.get("daily_limit") or 60))
+    return {"id": uid, "invite": ST.new_invite(uid)}
+
+
+@app.post("/api/admin/users/{uid}/invite")
+def admin_user_invite(uid: str):
+    if not ST.user(uid):
+        raise HTTPException(404)
+    return {"invite": ST.new_invite(uid)}
+
+
+@app.patch("/api/admin/users/{uid}")
+async def admin_user_update(uid: str, request: Request):
+    if not ST.user(uid):
+        raise HTTPException(404)
+    b = await request.json()
+    ST.update_user(uid, **{k: b.get(k) for k in ("name", "role", "daily_limit", "disabled")})
+    return ST.user(uid)
 
 
 # ------------------------------------------------------------------ API
@@ -185,9 +324,9 @@ def example_file(name: str):
 
 
 @app.get("/api/job/{jid}")
-def job_one(jid: str):
+def job_one(jid: str, request: Request):
     j = JOBS.get(jid)
-    if not j:
+    if not j or not can_job(request, j):
         raise HTTPException(404)
     d = {k: j.get(k) for k in ("id", "status", "error", "progress")}
     d["queue_pos"] = next((n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued") if k == jid), None)
@@ -202,7 +341,7 @@ async def gif_retext(jid: str, request: Request):
     """re-render the text on a finished GIF job without the GPU (new words / position)"""
     import gif as G
     j = JOBS.get(jid)
-    if not j or j["status"] != "done" or j["input"].get("family") != "gif":
+    if not j or j["status"] != "done" or j["input"].get("family") != "gif" or not can_job(request, j):
         raise HTTPException(404, "no finished GIF with this id")
     body = await request.json()
     text = (body.get("text") or "").strip()[:80]
@@ -215,7 +354,10 @@ async def gif_retext(jid: str, request: Request):
         raise HTTPException(404, "the raw loop is gone")
     n = int(time.time())
     outs = await asyncio.to_thread(G.finish, raw[-1], text, pos, f"{P.ROOT}/output/gif/{jid}_t{n}")
-    return {"outputs": [{"path": os.path.relpath(o, f"{P.ROOT}/output"), "type": "video"} for o in outs]}
+    rel = [os.path.relpath(o, f"{P.ROOT}/output") for o in outs]
+    for k in rel:
+        ST.add_file(k, j.get("user") or me(request)["id"], jid, "video")
+    return {"outputs": [{"path": k, "type": "video"} for k in rel]}
 
 
 @app.get("/api/models")
@@ -223,11 +365,12 @@ def models():
     return H.models_info()
 
 
-def enqueue(inp):
+def enqueue(inp, uid):
     jid = uuid.uuid4().hex[:12]
     with LOCK:
-        JOBS[jid] = {"id": jid, "status": "queued", "input": inp, "created": time.time()}
+        JOBS[jid] = {"id": jid, "status": "queued", "input": inp, "created": time.time(), "user": uid}
         ORDER.append(jid)
+    ST.add_job(jid, uid, inp.get("family"), "queued", JOBS[jid]["created"])
     Q.put(jid)
     return jid
 
@@ -241,8 +384,16 @@ async def generate(request: Request):
         raise HTTPException(400, "unknown family")
     v = H.prompt_violation(inp.get("prompt"))
     if v:
+        ST.event("prompt_refused", me(request)["id"], {"family": inp.get("family")})
         raise HTTPException(400, "Prompt refused: content involving minors is not allowed")
-    return {"id": enqueue(inp)}
+    for it in inp.get("images") or []:
+        if "path" not in it or not can_file(request, it["path"]):
+            raise HTTPException(403, "you can only use your own pictures")
+    u = me(request)
+    if u["role"] != "admin" and ST.jobs_last_24h(u["id"]) >= u["daily_limit"]:
+        ST.event("limit_hit", u["id"])
+        raise HTTPException(429, f"Daily limit reached ({u['daily_limit']} per 24 h). Please try again later.")
+    return {"id": enqueue(inp, u["id"])}
 
 
 def _cancel(job):
@@ -257,9 +408,9 @@ def _cancel(job):
 
 
 @app.post("/api/jobs/{jid}/cancel")
-def cancel_job(jid: str):
+def cancel_job(jid: str, request: Request):
     job = JOBS.get(jid)
-    if not job:
+    if not job or not can_job(request, job):
         raise HTTPException(404, "no such job")
     with LOCK:
         if not _cancel(job):
@@ -268,18 +419,20 @@ def cancel_job(jid: str):
 
 
 @app.post("/api/jobs/cancel_queued")
-def cancel_queued():
+def cancel_queued(request: Request):
     with LOCK:
-        n = sum(_cancel(j) for j in list(JOBS.values()) if j["status"] == "queued")
+        n = sum(_cancel(j) for j in list(JOBS.values()) if j["status"] == "queued" and can_job(request, j))
     return {"cancelled": n}
 
 
 @app.get("/api/jobs")
-def jobs():
+def jobs(request: Request, all: int = 0):
+    """your own jobs; the admin page asks for everybody's (all=1)"""
     now = time.time()
     out = []
-    active = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running")]
-    recent = [k for k in ORDER if JOBS[k]["status"] not in ("queued", "running")][-30:]
+    mine = (lambda j: True) if (all and is_admin(request)) else (lambda j: j.get("user") == me(request)["id"])
+    active = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running") and mine(JOBS[k])]
+    recent = [k for k in ORDER if JOBS[k]["status"] not in ("queued", "running") and mine(JOBS[k])][-30:]
     qpos = {k: n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued")}
     for jid in reversed(sorted(set(active + recent), key=ORDER.index)):
         j = JOBS[jid]
@@ -300,7 +453,16 @@ def jobs():
 
 
 @app.get("/api/gallery")
-def gallery(limit: int = 120, kind: str = ""):
+def gallery(request: Request, limit: int = 120, kind: str = "", all: int = 0):
+    if not (all and is_admin(request)):          # your own results, newest first
+        out = []
+        for r in ST.files_of(me(request)["id"], kind, limit):
+            p = os.path.join(OUT, r["key"])
+            try:
+                out.append({"path": r["key"], "type": r["kind"] or "image", "mtime": int(os.path.getmtime(p))})
+            except OSError:
+                continue
+        return out
     items = []
     for root, dirs, files in os.walk(OUT):
         dirs[:] = [x for x in dirs if not x.startswith(".")]      # skip .ipynb_checkpoints etc.
@@ -332,7 +494,9 @@ def _media(path):
 
 
 @app.get("/files/{path:path}")
-def files(path: str, dl: int = 0):
+def files(path: str, request: Request, dl: int = 0):
+    if not can_file(request, path):
+        raise HTTPException(404)
     p = _media(path)
     h = {"Cache-Control": "private, max-age=86400"}
     if dl:
@@ -345,11 +509,13 @@ THUMB_PX = 360
 
 
 @app.get("/thumb/{path:path}")
-def thumb(path: str):
+def thumb(path: str, request: Request):
     """Small JPEG preview for the gallery (a frame for videos). Cached on local disk, rebuilt if the file changes.
     Phones would otherwise download and decode every full PNG / MP4 in the grid."""
     import subprocess
     from PIL import Image
+    if not can_file(request, path):
+        raise HTTPException(404)
     p = _media(path)
     t = os.path.join(THUMBS, os.path.relpath(p, OUT)) + ".jpg"
     if not (os.path.exists(t) and os.path.getmtime(t) >= os.path.getmtime(p)):
@@ -372,14 +538,17 @@ def thumb(path: str):
 
 
 @app.delete("/api/files/{path:path}")
-def delete_file(path: str):
+def delete_file(path: str, request: Request):
     """Permanently delete a result (the UI asks for a second tap first)."""
     if path.startswith("projects/"):
         raise HTTPException(403, "project files are managed on the project page")
+    if not can_file(request, path):
+        raise HTTPException(404)
     p = os.path.realpath(os.path.join(OUT, path))
     if not p.startswith(OUT + os.sep) or not os.path.isfile(p) or not p.lower().endswith(MEDIA):
         raise HTTPException(404)
     os.remove(p)
+    ST.delete_file(path)
     with open(JOBS_LOG, "a") as f:
         f.write(json.dumps({"deleted": path, "ts": time.time()}) + "\n")
     return {"ok": True}
@@ -399,13 +568,19 @@ def movie_js():
 
 
 @app.get("/api/projects")
-def projects_list():
-    return PJ.list_projects()
+def projects_list(request: Request):
+    ps = PJ.list_projects()
+    if is_admin(request):
+        return ps
+    own = ST.projects_of(me(request)["id"])
+    return [p for p in ps if p["slug"] in own]
 
 
 @app.post("/api/projects")
 async def projects_create(request: Request):
-    return {"slug": _pj(PJ.create, (await request.json()).get("title"))}
+    slug = _pj(PJ.create, (await request.json()).get("title"))
+    ST.add_project(slug, me(request)["id"])
+    return {"slug": slug}
 
 
 @app.get("/api/projects/{slug}")
@@ -419,12 +594,15 @@ def project_delete(slug: str):
            for j in JOBS.values()):
         raise HTTPException(400, "the project still has clips in the queue")
     _pj(PJ.delete_project, slug)
+    ST.drop_project(slug)
     return {"ok": True}
 
 
 @app.post("/api/projects/{slug}/refs")
 async def project_add_ref(slug: str, request: Request):
     b = await request.json()
+    if not can_file(request, b.get("path") or ""):
+        raise HTTPException(403, "you can only use your own pictures")
     return {"name": _pj(PJ.add_ref, slug, b.get("name"), b.get("path"), b.get("desc", ""))}
 
 
@@ -452,7 +630,7 @@ def _active(slug):
 
 
 @app.post("/api/projects/{slug}/generate")
-def project_generate(slug: str):
+def project_generate(slug: str, request: Request):
     """queue every clip variant that is not on disk and not already queued: 000_1..000_N, 001_1, ..."""
     p, m = _pj(PJ.plan, slug), _pj(PJ.meta, slug)
     if not p:
@@ -462,17 +640,17 @@ def project_generate(slug: str):
             if (i, v) not in files and (i, v) not in busy]
     inputs = [_pj(PJ.job_input, slug, i, v, p, m) for i, v in todo]      # validate all before queueing any
     for inp in inputs:
-        enqueue(inp)
+        enqueue(inp, me(request)["id"])
     return {"queued": len(inputs)}
 
 
 @app.post("/api/projects/{slug}/clips/{i}/{v}/regenerate")
-def project_regen(slug: str, i: int, v: int):
+def project_regen(slug: str, i: int, v: int, request: Request):
     if (i, v) in _active(slug):
         raise HTTPException(400, "this clip is already in the queue")
     inp = _pj(PJ.job_input, slug, i, v)
     inp.pop("seed", None)                         # a new take: always a fresh random seed
-    return {"id": enqueue(inp)}
+    return {"id": enqueue(inp, me(request)["id"])}
 
 
 @app.delete("/api/projects/{slug}/clips/{i}/{v}")
@@ -523,6 +701,6 @@ def status():
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"[ui] password for user 'zc' is in {P.STATE}/ui_password.txt (or $ZC_UI_PASSWORD); "
-          f"the admin password for /admin is in {P.STATE}/admin_password.txt (or $ZC_ADMIN_PASSWORD)", flush=True)
+    print(f"[ui] testers sign in with invitation links made on /admin; the admin password is in "
+          f"{P.STATE}/admin_password.txt (or $ZC_ADMIN_PASSWORD)", flush=True)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("ZC_UI_PORT", "8000")), log_level="warning")
