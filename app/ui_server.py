@@ -5,7 +5,7 @@ serverless worker share exactly the same code path. Jobs run one at a time on th
 
 Auth: HTTP Basic, user "zc", password = $ZC_UI_PASSWORD or the one generated into <volume>/zc/state/ui_password.txt.
 """
-import base64, json, os, queue, secrets, sys, threading, time, traceback, uuid, mimetypes
+import asyncio, base64, glob, json, os, queue, re, secrets, sys, threading, time, traceback, uuid, mimetypes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import zc_paths as P
@@ -153,7 +153,59 @@ threading.Thread(target=worker, daemon=True).start()
 # ------------------------------------------------------------------ API
 @app.get("/", response_class=HTMLResponse)
 def index():
+    """the casual user app (by task); the full studio/admin UI lives at /admin"""
+    return open(f"{APP_DIR}/ui/app.html", encoding="utf-8").read()
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin():
     return open(f"{APP_DIR}/ui/index.html", encoding="utf-8").read()
+
+
+@app.get("/ui/ex/{name}")
+def example_file(name: str):
+    """bundled examples for the user app (made with this service)"""
+    if not re.fullmatch(r"[a-z0-9_-]+\.(mp4|jpg|png|webp)", name):
+        raise HTTPException(404)
+    # baked into the image (app/ui/ex) or kept on the volume (zc/ui_ex) so examples can change without a rebuild
+    p = next((q for q in (f"{P.ROOT}/ui_ex/{name}", f"{APP_DIR}/ui/ex/{name}") if os.path.isfile(q)), None)
+    if not p:
+        raise HTTPException(404)
+    return FileResponse(p, media_type=mimetypes.guess_type(p)[0], headers={"Cache-Control": "public, max-age=604800"})
+
+
+@app.get("/api/job/{jid}")
+def job_one(jid: str):
+    j = JOBS.get(jid)
+    if not j:
+        raise HTTPException(404)
+    d = {k: j.get(k) for k in ("id", "status", "error", "progress")}
+    d["queue_pos"] = next((n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued") if k == jid), None)
+    if j.get("result"):
+        d["outputs"] = [{"path": o["path"], "type": o["type"]} for o in j["result"].get("outputs", [])]
+        d["seed"] = j["result"].get("seed")
+    return d
+
+
+@app.post("/api/gif/{jid}/retext")
+async def gif_retext(jid: str, request: Request):
+    """re-render the text on a finished GIF job without the GPU (new words / position)"""
+    import gif as G
+    j = JOBS.get(jid)
+    if not j or j["status"] != "done" or j["input"].get("family") != "gif":
+        raise HTTPException(404, "no finished GIF with this id")
+    body = await request.json()
+    text = (body.get("text") or "").strip()[:80]
+    v = H.prompt_violation(text)
+    if v:
+        raise HTTPException(400, "text refused")
+    pos = body.get("text_pos") if body.get("text_pos") in ("top", "middle", "bottom") else "bottom"
+    raw = sorted(glob.glob(f"{P.ROOT}/output/gif/.work/{jid}_loop*.mp4"))
+    if not raw:
+        raise HTTPException(404, "the raw loop is gone")
+    n = int(time.time())
+    outs = await asyncio.to_thread(G.finish, raw[-1], text, pos, f"{P.ROOT}/output/gif/{jid}_t{n}")
+    return {"outputs": [{"path": os.path.relpath(o, f"{P.ROOT}/output"), "type": "video"} for o in outs]}
 
 
 @app.get("/api/models")
