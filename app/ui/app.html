@@ -455,7 +455,7 @@ function topBar(opts = {}) {
   const t = TT();
   return `<div class="top">${opts.back ? `<button class="iconbtn" data-act="back" aria-label="${esc(t.back)}">${ICON.back}</button>` : ''}
     <div class="brand">Wishly${opts.adult ? '<span class="tag18">18+</span>' : ''}${opts.studio ? `<span class="tag18" style="background:#172033">${esc(L('Studio', 'Студия', 'Studio'))}</span>` : ''}</div>
-    ${S.works.length && !opts.adult ? `<button class="iconbtn" data-act="works" aria-label="${esc(t.works)}" title="${esc(t.works)}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>` : ''}
+    ${!opts.adult ? `<button class="iconbtn" data-act="works" aria-label="${esc(t.works)}" title="${esc(t.works)}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>` : ''}
     <div class="langs">${[['en', 'EN'], ['ru', 'RU'], ['id', 'ID']].map(([k, n]) => `<button data-act="lang" data-v="${k}" class="${S.lang === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
 }
 function footer(adult) {
@@ -623,8 +623,8 @@ function vEditor(lay, isGif) {
 }
 function vWorks() {
   return `${topBar({ back: true })}<div class="pad"><h1>${esc(TT().works)}</h1>
-    <p class="sub">${esc(L('Saved in this browser during the test.', 'Сохранено в этом браузере на время теста.', 'Tersimpan di peramban ini selama uji.'))}</p>
-    <div class="vgrid" style="margin-top:12px">${S.works.map((w) => `<a class="vthumb" href="${fileUrl(w.path)}" target="_blank" rel="noopener">${/\.(mp4)$/i.test(w.path) ? `<video src="${fileUrl(w.path)}" autoplay muted loop playsinline></video>` : `<img src="${fileUrl(w.path)}" alt="">`}</a>`).join('') || `<div class="small">${esc(L('Nothing yet.', 'Пока пусто.', 'Belum ada.'))}</div>`}</div></div>`;
+    <p class="sub">${esc(L('Only you can see these.', 'Их видите только вы.', 'Hanya Anda yang bisa melihatnya.'))}</p>
+    <div class="vgrid" style="margin-top:12px">${(S.worksSrv || []).filter((w) => !/\.gif$/i.test(w.path)).map((w) => `<a class="vthumb" href="${fileUrl(w.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${thumbUrl(w.path, w.mtime)}" alt="">${/\.mp4$/i.test(w.path) ? `<span style="position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:0 5px">▶</span>` : ''}</a>`).join('') || `<div class="small">${esc(L('Nothing yet.', 'Пока пусто.', 'Belum ada.'))}</div>`}</div></div>`;
 }
 function vGate() {
   return `${topBar({ back: true })}<div class="gate">
@@ -1013,7 +1013,7 @@ document.addEventListener('click', async (e) => {
     case 'soon': toast(TT().soonMsg); break;
     case 'uploadSoon': toast(TT().uploadSoon); break;
     case 'orderSoon': toast(L('Ordering printed things comes later. Download the file meanwhile.', 'Заказ печати появится позже. Пока скачайте файл.', 'Pesan cetak hadir nanti.')); break;
-    case 'works': go('works'); break;
+    case 'works': try { S.worksSrv = await api('/api/gallery?limit=90'); } catch (x) { S.worksSrv = []; } go('works'); break;
     case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); break;
     case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go(S.after || 'adult'); break;
     case 'studio': go(S.adultOk ? 'studio' : 'gate', { after: 'studio' }); break;

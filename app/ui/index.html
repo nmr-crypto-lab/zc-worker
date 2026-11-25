@@ -97,7 +97,7 @@ header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel
 </style>
 </head>
 <body>
-<header><b>ZC Studio</b><span class="nav on" data-v="studio">Studio</span><span class="nav" data-v="movie">Create Movie</span><span id="st">…</span></header>
+<header><b>ZC Studio</b><span class="nav on" data-v="studio">Studio</span><span class="nav" data-v="movie">Create Movie</span><span class="nav" data-v="users">Testers</span><span id="st">…</span></header>
 <main id="studio">
   <section class="card" id="form">
     <div class="tabs" id="tabs"></div>
@@ -117,6 +117,16 @@ header .nav.on{color:var(--text);border-color:var(--line);background:var(--panel
   </section>
 </main>
 <div id="movie" style="display:none"></div>
+<div id="users" style="display:none;padding:16px;max-width:1100px;margin:0 auto">
+  <div class="card" style="margin-bottom:16px"><h3>New tester</h3>
+    <div class="row" style="flex-wrap:wrap"><input type="text" id="u-name" placeholder="Name, e.g. Mom" style="flex:2 1 160px">
+      <select id="u-role" style="flex:1 1 110px"><option value="user">tester</option><option value="admin">admin</option></select>
+      <input type="number" id="u-limit" value="60" min="1" title="generations per 24 h" style="flex:1 1 90px">
+      <button class="mv-btn pri" id="u-add" style="flex:0 0 auto">Create + link</button></div>
+    <div class="hint">The link signs the person in on any phone. Making a new link switches the old unused one off. Limit = generations per 24 hours.</div>
+    <div class="err" id="u-msg" style="color:var(--ok)"></div></div>
+  <div class="card"><h3>Testers</h3><div id="u-list" class="jobs" style="max-height:none"></div></div>
+</div>
 <div id="lb"><div class="m" id="lbm"></div><div class="a" id="lba"></div></div>
 <script>
 const $=s=>document.querySelector(s), FAM_INPUTS={qwen_image21:[0,10],flux3_klein:[0,10],qwen_aio:[1,1],wan22_i2v:[1,1],h3_fl2va:[1,2],h3_ref2va:[1,9]};
@@ -226,7 +236,7 @@ const ST={queued:"queued",running:"generating",done:"done",error:"error",cancell
 let lastDone="";
 async function poll(){
   try{
-    const [js,s]=await Promise.all([api("/api/jobs"),api("/api/status")]);
+    const [js,s]=await Promise.all([api("/api/jobs?all=1"),api("/api/status")]);
     if(!!s.thumbs!==THUMBS){THUMBS=!!s.thumbs;loadGallery(true)}
     $("#st").textContent=`${(s.gpu.name||"GPU…").replace(/^cuda:\d+\s*/,"").split(" : ")[0]} · free ${s.gpu.vram_free_gb??"?"}/${s.gpu.vram_total_gb??"?"} GB · queued ${s.queued}${s.running?" · generating":""}`;
     const qd=js.filter(j=>j.status==="queued"), shown=js.filter(j=>j.status!=="queued").concat(qd.slice(-5));
@@ -267,7 +277,7 @@ function tile(i){
   return `<div class="item ${inputs.includes(i.path)?"pick":""}" data-p="${i.path}">${inner}${vid?`<span class="b">▶ video</span>`:""}</div>`;
 }
 async function loadGallery(force){
-  const g=await api("/api/gallery?limit="+gLimit+(gkind?"&kind="+gkind:"")).catch(()=>null); if(!g) return;
+  const g=await api("/api/gallery?all=1&limit="+gLimit+(gkind?"&kind="+gkind:"")).catch(()=>null); if(!g) return;
   const sig=gLimit+"|"+gkind+"|"+THUMBS+"|"+inputs.join()+"|"+g.map(i=>i.path+i.mtime).join();
   if(sig===gSig&&!force) return;            // nothing changed: do not rebuild the grid (keeps phones fast)
   gSig=sig;
@@ -306,5 +316,43 @@ $("#lb").onclick=e=>{const a=e.target.dataset.a;
 init().catch(e=>{$("#st").textContent="Loading error: "+e.message});
 </script>
 <script src="/ui/movie.js"></script>
+<script>
+(() => {
+  const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const link = t => location.origin + "/i/" + t;
+  const say = (t, err) => { const m = $("#u-msg"); m.textContent = t; m.style.color = err ? "var(--err)" : "var(--ok)"; };
+  async function copy(t) { try { await navigator.clipboard.writeText(t); say("Link copied: " + t); } catch (e) { say(t); } }
+  async function load() {
+    const us = await api("/api/admin/users").catch(e => { say(e.message, true); return []; });
+    $("#u-list").innerHTML = us.map(u => `<div class="job" data-id="${u.id}">
+      <span class="s" style="min-width:120px">${esc(u.name)}${u.role === "admin" ? ' <small style="color:var(--warn)">admin</small>' : ""}${u.disabled ? ' <small style="color:var(--err)">off</small>' : ""}</span>
+      <span class="p">${u.jobs_24h} today · ${u.jobs_total} total · ${u.files} files</span>
+      <label style="margin:0;display:flex;gap:4px;align-items:center">limit <input type="number" value="${u.daily_limit}" data-a="limit" style="width:80px;padding:4px"></label>
+      ${u.invite ? `<button class="x" data-a="copy" data-t="${u.invite}">Copy link</button>` : ""}
+      <button class="x" data-a="new">New link</button>
+      <button class="x" data-a="off">${u.disabled ? "Turn on" : "Turn off"}</button></div>`).join("") || `<div class="hint">No testers yet.</div>`;
+  }
+  $("#u-add").onclick = async () => {
+    try { const r = await api("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: $("#u-name").value, role: $("#u-role").value, daily_limit: +$("#u-limit").value || 60 }) });
+      $("#u-name").value = ""; await load(); copy(link(r.invite)); } catch (e) { say(e.message, true); }
+  };
+  $("#u-list").addEventListener("click", async e => {
+    const b = e.target.closest("button[data-a]"); if (!b) return; const id = b.closest("[data-id]").dataset.id;
+    if (b.dataset.a === "copy") return copy(link(b.dataset.t));
+    if (b.dataset.a === "new") { const r = await api(`/api/admin/users/${id}/invite`, { method: "POST" }); await load(); return copy(link(r.invite)); }
+    if (b.dataset.a === "off") { const on = b.textContent === "Turn on"; await api(`/api/admin/users/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ disabled: on ? 0 : 1 }) }); return load(); }
+  });
+  $("#u-list").addEventListener("change", async e => {
+    if (e.target.dataset.a !== "limit") return; const id = e.target.closest("[data-id]").dataset.id;
+    await api(`/api/admin/users/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ daily_limit: +e.target.value }) });
+    say("Limit saved"); load();
+  });
+  const sv = window.showView;
+  window.showView = v => { sv(v === "users" ? "none" : v); $("#users").style.display = v === "users" ? "" : "none";
+    document.querySelectorAll("header .nav").forEach(n => n.classList.toggle("on", n.dataset.v === v)); if (v === "users") load(); };
+  document.querySelectorAll("header .nav").forEach(n => n.onclick = () => window.showView(n.dataset.v));
+})();
+</script>
 </body>
 </html>
