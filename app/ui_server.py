@@ -4,6 +4,7 @@ Generation goes through handler.generate (registry -> family template -> ComfyUI
 serverless worker share exactly the same code path. Jobs run one at a time on the GPU (in-process queue).
 
 Auth: HTTP Basic, user "zc", password = $ZC_UI_PASSWORD or the one generated into <volume>/zc/state/ui_password.txt.
+The admin page (/admin) needs the separate admin password: $ZC_ADMIN_PASSWORD or <volume>/zc/state/admin_password.txt.
 """
 import asyncio, base64, glob, json, os, queue, re, secrets, sys, threading, time, traceback, uuid, mimetypes
 
@@ -23,10 +24,10 @@ MEDIA = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".mov")
 JOBS_LOG = f"{P.LOGS}/ui_jobs.jsonl"
 
 
-def _password():
-    if os.environ.get("ZC_UI_PASSWORD"):
-        return os.environ["ZC_UI_PASSWORD"]
-    f = f"{P.STATE}/ui_password.txt"
+def _password(env="ZC_UI_PASSWORD", name="ui_password.txt"):
+    if os.environ.get(env):
+        return os.environ[env]
+    f = f"{P.STATE}/{name}"
     try:
         return open(f).read().strip()
     except OSError:
@@ -37,28 +38,37 @@ def _password():
 
 
 PASSWORD = _password()
+ADMIN_PASSWORD = _password("ZC_ADMIN_PASSWORD", "admin_password.txt")
+ADMIN_ONLY = ("/admin",)          # pages only the owner may open (testers get the user app and the studio)
 app = FastAPI(title="ZC")
 
 
 @app.middleware("http")
 async def basic_auth(request: Request, call_next):
+    def eq(x, y):
+        return bool(x) and secrets.compare_digest(x, y)
     h = request.headers.get("authorization", "")
-    ok = False
+    pw = ""
     if h.startswith("Basic "):
         try:
-            user, _, pw = base64.b64decode(h[6:]).decode().partition(":")
-            ok = secrets.compare_digest(pw, PASSWORD)
+            pw = base64.b64decode(h[6:]).decode().partition(":")[2]
         except Exception:
-            ok = False
+            pw = ""
     # link-friendly alternative for phones: open /?key=<password> once, a cookie keeps you logged in
-    key = request.query_params.get("key") or request.cookies.get("zc_key") or ""
-    if not ok and key and secrets.compare_digest(key, PASSWORD):
-        ok = True
-    if not ok:
+    key = request.query_params.get("key") or ""
+    ck_user, ck_admin = request.cookies.get("zc_key") or "", request.cookies.get("zc_admin") or ""
+    admin = eq(pw, ADMIN_PASSWORD) or eq(key, ADMIN_PASSWORD) or eq(ck_admin, ADMIN_PASSWORD)
+    user = admin or eq(pw, PASSWORD) or eq(key, PASSWORD) or eq(ck_user, PASSWORD)
+    path = request.url.path
+    if path.startswith(ADMIN_ONLY) and not admin:
+        # a different realm makes the browser ask again, this time for the admin password
+        return Response("admin only", status_code=401, headers={"WWW-Authenticate": 'Basic realm="ZC admin"'})
+    if not user:
         return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="ZC"'})
     resp = await call_next(request)
-    if request.query_params.get("key"):
-        resp.set_cookie("zc_key", key, max_age=30 * 86400, httponly=True, secure=True, samesite="lax")
+    if key:
+        resp.set_cookie("zc_admin" if eq(key, ADMIN_PASSWORD) else "zc_key", key,
+                        max_age=30 * 86400, httponly=True, secure=True, samesite="lax")
     return resp
 
 
@@ -513,5 +523,6 @@ def status():
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"[ui] password for user 'zc' is in {P.STATE}/ui_password.txt (or $ZC_UI_PASSWORD)", flush=True)
+    print(f"[ui] password for user 'zc' is in {P.STATE}/ui_password.txt (or $ZC_UI_PASSWORD); "
+          f"the admin password for /admin is in {P.STATE}/admin_password.txt (or $ZC_ADMIN_PASSWORD)", flush=True)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("ZC_UI_PORT", "8000")), log_level="warning")
