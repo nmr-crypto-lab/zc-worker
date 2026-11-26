@@ -238,7 +238,8 @@ def worker():
             ST.finish_job(jid, job["status"], job["finished"])
             for o in (job.get("result") or {}).get("outputs", []):
                 if not o["path"].startswith("projects/"):
-                    ST.add_file(o["path"], job.get("user") or ST.owner()["id"], jid, o.get("type"))
+                    ST.add_file(o["path"], job.get("user") or ST.owner()["id"], jid, o.get("type"),
+                                adult=bool(job["input"].get("_adult")))
             _hero_after(job)
         except Exception:
             traceback.print_exc()
@@ -259,7 +260,7 @@ def _hero_after(job):
             ST.add_hero_item(o["path"], m["id"], uid, m.get("ask"), job["id"])
     then = job["input"].get("_then")
     if then and outs:
-        nxt = dict(then, images=[{"path": outs[0]["path"]}], _hero=m)
+        nxt = dict(then, images=[{"path": outs[0]["path"]}], _hero=m, _adult=True)
         job["next"] = enqueue(nxt, uid)
 
 
@@ -469,7 +470,7 @@ async def heroine_create(request: Request):
     hid = ST.add_heroine(None if catalog else u["id"], name, age, b["style"], look, vibe=(b.get("vibe") or "")[:20])
     ST.event("heroine_new", u["id"], {"id": hid, "style": b["style"]})
     h = ST.heroine(hid)
-    jobs = [enqueue(dict(inp, _hero={"id": hid, "cand": True}), u["id"]) for inp in AD.portrait_inputs(h)]
+    jobs = [enqueue(dict(inp, _hero={"id": hid, "cand": True}, _adult=True), u["id"]) for inp in AD.portrait_inputs(h)]
     return {"id": hid, "jobs": jobs}
 
 
@@ -480,7 +481,7 @@ def heroine_portraits(hid: str, request: Request):
     if not _can_edit_hero(request, h):
         raise HTTPException(403)
     _limit_ok(u, 4)
-    return {"jobs": [enqueue(dict(inp, _hero={"id": hid, "cand": True}), u["id"]) for inp in AD.portrait_inputs(h)]}
+    return {"jobs": [enqueue(dict(inp, _hero={"id": hid, "cand": True}, _adult=True), u["id"]) for inp in AD.portrait_inputs(h)]}
 
 
 @app.post("/api/heroines/{hid}/anchor")
@@ -521,7 +522,7 @@ async def heroine_ask(hid: str, request: Request):
         raise HTTPException(400, str(e))
     _limit_ok(u, 2 if then else 1)
     meta = {"id": hid, "ask": b.get("ask")}
-    first = dict(first, _hero=meta)
+    first = dict(first, _hero=meta, _adult=True)
     if then:
         first["_then"] = then
     ST.event("heroine_ask", u["id"], {"id": hid, "ask": b.get("ask")})
@@ -546,7 +547,7 @@ def enqueue(inp, uid):
 @app.post("/api/generate")
 async def generate(request: Request):
     inp = await request.json()
-    for k in ("out_prefix", "_project", "_hero", "_then"):   # internal keys, set only by the server itself
+    for k in ("out_prefix", "_project", "_hero", "_then", "_adult"):   # internal keys, set only by the server itself
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")
@@ -557,6 +558,8 @@ async def generate(request: Request):
     for it in inp.get("images") or []:
         if "path" not in it or not can_file(request, it["path"]):
             raise HTTPException(403, "you can only use your own pictures")
+        if ST.file_is_adult(it["path"]):
+            raise HTTPException(403, "pictures from the 18+ section stay there")
     u = me(request)
     if u["role"] != "admin" and ST.jobs_last_24h(u["id"]) >= u["daily_limit"]:
         ST.event("limit_hit", u["id"])
@@ -598,7 +601,8 @@ def jobs(request: Request, all: int = 0):
     """your own jobs; the admin page asks for everybody's (all=1)"""
     now = time.time()
     out = []
-    mine = (lambda j: True) if (all and is_admin(request)) else (lambda j: j.get("user") == me(request)["id"])
+    mine = (lambda j: True) if (all and is_admin(request)) else \
+        (lambda j: j.get("user") == me(request)["id"] and not j["input"].get("_adult"))   # 18+ jobs show on the heroine page
     active = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running") and mine(JOBS[k])]
     recent = [k for k in ORDER if JOBS[k]["status"] not in ("queued", "running") and mine(JOBS[k])][-30:]
     qpos = {k: n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued")}
@@ -622,7 +626,7 @@ def jobs(request: Request, all: int = 0):
 
 @app.get("/api/gallery")
 def gallery(request: Request, limit: int = 120, kind: str = "", all: int = 0):
-    if not (all and is_admin(request)):          # your own results, newest first
+    if not (all and is_admin(request)):          # your own results, newest first; never the 18+ section
         out = []
         for r in ST.files_of(me(request)["id"], kind, limit):
             p = os.path.join(OUT, r["key"])
@@ -771,6 +775,8 @@ async def project_add_ref(slug: str, request: Request):
     b = await request.json()
     if not can_file(request, b.get("path") or ""):
         raise HTTPException(403, "you can only use your own pictures")
+    if ST.file_is_adult(b.get("path") or ""):
+        raise HTTPException(403, "pictures from the 18+ section stay there")
     return {"name": _pj(PJ.add_ref, slug, b.get("name"), b.get("path"), b.get("desc", ""))}
 
 

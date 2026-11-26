@@ -27,7 +27,7 @@ create table if not exists jobs (
 create index if not exists jobs_user_created on jobs(user_id, created);
 create table if not exists files (
   key text primary key, user_id text not null references users(id), job_id text, kind text,
-  created real not null, deleted real);
+  created real not null, deleted real, adult integer not null default 0);
 create index if not exists files_user_created on files(user_id, created);
 create table if not exists projects (
   slug text primary key, user_id text not null references users(id), created real not null);
@@ -58,6 +58,9 @@ def _db():
         _conn.row_factory = sqlite3.Row
         _conn.execute("pragma journal_mode=wal")
         _conn.executescript(SCHEMA)
+        cols = {r[1] for r in _conn.execute("pragma table_info(files)")}
+        if "adult" not in cols:          # databases made before the 18+ section
+            _conn.execute("alter table files add column adult integer not null default 0")
     return _conn
 
 
@@ -151,9 +154,15 @@ def jobs_last_24h(uid):
 
 
 # ------------------------------------------------------------------ files
-def add_file(key, uid, job_id=None, kind=None):
-    _x("insert or ignore into files(key,user_id,job_id,kind,created) values(?,?,?,?,?)",
-       (key, uid, job_id, kind, time.time()))
+def add_file(key, uid, job_id=None, kind=None, adult=False):
+    """adult=True: made in the 18+ section; kept apart from the everyday gallery, the studio and their inputs"""
+    _x("insert or ignore into files(key,user_id,job_id,kind,created,adult) values(?,?,?,?,?,?)",
+       (key, uid, job_id, kind, time.time(), 1 if adult else 0))
+
+
+def file_is_adult(key):
+    r = _q("select adult from files where key=?", (key,), one=True)
+    return bool(r and r["adult"]) or key.startswith("adult/")
 
 
 def file_owner(key):
@@ -161,9 +170,9 @@ def file_owner(key):
     return r["user_id"] if r else None
 
 
-def files_of(uid, kind="", limit=120):
-    rows = _q("select key, kind, created from files where user_id=? and deleted is null order by created desc limit ?",
-              (uid, int(limit) * 2 if kind else int(limit)))
+def files_of(uid, kind="", limit=120, adult=False):
+    rows = _q("select key, kind, created from files where user_id=? and deleted is null and adult=? order by created desc limit ?",
+              (uid, 1 if adult else 0, int(limit) * 2 if kind else int(limit)))
     if kind:
         rows = [r for r in rows if (r["kind"] or "").startswith(kind)][:int(limit)]
     return rows

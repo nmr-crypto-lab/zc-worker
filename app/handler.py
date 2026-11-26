@@ -183,6 +183,8 @@ def generate(inp, job_id, progress=None, cancel=None):
     if "loras" not in kw:
         kw["loras"] = {}
     kw["prefix"] = f"{f['kind']}/{job_id}"
+    if inp.get("_adult"):               # 18+ section results live under their own folder (later: own bucket)
+        kw["prefix"] = f"adult/{f['kind']}/{job_id}"
     op = inp.get("out_prefix")          # set only by the project runner (Create Movie), never from user input
     if op:
         if not re.fullmatch(r"projects/[a-z0-9_-]+/clips/\d{3}_\d+", op):
