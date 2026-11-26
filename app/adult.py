@@ -19,6 +19,8 @@ import random
 MIN_AGE = 21
 STYLES = ("photo", "anime", "ill")
 NEG = "child, teen, loli, petite, flat chest, school uniform, logo, watermark, text, lowres, bad hands"
+NEG_CLOTHED = NEG + ", nude, naked, topless, nipples"   # covers and everyday asks: the NSFW models undress by default
+CASUAL = "casual everyday clothes"
 
 ILL_PREFIX = "digital painting illustration in the style of a modern book cover, visible painterly brush strokes, rich colors, stylized, not a photo, of "
 
@@ -77,12 +79,12 @@ def portrait_inputs(h, n=4):
     """candidate portraits; the owner picks one as the anchor"""
     st, seeds = h["style"], random.sample(range(1, 10 ** 6), n)
     if st == "anime":
-        p = f"1girl, solo, mature female, adult, {_age(h)} years old, {h['look']}, upper body portrait, looking at viewer, simple light background, soft light"
-        return [{"family": "illustrious", "prompt": p, "negative": NEG, "seed": s, "width": 896, "height": 1152} for s in seeds]
+        p = f"1girl, solo, mature female, adult, {_age(h)} years old, {h['look']}, wearing a simple fitted top, upper body portrait, looking at viewer, simple light background, soft light"
+        return [{"family": "illustrious", "prompt": p, "negative": NEG_CLOTHED, "seed": s, "width": 896, "height": 1152} for s in seeds]
     pre = ILL_PREFIX if st == "ill" else "photo, "
     p = (f"{pre}head and shoulders portrait of {_who(h)}, simple fitted top, collarbones visible, "
          "plain light grey background, soft daylight, looking at the camera")
-    return [{"family": "zimage", "prompt": p, "negative": NEG, "seed": s, "width": 896, "height": 1152} for s in seeds]
+    return [{"family": "zimage", "prompt": p, "negative": NEG_CLOTHED, "seed": s, "width": 896, "height": 1152} for s in seeds]
 
 
 def scene_for(ask, opt):
@@ -103,13 +105,15 @@ def scene_for(ask, opt):
 def ask_inputs(h, ask, opt):
     """first job input + optional follow-up template (its images are filled with the first job's output)"""
     scene, outfit, edit = scene_for(ask, opt or {})
+    neg = NEG if (outfit and edit) else NEG_CLOTHED     # undressing only when the person asked for a revealing outfit
+    outfit = outfit or CASUAL
     st = h["style"]
     if st == "anime":
-        p = f"1girl, solo, mature female, adult, {_age(h)} years old, {h['look']}, {outfit + ', ' if outfit else ''}{scene}"
-        return {"family": "illustrious", "prompt": p, "negative": NEG, "width": 832, "height": 1216}, None
+        p = f"1girl, solo, mature female, adult, {_age(h)} years old, {h['look']}, {outfit}, {scene}"
+        return {"family": "illustrious", "prompt": p, "negative": neg, "width": 832, "height": 1216}, None
     if st == "ill":
-        p = f"{ILL_PREFIX}{_who(h)}, {('wearing ' + outfit + ', ') if outfit else ''}{scene}"
-        return {"family": "zimage", "prompt": p, "negative": NEG, "width": 832, "height": 1216}, None
+        p = f"{ILL_PREFIX}{_who(h)}, wearing {outfit}, {scene}"
+        return {"family": "zimage", "prompt": p, "negative": neg, "width": 832, "height": 1216}, None
     # photo
     wear = NEUTRAL_FOR_EDIT if edit else outfit
     text = f"{scene}{', wearing ' + wear if wear else ''}, candid smartphone photo, natural skin, no logos"
@@ -117,7 +121,7 @@ def ask_inputs(h, ask, opt):
         first = {"family": "qwen_image21", "prompt": _ref_lead(h) + "She is " + text,
                  "images": [{"path": h["anchor"]}], "width": 896, "height": 1152}
     else:
-        first = {"family": "zimage", "prompt": f"photo of {_who(h)}, {text}", "negative": NEG, "width": 832, "height": 1216}
+        first = {"family": "zimage", "prompt": f"photo of {_who(h)}, {text}", "negative": NEG_CLOTHED if not edit else NEG, "width": 832, "height": 1216}
     then = None
     if edit:
         then = {"family": "qwen_aio",
