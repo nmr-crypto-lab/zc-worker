@@ -25,8 +25,8 @@ Return ONLY JSON:
  "panels": [{"scene": "...", "chars": ["c1"], "caption": "...", "lines": [{"who": "c1", "text": "..."}]}]}
 Rules:
 - title, name, caption and line texts are in LANG. "look" and "scene" are in English (they go to an image model).
-- 1 to 3 characters. "look" = what stays the same in every panel, in one line: species or "adult man/woman, about N years old",
-  hair, clothes, one or two striking details. Human characters are always adults (25+); animals, robots and creatures are welcome.
+- 1 to 3 characters. "look" = what stays the same in every panel, in one line: species, "man/woman/boy/girl, about N years old",
+  hair, clothes, one or two striking details (no beauty marks, freckles or piercings - they drift between pictures).
 - Each panel: "scene" = one concrete picture (who does what, where, camera: close-up / wide shot). Mention characters by name.
 - At most 2 lines per panel, each under 90 characters; "caption" is optional narration under 80 characters (use "" if none).
 - Keep the punchline or the point of the story. Family-friendly. No real people, no brands.
@@ -72,7 +72,7 @@ def all_text(d):
     return "\n".join(parts)
 
 
-def cast_inputs(style, ch, n=2):
+def cast_inputs(style, ch, n=1):
     p = (f"{STYLES.get(style, STYLES['comic'])}. Character design of {ch['name']}: {ch['look']}. "
          f"Full body, front view, standing, plain white background. {NO_TEXT}")
     return [{"family": "qwen_image21", "prompt": p, "seed": s, "width": 1024, "height": 1024}

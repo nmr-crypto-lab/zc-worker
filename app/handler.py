@@ -52,8 +52,22 @@ _AGE = re.compile(r"\b(\d{1,2})\s*(?:yo|y/o|years?[- ]old|year[- ]old|yrs?|ле�
                   r"|\b(?:usia|umur|age[d]?|возраст\w*)\s*:?\s*(\d{1,2})\b", re.I)
 
 
-def prompt_violation(text):
+# Everyday section on models that cannot make nudity: children are fine (fairy tales, kids' cards),
+# only together with sexual words they are refused. Everywhere else (18+, NSFW-capable models): strict.
+SFW_FAMILIES = {"qwen_image21", "flux3_klein", "gif"}
+_SEXUAL = re.compile(
+    r"\b(nude|naked|nsfw|sex|sexy|sexual|erotic\w*|lingerie|topless|bottomless|breasts?|nipples?|genitals?|porn\w*|"
+    r"undress\w*|seductive|bikini|underwear|panties|bra|kiss\w*|lewd|fetish)\b|"
+    r"гол[аоы]|обнаж|раздет|секс|эрот|порн|бель[её]|груд[ьи]|соблазн|поцел|бикини|купальник|трус|"
+    r"\b(telanjang|bugil|seksi|seks|porno|payudara|celana dalam)\b", re.I)
+
+
+def prompt_violation(text, sfw=False):
     if not text:
+        return None
+    if sfw:
+        if _SEXUAL.search(text) and (_BLOCK.search(text) or any(int(m.group(1) or m.group(2)) < 18 for m in _AGE.finditer(text))):
+            return "minors + sexual words"
         return None
     for m in _AGE.finditer(text):
         n = int(m.group(1) or m.group(2))
@@ -149,13 +163,14 @@ def generate(inp, job_id, progress=None, cancel=None):
     f = R.family(fam)
     if f.get("template") is None:
         raise ValueError(f"unknown family {fam}")
-    v = prompt_violation(inp.get("prompt"))
+    sfw = fam in SFW_FAMILIES and not inp.get("_adult")
+    v = prompt_violation(inp.get("prompt"), sfw)
     if v:
         zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})
         raise ValueError("prompt refused: content involving minors is not allowed")
     if fam == "gif":
         import gif as G
-        v = prompt_violation(inp.get("text")) or prompt_violation(inp.get("motion"))
+        v = prompt_violation(inp.get("text"), sfw) or prompt_violation(inp.get("motion"), sfw)
         if v:
             zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})
             raise ValueError("prompt refused: content involving minors is not allowed")

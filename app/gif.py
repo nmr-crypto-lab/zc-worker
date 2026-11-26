@@ -163,4 +163,4 @@ def make(inp, job_id, progress=None, cancel=None):
 
 def prompt_bad(text):
     import handler as H
-    return H.prompt_violation(text)
+    return H.prompt_violation(text, True)

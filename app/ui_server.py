@@ -382,7 +382,7 @@ async def gif_retext(jid: str, request: Request):
         raise HTTPException(404, "no finished GIF with this id")
     body = await request.json()
     text = (body.get("text") or "").strip()[:80]
-    v = H.prompt_violation(text)
+    v = H.prompt_violation(text, True)
     if v:
         raise HTTPException(400, "text refused")
     pos = body.get("text_pos") if body.get("text_pos") in ("top", "middle", "bottom") else "bottom"
@@ -409,6 +409,8 @@ def _comic_out(c):
     files, d = ST.comic_files(c["id"]), c["data"]
     for ch in d["characters"]:
         ch["candidates"] = files.get("cast:" + ch["id"], [])
+        if ch["candidates"] and ch.get("portrait") not in ch["candidates"]:
+            ch["portrait"] = ch["candidates"][0]          # the newest take is used unless the user picked an older one
     for i, p in enumerate(d["panels"]):
         p["takes"] = files.get(f"panel:{i}", [])
         p["image"] = p["takes"][0] if p["takes"] else None
@@ -418,7 +420,7 @@ def _comic_out(c):
 
 
 def _comic_check_text(request, d):
-    if H.prompt_violation(CM.all_text(d)):
+    if H.prompt_violation(CM.all_text(d), True):          # comics are drawn by Qwen-Image (no nudity)
         ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
         raise HTTPException(400, "Refused: content involving minors is not allowed")
 
@@ -434,7 +436,7 @@ async def comic_create(request: Request):
     idea, style = (b.get("idea") or "").strip(), b.get("style") if b.get("style") in CM.STYLES else "comic"
     if len(idea) < 3:
         raise HTTPException(400, "tell the idea first")
-    if H.prompt_violation(idea):
+    if H.prompt_violation(idea, True):
         ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
         raise HTTPException(400, "Refused: content involving minors is not allowed")
     try:
@@ -466,6 +468,8 @@ async def comic_edit(cid: str, request: Request):
     for ch in d["characters"]:
         o = old.get(ch["id"])
         ch["portrait"] = o["portrait"] if o and o.get("look") == ch["look"] else None
+        if o and o.get("look") != ch["look"]:
+            ST.drop_comic_role(cid, "cast:" + ch["id"])   # old pictures no longer match the new look
     d["idea"] = c["data"].get("idea", "")
     _comic_check_text(request, d)
     ST.save_comic(cid, d)
@@ -474,12 +478,13 @@ async def comic_edit(cid: str, request: Request):
 
 @app.post("/api/comics/{cid}/cast")
 async def comic_cast(cid: str, request: Request):
-    """two portrait options for every hero without a portrait (or for one hero: {"char": id})"""
+    """one picture for every hero that has none yet (or a new take of one hero: {"char": id})"""
     c = _comic_or_404(request, cid)
     b = await request.json()
-    chars = [ch for ch in c["data"]["characters"] if (ch["id"] == b.get("char")) or (not b.get("char") and not ch.get("portrait"))]
+    files = ST.comic_files(cid)
+    chars = [ch for ch in c["data"]["characters"] if (ch["id"] == b.get("char")) or (not b.get("char") and not files.get("cast:" + ch["id"]))]
     u = me(request)
-    _limit_ok(u, 2 * len(chars))
+    _limit_ok(u, len(chars))
     jobs = [enqueue(dict(inp, _comic={"id": cid, "role": "cast:" + ch["id"]}), u["id"])
             for ch in chars for inp in CM.cast_inputs(c["style"], ch)]
     return {"jobs": jobs}
@@ -505,8 +510,9 @@ async def comic_draw(cid: str, request: Request):
     c = _comic_or_404(request, cid)
     b = await request.json()
     d = c["data"]
+    d = _comic_out(c)["data"]
     if any(not ch.get("portrait") for ch in d["characters"]):
-        raise HTTPException(400, "pick a portrait for every hero first")
+        raise HTTPException(400, "draw the heroes first")
     idx = [int(b["panel"])] if b.get("panel") is not None else list(range(len(d["panels"])))
     idx = [i for i in idx if 0 <= i < len(d["panels"])]
     u = me(request)
@@ -687,7 +693,7 @@ async def generate(request: Request):
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")
-    v = H.prompt_violation(inp.get("prompt"))
+    v = H.prompt_violation(inp.get("prompt"), inp.get("family") in H.SFW_FAMILIES)
     if v:
         ST.event("prompt_refused", me(request)["id"], {"family": inp.get("family")})
         raise HTTPException(400, "Prompt refused: content involving minors is not allowed")

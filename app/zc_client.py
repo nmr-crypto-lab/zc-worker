@@ -89,6 +89,19 @@ class AgeGate:
             frames = [frames[0], frames[len(frames) // 2], frames[-1]]
         return frames
 
+    # Everyday pictures (outside output/adult) may show young-looking or cartoon faces - kids' cards, fairy tales,
+    # comics. There a young signal deletes only if the picture is not clearly safe (tagger rating) .
+    # The 18+ section, ComfyUI previews and anything unknown keep the strict rule: any young signal deletes.
+    SAFE_GENERAL = float(os.environ.get("ZC_SAFE_GENERAL", "0.5"))
+    SAFE_RISKY = float(os.environ.get("ZC_SAFE_RISKY", "0.15"))
+
+    @staticmethod
+    def _strict(path):
+        p = os.path.realpath(path)
+        out = os.path.realpath(OUT_ROOT)
+        return (not p.startswith(out + os.sep)) or p.startswith(os.path.join(out, "adult") + os.sep) \
+            or os.environ.get("ZC_GATE_STRICT_ALL") == "1"
+
     def check(self, path):
         """v3: real-face check (InsightFace + ViT) AND whole-image anime tagger on every output.
         Both run on everything, because the watcher cannot know which model produced a file.
@@ -110,6 +123,11 @@ class AgeGate:
                     ok = False
             elif os.environ.get("ZC_REQUIRE_TAGGER", "1") == "1":
                 return {"ok": False, "error": "anime tagger not loaded"}
+            if not ok and not self._strict(path) and tags is not None:
+                r = tags.get("rating") or {}
+                risky = r.get("questionable", 1) + r.get("explicit", 1)
+                if r.get("general", 0) >= self.SAFE_GENERAL and risky < self.SAFE_RISKY and r.get("sensitive", 1) < 0.5:
+                    ok, res["note"] = True, "young-looking but clearly safe (everyday)"
             res["ok"] = ok
             return res
         except Exception as e:
@@ -129,6 +147,7 @@ class AnimeTagger:
         self.inp, self.size = inp.name, inp.shape[1]
         names = [r["name"] for r in csv.DictReader(open(f"{d}/selected_tags.csv"))]
         self.idx = {n: i for i, n in enumerate(names) if n in self.HARD}
+        self.rating = {n: i for i, n in enumerate(names) if n in ("general", "sensitive", "questionable", "explicit")}
 
     def _prep(self, pil):
         import numpy as np
@@ -151,13 +170,18 @@ class AnimeTagger:
 
     def score(self, frames):
         import numpy as np
-        crops = [c for fr in frames for c in self._crops(fr)]
+        crops, whole = [], []
+        for fr in frames:
+            cs = self._crops(fr)
+            whole.append(len(crops))            # index of the whole-frame crop
+            crops += cs
         batch = np.stack([self._prep(c) for c in crops])
         probs = self.sess.run(None, {self.inp: batch})[0]
         per_tag = {n: float(probs[:, i].max()) for n, i in self.idx.items()}
         mx = max(per_tag.values()) if per_tag else 0.0
         hits = {n: round(p, 3) for n, p in per_tag.items() if p >= 0.1}
-        return {"flag": mx >= self.HARD_P, "max": round(mx, 3), "hits": hits}
+        rating = {n: round(float(probs[whole, i].max()), 3) for n, i in self.rating.items()}
+        return {"flag": mx >= self.HARD_P, "max": round(mx, 3), "hits": hits, "rating": rating}
 
 
 _gate = None

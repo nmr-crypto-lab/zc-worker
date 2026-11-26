@@ -362,6 +362,10 @@ def add_comic_file(key, cid, role):
     _x("insert or ignore into comic_files(key,comic_id,role,created) values(?,?,?,?)", (key, cid, role, time.time()))
 
 
+def drop_comic_role(cid, role):
+    _x("delete from comic_files where comic_id=? and role=?", (cid, role))
+
+
 def comic_files(cid):
     """role -> [keys, newest first]"""
     out = {}
