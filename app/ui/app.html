@@ -634,26 +634,188 @@ function vGate() {
     <div class="stack" style="margin-top:26px"><button class="btn" style="background:#172033" data-act="adultYes">${esc(L('Yes, I am 18+', 'Да, мне есть 18', 'Ya, saya 18+'))}</button>
     <button class="btn3" style="width:100%" data-act="home">${esc(L('No, take me back', 'Нет, назад', 'Tidak, kembali'))}</button></div></div>`;
 }
+/* ---------------- 18+ section, phase 1: "Meet someone" (heroine catalog, heroine page with requests, own heroine) ---------------- */
+const A18 = ['adult', 'a18cat', 'a18hero', 'a18new'];
+const AST = () => [['photo', L('Photo', 'Фото', 'Foto'), 'linear-gradient(160deg,#4a2a4f,#1f1726)'], ['anime', L('Anime', 'Аниме', 'Anime'), 'linear-gradient(160deg,#f472b6,#7c3aed)'], ['ill', L('Illustration', 'Иллюстрация', 'Ilustrasi'), 'linear-gradient(160deg,#f59e0b,#be185d)']];
+const AVIBE = () => [['all', L('All', 'Все', 'Semua')], ['sweet', L('Sweet', 'Нежные', 'Manis')], ['bold', L('Bold', 'Дерзкие', 'Berani')], ['myst', L('Mysterious', 'Загадочные', 'Misterius')], ['sport', L('Sporty', 'Спортивные', 'Sporty')], ['art', L('Artsy', 'Творческие', 'Seni')]];
+const AASK = () => [['selfie', L('Send me a selfie', 'Пришли селфи', 'Kirim selfie')], ['now', L('What are you up to?', 'Что делаешь?', 'Lagi apa?')], ['wear', L('Put on something…', 'Надень…', 'Pakai…')], ['go', L('Take me somewhere', 'Возьми меня куда-нибудь', 'Ajak aku ke suatu tempat')]];
+const AOUT = () => [['evening', L('Evening dress', 'Вечернее платье', 'Gaun malam')], ['sweater', L('Cozy sweater', 'Уютный свитер', 'Sweter')], ['leather', L('Leather jacket', 'Кожаная куртка', 'Jaket kulit')], ['office', L('Office look', 'Офисный образ', 'Gaya kantor')], ['sport', L('Sportswear', 'Спортивное', 'Olahraga')], ['swim', L('Bikini', 'Бикини', 'Bikini')], ['lace', L('Lace lingerie', 'Кружевное бельё', 'Lingerie renda')], ['silk', L('Silk nightdress', 'Шёлковая сорочка', 'Gaun tidur sutra')]];
+const APLACE = () => [['paris', L('Paris café', 'Кафе в Париже', 'Kafe Paris')], ['beach', L('Beach at sunset', 'Пляж на закате', 'Pantai senja')], ['tokyo', L('Tokyo at night', 'Ночной Токио', 'Tokyo malam')], ['yacht', L('On a yacht', 'На яхте', 'Kapal pesiar')], ['chalet', L('Ski chalet', 'Шале в горах', 'Pondok ski')], ['rooftop', L('Hotel rooftop', 'Крыша отеля', 'Atap hotel')], ['jazz', L('1920s jazz club', 'Джаз-клуб 1920-х', 'Klub jazz 1920-an')], ['riviera', L('1960s Riviera', 'Ривьера 1960-х', 'Riviera 1960-an')]];
+const AHAIR = () => [['long wavy auburn hair', L('Auburn waves', 'Рыжие волны', 'Ikal merah')], ['long straight blonde hair', L('Long blonde', 'Длинные светлые', 'Pirang panjang')], ['sleek black bob with bangs', L('Black bob', 'Чёрное каре', 'Bob hitam')], ['long dark curly hair', L('Dark curls', 'Тёмные кудри', 'Ikal gelap')], ['short platinum pixie cut', L('Platinum pixie', 'Платиновый пикси', 'Pixie platina')], ['long silver hair', L('Silver', 'Серебристые', 'Perak')], ['long pink hair', L('Pink', 'Розовые', 'Merah muda')]];
+const AEYES = () => [['green eyes', L('Green', 'Зелёные', 'Hijau')], ['blue eyes', L('Blue', 'Голубые', 'Biru')], ['brown eyes', L('Brown', 'Карие', 'Cokelat')], ['grey eyes', L('Grey', 'Серые', 'Abu-abu')]];
+const ABUILD = () => [['slim build', L('Slim', 'Стройная', 'Langsing')], ['athletic toned build', L('Athletic', 'Спортивная', 'Atletis')], ['curvy figure', L('Curvy', 'С формами', 'Berisi')]];
+const ATAT = () => [['', L('No tattoo', 'Без тату', 'Tanpa tato')], ['a small black swallow tattoo on her collarbone', L('Swallow on collarbone', 'Ласточка на ключице', 'Burung layang di tulang selangka')], ['a small star tattoo on her shoulder', L('Star on shoulder', 'Звезда на плече', 'Bintang di bahu')], ['a small rose tattoo on her wrist', L('Rose on wrist', 'Роза на запястье', 'Mawar di pergelangan')]];
+S.a = { st: 'photo', vibe: 'all', list: null, hero: null, ask: 'selfie', outfit: 'evening', place: 'paris', placeText: '', err: '', busy: false, prog: '', ok: false,
+  form: { name: '', age: 25, style: 'photo', hair: 'long wavy auburn hair', eyes: 'green eyes', build: 'slim build', tattoo: '', extra: '' } };
+const aGrad = (st) => (AST().find((x) => x[0] === st) || AST()[0])[2];
+const aStName = (st) => (AST().find((x) => x[0] === st) || AST()[0])[1];
+const aTxt = (o) => (o && (o[S.lang] || o.en)) || '';
+function aSeg(act, cur) {
+  return `<div class="row" style="gap:8px">${AST().map(([k, n, g]) => `<button data-act="${act}" data-v="${k}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border-radius:14px;font-size:14px;font-weight:900;color:${cur === k ? '#fbcfe8' : '#d6cfe0'};background:${cur === k ? '#3a1630' : '#1a1622'};border:1.5px solid ${cur === k ? '#db2777' : '#2f2839'}"><span style="display:block;width:100%;height:40px;border-radius:10px;background:${g}"></span>${esc(n)}</button>`).join('')}</div>`;
+}
+function aChips(act, opts, cur) { return `<div class="chips" style="margin-top:8px">${opts.map(([v, n]) => `<button class="chip ${cur === v ? 'on' : ''}" style="min-height:42px;font-size:14px" data-act="${act}" data-v="${esc(v)}">${esc(n)}</button>`).join('')}</div>`; }
+function aCover(h, hgt, nolabel) {
+  return h.anchor ? `<img loading="lazy" src="${thumbUrl(h.anchor)}" alt="" style="width:100%;height:${hgt}px;object-fit:cover;display:block;border-radius:16px">`
+    : `<span style="display:flex;align-items:flex-end;width:100%;height:${hgt}px;border-radius:16px;background:${aGrad(h.style)};padding:8px;box-sizing:border-box;font-size:11px;color:rgba(255,255,255,.7)">${nolabel ? '' : esc(L('portrait soon', 'портрет скоро', 'potret segera'))}</span>`;
+}
+function aDirector(text, size) { return `<div class="pad row" style="align-items:flex-end;gap:10px">${pipEl(size || 56, true)}<div class="bubble" style="border:1px solid var(--line);font-size:${size > 60 ? 17 : 15}px">${esc(text)}</div></div>`; }
+
 function vAdult() {
-  const tasks = [
-    [L('Create a character', 'Создать персонажа', 'Buat karakter'), L('Look, body type, hair, style — a character card with face, full body and angles.', 'Внешность, телосложение, волосы, стиль — карточка с лицом, ростом и ракурсами.', 'Penampilan, tubuh, rambut, gaya — kartu karakter.'), '#db2777'],
-    [L('Photo set', 'Фотосет', 'Set foto'), L('Outfit, place, poses — 4 to 8 photos of the same character.', 'Образ, место, позы — 4–8 фото одного персонажа.', 'Pakaian, tempat, pose — 4–8 foto karakter yang sama.'), '#9333ea'],
-    [L('Bring a photo to life', 'Оживить фото', 'Hidupkan foto'), L('A 5–10 second clip from any photo of your character.', 'Видео 5–10 секунд из фото персонажа.', 'Klip 5–10 detik dari foto karakter.'), '#7c3aed'],
-    [L('Video with a voice', 'Видео с голосом', 'Video dengan suara'), L('Up to 15 seconds, the character speaks your lines.', 'До 15 секунд, персонаж говорит ваш текст.', 'Hingga 15 detik, karakter bicara.'), '#4f46e5']];
+  const list = S.a.list || [];
+  const recent = list.filter((h) => h.items || h.mine).sort((a, b) => (b.last_used || 0) - (a.last_used || 0)).slice(0, 8);
+  const ic = (c, d) => `<span style="flex-shrink:0;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${c}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg></span>`;
+  const tiles = [
+    ['aCat', '#db2777', 'M12 21s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.5-7 10-7 10z', L('Meet someone', 'Познакомиться', 'Kenalan'), L('Ready heroines with a story. Ask for a selfie.', 'Готовые героини с историей. Попросите селфи.', 'Tokoh siap dengan cerita. Minta selfie.')],
+    ['aNew', '#c026d3', 'M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z', L('Your ideal type', 'Твой идеальный типаж', 'Tipe idealmu'), L('Pick her look — I bring 4 portraits, you choose.', 'Выберите внешность — я принесу 4 портрета, вы выберете.', 'Pilih penampilannya — 4 potret, Anda pilih.')],
+    ['soon', '#9333ea', 'M12 21s-6-5.5-6-11a6 6 0 0112 0c0 5.5-6 11-6 11z', L('Send her somewhere', 'Отправь её куда-нибудь', 'Kirim dia ke suatu tempat'), L('Paris, a yacht, the 1920s…', 'Париж, яхта, 1920-е…', 'Paris, kapal pesiar, 1920-an…')],
+    ['soon', '#7c3aed', 'M8 3l4 3 4-3 5 4-3 3v11H6V10L3 7z', L('Dress her up', 'Переодень', 'Ganti bajunya'), L('Evening dress, lace, leather.', 'Вечернее, кружево, кожа.', 'Gaun malam, renda, kulit.')],
+    ['soon', '#6d28d9', 'M8 5v14l11-7z', L('Bring her to life', 'Пусть оживёт', 'Hidupkan dia'), L('A wink, a turn, a slow dance.', 'Подмигнёт, повернётся, потанцует.', 'Kedipan, putaran, dansa.')],
+    ['soon', '#4f46e5', 'M4 5h16v11H8l-4 4z', L('She says it to you', 'Скажет тебе лично', 'Dia bilang untukmu'), L('A video that calls you by name.', 'Видео, где она зовёт вас по имени.', 'Video yang menyebut namamu.')],
+    ['soon', '#be185d', 'M4 5h16v14H4zM4 9h16', L('Your fantasy scene', 'Сцена по твоей фантазии', 'Adegan fantasimu'), L('Frames and a clip from your story.', 'Кадры и клип по вашей истории.', 'Bingkai dan klip dari ceritamu.')],
+    ['soon', '#a21caf', 'M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z', L('Other worlds', 'Другие миры', 'Dunia lain'), L('Elf, succubus, cyberpunk.', 'Эльфийка, суккуб, киберпанк.', 'Peri, succubus, cyberpunk.')],
+    ['soon', '#86198f', 'M5 3h14v18H5zM8 7h8M8 11h5', L('Make a cover', 'Обложка', 'Buat sampul'), L('Pin-up poster or a magazine.', 'Пин-ап или журнал.', 'Poster pin-up atau majalah.')]];
   return `${topBar({ back: true, adult: true })}
-  <div class="pad row" style="align-items:flex-end;gap:12px">${pipEl(72, true)}<div class="bubble" style="border:1px solid var(--line);font-size:17px">${esc(L('Welcome back. Which character are we working with today?', 'С возвращением. С каким персонажем работаем сегодня?', 'Selamat datang kembali. Dengan karakter mana hari ini?'))}</div></div>
-  <div class="pad" style="padding-top:12px"><div class="row"><input class="field" placeholder="${esc(L('Describe a scene or a new character…', 'Опишите сцену или нового персонажа…', 'Jelaskan adegan atau karakter baru…'))}" style="background:#17141f">
-    <button class="iconbtn" style="width:54px;height:54px;background:var(--acc);color:#fff;border-radius:16px" data-act="soon" aria-label="Go">${ICON.go}</button></div></div>
-  <div class="pad h2" style="padding-top:20px">${esc(L('My characters', 'Мои персонажи', 'Karakter saya'))}</div>
-  <div class="pad"><div class="hscroll" style="margin:0 -16px;padding:0 16px"><button class="ex" style="width:104px;height:140px;border:2px dashed #db2777;background:#17141f;color:#f9a8d4;font-size:14px;font-weight:900" data-act="soon">+ ${esc(L('New character', 'Новый персонаж', 'Karakter baru'))}</button>
-    ${['#3b2742', '#2b3047', '#3a2d26'].map((c, i) => `<span style="flex:0 0 auto;width:104px"><span style="display:block;width:104px;height:140px;border-radius:16px;background:${c}"></span><span style="display:block;font-size:14px;font-weight:800;margin-top:6px">${['Mira', 'Lena', 'Kai'][i]}</span></span>`).join('')}</div></div>
-  <div class="pad h2" style="padding-top:22px">${esc(L('What shall we make?', 'Что делаем?', 'Mau bikin apa?'))}</div>
-  <div class="pad stack" style="padding-top:10px;gap:10px">${tasks.map(([t, l, c], i) => `<button class="intent" style="border:1px solid var(--line);box-shadow:none" data-act="soon">
-    <span style="flex-shrink:0;width:44px;height:44px;border-radius:12px;background:${c};color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span>
-    <span style="flex-grow:1;min-width:0"><span style="display:block;font-size:17px;font-weight:900">${esc(t)}</span><span style="display:block;font-size:13px;line-height:1.35;color:var(--muted);margin-top:2px">${esc(l)}</span></span>${ICON.chev}</button>`).join('')}</div>
-  <div class="pad"><div class="card small" style="font-size:13px">${esc(L('Only made-up adult characters (21+ in every prompt). Photos of real people cannot be uploaded here, and pictures from the everyday section cannot be brought in. Content is stored separately.', 'Только выдуманные взрослые персонажи (21+ в каждом промпте). Фото реальных людей сюда загрузить нельзя, картинки из обычного раздела перенести тоже нельзя. Хранится отдельно.', 'Hanya karakter dewasa rekaan (21+). Foto orang nyata tidak bisa diunggah di sini. Disimpan terpisah.'))}</div></div>
+  ${aDirector(L('Hey. Who are we spending the evening with?', 'Привет. С кем проведём вечер?', 'Hai. Malam ini bersama siapa?'), 64)}
+  ${recent.length ? `<div class="pad h2" style="padding-top:18px">${esc(L('Continue with', 'Продолжить с', 'Lanjut dengan'))}</div>
+  <div class="pad"><div class="hscroll" style="margin:0 -16px;padding:0 16px">${recent.map((h) => `<button data-act="aOpen" data-v="${h.id}" style="flex:0 0 auto;width:96px;padding:0;border:0;background:none;text-align:left;color:inherit">${aCover(h, 120)}<span style="display:block;font-size:14px;font-weight:900;margin-top:6px">${esc(h.name)}</span></button>`).join('')}</div></div>` : ''}
+  <div class="pad h2" style="padding-top:20px">${esc(L('What are we in the mood for?', 'Чего хочется?', 'Lagi ingin apa?'))}</div>
+  <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:10px">${tiles.map(([act, c, d, t, l]) => `<button class="intent" style="flex-direction:column;gap:8px;min-height:132px;border:1px solid var(--line);box-shadow:none;padding:12px;${act === 'soon' ? 'opacity:.6' : ''}" data-act="${act}">${ic(c, d)}
+    <span style="display:block;font-size:16px;font-weight:900;line-height:1.2">${esc(t)}${act === 'soon' ? ` <span class="small">· ${esc(L('soon', 'скоро', 'segera'))}</span>` : ''}</span><span style="display:block;font-size:12.5px;line-height:1.35;color:var(--muted)">${esc(l)}</span></button>`).join('')}</div>
+  <div class="pad"><div class="card small" style="font-size:13px">${esc(L('Only made-up adult characters, 21+, adult-looking in every style including anime. No photos of real people, no lookalikes of anyone real. Everything here is stored separately.', 'Только выдуманные взрослые героини 21+, взрослые на вид в любом стиле, и в аниме тоже. Без фото реальных людей и без сходства с кем-то реальным. Всё здесь хранится отдельно.', 'Hanya karakter dewasa rekaan 21+, tampak dewasa di semua gaya. Tanpa foto orang nyata. Disimpan terpisah.'))}</div></div>
   ${footer(true)}`;
 }
+
+function vA18Cat() {
+  const list = (S.a.list || []).filter((h) => h.style === S.a.st && (S.a.vibe === 'all' || h.vibe === S.a.vibe));
+  return `${topBar({ back: true, adult: true })}
+  ${aDirector(L('Everyone here has a character and a story. Tap anyone you like.', 'У каждой свой характер и история. Нажмите на ту, что понравится.', 'Masing-masing punya karakter dan cerita. Ketuk yang Anda suka.'))}
+  <div class="pad" style="padding-top:14px"><h1 style="margin:0">${esc(L('Meet someone', 'Познакомиться', 'Kenalan'))}</h1><div class="sub">${esc(L('Made-up heroines, all 21+.', 'Выдуманные героини, все 21+.', 'Tokoh rekaan, semua 21+.'))}</div></div>
+  <div class="pad" style="padding-top:12px">${aSeg('aSt', S.a.st)}${aChips('aVibe', AVIBE(), S.a.vibe)}</div>
+  <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px">${list.map((h) => `<button data-act="aOpen" data-v="${h.id}" style="padding:0;border:0;background:none;color:inherit;text-align:left">${aCover(h, 210)}
+    <span style="display:flex;align-items:baseline;gap:6px;margin-top:7px"><span style="font-size:17px;font-weight:900">${esc(h.name)}</span><span style="font-size:13px;color:var(--muted);font-weight:800">${h.age}</span>${h.mine ? `<span class="tag18" style="font-size:10px;padding:2px 6px">${esc(L('yours', 'ваша', 'milikmu'))}</span>` : ''}</span>
+    <span style="display:block;font-size:13px;line-height:1.3;color:var(--muted);margin-top:2px">${esc(aTxt(h.story))}</span></button>`).join('') || `<div class="small">${esc(S.a.list ? L('No one here yet.', 'Пока никого.', 'Belum ada.') : L('Loading…', 'Загрузка…', 'Memuat…'))}</div>`}</div>
+  <div class="pad"><button class="btn2" data-act="aNew">+ ${esc(L('Make your own heroine', 'Создать свою героиню', 'Buat tokoh sendiri'))}</button></div>`;
+}
+
+function vA18Hero() {
+  const h = S.a.hero; if (!h) return `${topBar({ back: true, adult: true })}<div class="pad small">…</div>`;
+  const busy = (h.jobs || []).length;
+  let ph = '';
+  if (h.can_edit && (!h.anchor || h.candidates.length)) {
+    ph = `<div class="pad h2" style="padding-top:20px">${esc(L('Her portrait', 'Её портрет', 'Potretnya'))}</div>
+    <div class="pad small" style="padding-top:4px">${esc(L('Tap the one that is really her. Every picture of her will be made from it.', 'Нажмите на тот, где это точно она. Все её картинки будут делаться по нему.', 'Ketuk yang paling mirip dia. Semua gambarnya dibuat dari situ.'))}</div>
+    <div class="pad" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding-top:8px">${h.candidates.map((p) => `<button data-act="aAnchor" data-v="${esc(p)}" style="padding:0;border:3px solid ${p === h.anchor ? '#db2777' : 'transparent'};border-radius:12px;overflow:hidden;background:#1a1622;aspect-ratio:3/4"><img loading="lazy" src="${thumbUrl(p)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></button>`).join('')}</div>
+    ${busy ? `<div class="pad small" style="padding-top:8px">${esc(L('Portraits are on the way…', 'Портреты уже готовятся…', 'Potret sedang dibuat…'))} ${esc(S.a.prog)}</div>` : `<div class="pad" style="padding-top:8px"><button class="btn3" style="width:100%" data-act="aPortraits">${esc(h.candidates.length ? L('4 more portraits', 'Ещё 4 портрета', '4 potret lagi') : L('Make 4 portraits', 'Сделать 4 портрета', 'Buat 4 potret'))}</button></div>`}`;
+  }
+  const needPortrait = h.can_edit && !h.anchor;
+  const opt = S.a.ask === 'wear' ? aChips('aOutfit', AOUT(), S.a.outfit)
+    : S.a.ask === 'go' ? `${aChips('aPlace', APLACE(), S.a.placeText ? '' : S.a.place)}<input id="a-place" class="field" style="margin-top:8px;background:#17141f" placeholder="${esc(L('Or name your own place…', 'Или своё место…', 'Atau tempat sendiri…'))}" value="${esc(S.a.placeText)}">` : '';
+  return `${topBar({ back: true, adult: true })}
+  ${aDirector(L('Ask her for something. She answers with a photo.', 'Попросите её о чём-нибудь. Она ответит фото.', 'Minta sesuatu. Dia menjawab dengan foto.'))}
+  <div class="pad" style="padding-top:14px"><div style="position:relative">${aCover(h, 320, true)}
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:40px 16px 14px;border-radius:0 0 16px 16px;background:linear-gradient(transparent,rgba(10,8,14,.85))"><div style="font-size:30px;font-weight:900">${esc(h.name)}</div><div style="font-size:14px;font-weight:800;color:#d6cfe0">${h.age} · ${esc(aStName(h.style))}</div></div></div>
+    ${aTxt(h.story) ? `<div style="font-size:14.5px;line-height:1.5;color:#d6cfe0;margin-top:10px">${esc(aTxt(h.story))}</div>` : ''}</div>
+  ${ph}
+  ${needPortrait ? `<div class="pad"><div class="card small" style="font-size:13px">${esc(L('Pick her portrait first — then you can ask her for photos.', 'Сначала выберите её портрет — потом можно просить фото.', 'Pilih potretnya dulu — lalu minta foto.'))}</div></div>` : `
+  <div class="pad h2" style="padding-top:20px">${esc(L('Ask her', 'Попросить', 'Minta dia'))}</div>
+  <div class="pad">${aChips('aAsk', AASK(), S.a.ask)}${opt}</div>
+  <div class="pad"><button class="btn" data-act="aAskGo" ${busy > 1 ? 'disabled style="opacity:.6"' : ''}>${esc(L('Ask', 'Попросить', 'Minta'))}</button>
+    ${busy ? `<div class="small" style="margin-top:8px;text-align:center">${esc(L('She is on it…', 'Она уже готовит…', 'Dia sedang menyiapkan…'))} ${esc(S.a.prog)}</div>` : `<div class="small" style="margin-top:6px;text-align:center">${esc(L('about 1 minute; outfits like lace take two steps', 'около минуты; наряды вроде кружева — в два шага', 'sekitar 1 menit'))}</div>`}
+    ${S.a.err ? `<div class="small" style="margin-top:8px;color:#f9a8d4">${esc(S.a.err)}</div>` : ''}</div>`}
+  <div class="pad h2" style="padding-top:20px">${esc(L('What she sent you', 'Что она вам присылала', 'Yang dia kirim untukmu'))}</div>
+  <div class="pad"><div class="vgrid">${(h.items || []).map((i) => `<a class="vthumb" href="${fileUrl(i.path)}" target="_blank" rel="noopener" style="aspect-ratio:3/4;border:0;background:#1a1622"><img loading="lazy" src="${thumbUrl(i.path)}" alt=""></a>`).join('') || `<div class="small" style="grid-column:1/-1">${esc(L('Nothing yet — ask her for a selfie.', 'Пока пусто — попросите селфи.', 'Belum ada — minta selfie.'))}</div>`}</div></div>
+  ${h.mine ? `<div class="pad"><button class="btn3" style="width:100%" data-act="aDel">${esc(S.a.delArm ? L('Tap again to delete her', 'Нажмите ещё раз, чтобы удалить', 'Ketuk lagi untuk menghapus') : L('Delete this heroine', 'Удалить героиню', 'Hapus tokoh ini'))}</button></div>` : ''}`;
+}
+
+function vA18New() {
+  const f = S.a.form;
+  return `${topBar({ back: true, adult: true })}
+  ${aDirector(L('Pick her look. I will bring four portraits, you choose the one that is really her.', 'Выберите внешность. Я принесу четыре портрета, вы выберете тот, где это точно она.', 'Pilih penampilannya. Saya bawa empat potret, Anda pilih.'))}
+  <div class="pad" style="padding-top:14px"><h1 style="margin:0">${esc(L('Your ideal type', 'Твой идеальный типаж', 'Tipe idealmu'))}</h1></div>
+  <div class="pad h2" style="padding-top:14px">${esc(L('Style', 'Стиль', 'Gaya'))}</div><div class="pad" style="padding-top:8px">${aSeg('aFormSt', f.style)}</div>
+  <div class="pad row" style="padding-top:14px;gap:8px"><input id="a-name" class="field" style="background:#17141f;flex:2" placeholder="${esc(L('Her name', 'Её имя', 'Namanya'))}" value="${esc(f.name)}">
+    <input id="a-age" class="field" type="number" min="21" max="60" style="background:#17141f;flex:1" aria-label="${esc(L('Age', 'Возраст', 'Usia'))}" value="${esc(String(f.age))}"></div>
+  <div class="pad small" style="padding-top:4px">${esc(L('Age 21 or older.', 'Возраст от 21 года.', 'Usia 21 ke atas.'))}</div>
+  <div class="pad h2" style="padding-top:12px">${esc(L('Hair', 'Волосы', 'Rambut'))}</div><div class="pad">${aChips('aForm', AHAIR().map(([v, n]) => ['hair|' + v, n]), 'hair|' + f.hair)}</div>
+  <div class="pad h2" style="padding-top:12px">${esc(L('Eyes', 'Глаза', 'Mata'))}</div><div class="pad">${aChips('aForm', AEYES().map(([v, n]) => ['eyes|' + v, n]), 'eyes|' + f.eyes)}</div>
+  <div class="pad h2" style="padding-top:12px">${esc(L('Figure', 'Фигура', 'Tubuh'))}</div><div class="pad">${aChips('aForm', ABUILD().map(([v, n]) => ['build|' + v, n]), 'build|' + f.build)}</div>
+  <div class="pad h2" style="padding-top:12px">${esc(L('One tattoo', 'Одна тату', 'Satu tato'))}</div><div class="pad">${aChips('aForm', ATAT().map(([v, n]) => ['tattoo|' + v, n]), 'tattoo|' + f.tattoo)}</div>
+  <div class="pad" style="padding-top:12px"><input id="a-extra" class="field" style="background:#17141f" placeholder="${esc(L('Anything else, in English: e.g. tanned skin, glasses', 'Что-то ещё, по-английски: напр. tanned skin, glasses', 'Lainnya, dalam bahasa Inggris'))}" value="${esc(f.extra)}">
+    <div class="small" style="margin-top:6px">${esc(L('Tip: hair, eyes, figure and one simple tattoo stay the same in every picture. Beauty marks, freckles and piercings drift, so better skip them.', 'Совет: волосы, глаза, фигура и одна простая тату сохраняются на всех картинках. Родинки, веснушки и пирсинг плавают — лучше без них.', 'Tips: rambut, mata, tubuh dan satu tato sederhana tetap sama. Tahi lalat dan tindik sering berubah.'))}</div></div>
+  ${S.a.err ? `<div class="pad small" style="color:#f9a8d4">${esc(S.a.err)}</div>` : ''}
+  <div class="pad"><button class="btn" data-act="aCreate" ${S.a.busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Show me 4 portraits', 'Показать 4 портрета', 'Tampilkan 4 potret'))}</button></div>`;
+}
+
+let aPollT = 0, aGrace = 0;
+async function aEnter() {
+  if (!S.a.ok) { try { await api('/api/adult/ok', {}); S.a.ok = true; } catch (e) {} }
+  try { S.a.list = await api('/api/heroines'); } catch (e) { S.a.list = []; toast(e.message); }
+  if (A18.includes(S.screen)) { render.keep = true; render(); }
+}
+async function aOpen(id, push) {
+  S.a.err = ''; S.a.delArm = false;
+  try { S.a.hero = await api('/api/heroines/' + id); } catch (e) { toast(e.message); return; }
+  if (push !== false) go('a18hero'); else { render.keep = true; render(); }
+  aPoll();
+}
+async function aPoll() {
+  clearTimeout(aPollT);
+  const h = S.a.hero; if (!h || S.screen !== 'a18hero') return;
+  if (h.jobs && h.jobs.length) {
+    aGrace = 2;
+    try { const j = await api('/api/job/' + h.jobs[0]); S.a.prog = j.queue_pos ? `(${L('in line', 'в очереди', 'antre')}: ${j.queue_pos})` : (j.progress && j.progress.stage ? `(${j.progress.stage})` : ''); } catch (e) {}
+  } else if (aGrace > 0) aGrace--; else return;
+  aPollT = setTimeout(async () => {
+    if (S.screen !== 'a18hero' || !S.a.hero) return;
+    const n0 = (S.a.hero.items || []).length + (S.a.hero.candidates || []).length;
+    try { S.a.hero = await api('/api/heroines/' + S.a.hero.id); } catch (e) {}
+    const n1 = (S.a.hero.items || []).length + (S.a.hero.candidates || []).length;
+    if (n1 !== n0 || !(S.a.hero.jobs || []).length) { const act = document.activeElement; if (!act || !/INPUT|TEXTAREA/.test(act.tagName)) { render.keep = true; render(); } }
+    aPoll();
+  }, 3000);
+}
+function aSync() {
+  const v = (id) => { const x = document.getElementById(id); return x ? x.value : null; };
+  if (v('a-name') !== null) S.a.form.name = v('a-name');
+  if (v('a-age') !== null) S.a.form.age = v('a-age');
+  if (v('a-extra') !== null) S.a.form.extra = v('a-extra');
+  if (v('a-place') !== null) S.a.placeText = v('a-place');
+}
+async function aAct(a, d) {
+  aSync();
+  const re = () => { render.keep = true; render(); };
+  switch (a) {
+    case 'aCat': go('a18cat'); if (!S.a.list) aEnter(); break;
+    case 'aNew': S.a.err = ''; go('a18new'); break;
+    case 'aOpen': aOpen(d.v); break;
+    case 'aSt': S.a.st = d.v; re(); break;
+    case 'aVibe': S.a.vibe = d.v; re(); break;
+    case 'aAsk': S.a.ask = d.v; S.a.err = ''; re(); break;
+    case 'aOutfit': S.a.outfit = d.v; re(); break;
+    case 'aPlace': S.a.place = d.v; S.a.placeText = ''; re(); break;
+    case 'aFormSt': S.a.form.style = d.v; re(); break;
+    case 'aForm': { const [k, v] = d.v.split('|'); S.a.form[k] = v; re(); break; }
+    case 'aAskGo': {
+      const h = S.a.hero; if (!h) break; S.a.err = '';
+      const opt = S.a.ask === 'wear' ? { outfit: S.a.outfit } : S.a.ask === 'go' ? (S.a.placeText.trim() ? { place_text: S.a.placeText.trim() } : { place: S.a.place }) : {};
+      try { await api(`/api/heroines/${h.id}/ask`, { ask: S.a.ask, opt }); await aOpen(h.id, false); } catch (e) { S.a.err = e.message; re(); }
+      break; }
+    case 'aPortraits': try { await api(`/api/heroines/${S.a.hero.id}/portraits`, {}); await aOpen(S.a.hero.id, false); } catch (e) { S.a.err = e.message; re(); } break;
+    case 'aAnchor': try { await api(`/api/heroines/${S.a.hero.id}/anchor`, { path: d.v }); S.a.hero.anchor = d.v; S.a.list = null; aEnter(); re(); } catch (e) { toast(e.message); } break;
+    case 'aDel': if (!S.a.delArm) { S.a.delArm = true; re(); setTimeout(() => { S.a.delArm = false; }, 4000); break; }
+      try { await api(`/api/heroines/${S.a.hero.id}`, { method: 'DELETE' }); S.a.hero = null; S.a.list = null; aEnter(); back(); } catch (e) { toast(e.message); } break;
+    case 'aCreate': {
+      const f = S.a.form; S.a.err = '';
+      if (!f.name.trim()) { S.a.err = L('Give her a name.', 'Дайте ей имя.', 'Beri dia nama.'); re(); break; }
+      if (!(+f.age >= 21)) { S.a.err = L('Heroines are 21 or older.', 'Героиням от 21 года.', 'Tokoh berusia 21+.'); re(); break; }
+      S.a.busy = true; re();
+      try { const r = await api('/api/heroines', { name: f.name.trim(), age: +f.age, style: f.style, hair: f.hair, eyes: f.eyes, build: f.build, tattoo: f.tattoo, extra: f.extra });
+        S.a.busy = false; S.a.list = null; aEnter(); S.a.form.name = ''; history.replaceState({ s: 'a18cat' }, ''); await aOpen(r.id);
+      } catch (e) { S.a.busy = false; S.a.err = e.message; re(); }
+      break; }
+  }
+}
+
 /* ---------------- Studio for pros: every model and option of the admin, in a friendlier shape ---------------- */
 const SFAM_INPUTS = { qwen_image21: [0, 10], flux3_klein: [0, 10], qwen_aio: [1, 1], wan22_i2v: [1, 1], h3_fl2va: [1, 2], h3_ref2va: [1, 9] };
 const STABS = () => [
@@ -846,7 +1008,7 @@ function studioMovie(on) {
 }
 
 function vChat() {
-  const adult = S.screen === 'adult';
+  const adult = A18.includes(S.screen);
   return `<div class="sheet" data-act="chatBg"><div data-stop="1">
     <div class="row" style="justify-content:space-between"><div class="row">${pipEl(40, adult)}<div style="font-size:18px;font-weight:900">${adult ? esc(L('Your 18+ guide', 'Ваш гид 18+', 'Pemandu 18+')) : 'Pip'}</div></div>
     <button class="iconbtn" data-act="chatClose" aria-label="${esc(L('Close', 'Закрыть', 'Tutup'))}">${ICON.close}</button></div>
@@ -858,7 +1020,7 @@ function vChat() {
 
 /* ---------------- render ---------------- */
 function render() {
-  const sec = S.sec && secById(S.sec), th = S.screen === 'adult' || S.screen === 'gate' ? (S.screen === 'adult' ? 'th-adult' : '') : (sec && (S.screen === 'section' || S.screen === 'flow') ? sec.th : '');
+  const sec = S.sec && secById(S.sec), th = A18.includes(S.screen) || S.screen === 'gate' ? (A18.includes(S.screen) ? 'th-adult' : '') : (sec && (S.screen === 'section' || S.screen === 'flow') ? sec.th : '');
   document.body.className = th; $('#app').className = th;
   document.documentElement.lang = S.lang;
   let h = '';
@@ -868,8 +1030,11 @@ function render() {
   else if (S.screen === 'works') h = vWorks();
   else if (S.screen === 'gate') h = vGate();
   else if (S.screen === 'adult') h = vAdult();
+  else if (S.screen === 'a18cat') h = vA18Cat();
+  else if (S.screen === 'a18hero') h = vA18Hero();
+  else if (S.screen === 'a18new') h = vA18New();
   else if (S.screen === 'studio') h = vStudio();
-  if (S.screen !== 'gate' && S.screen !== 'studio') h += `<button class="fab" data-act="chatOpen" aria-label="${esc(L('Ask Pip', 'Спросить Пипа', 'Tanya Pip'))}">${pipEl(56, S.screen === 'adult')}</button>`;
+  if (S.screen !== 'gate' && S.screen !== 'studio') h += `<button class="fab" data-act="chatOpen" aria-label="${esc(L('Ask Pip', 'Спросить Пипа', 'Tanya Pip'))}">${pipEl(56, A18.includes(S.screen))}</button>`;
   if (S.chatOpen) h += vChat();
   const sy = window.scrollY, keepScroll = render.keep; render.keep = false;
   $('#app').innerHTML = h;
@@ -1014,8 +1179,8 @@ document.addEventListener('click', async (e) => {
     case 'uploadSoon': toast(TT().uploadSoon); break;
     case 'orderSoon': toast(L('Ordering printed things comes later. Download the file meanwhile.', 'Заказ печати появится позже. Пока скачайте файл.', 'Pesan cetak hadir nanti.')); break;
     case 'works': try { S.worksSrv = await api('/api/gallery?limit=90'); } catch (x) { S.worksSrv = []; } go('works'); break;
-    case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); break;
-    case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go(S.after || 'adult'); break;
+    case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); if (S.adultOk) aEnter(); break;
+    case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go(S.after || 'adult'); aEnter(); break;
     case 'studio': go(S.adultOk ? 'studio' : 'gate', { after: 'studio' }); break;
     case 'ask': { const v = ($('#ask') || {}).value || ''; if (v.trim()) chatSend(v); else { S.chatOpen = true; render.keep = true; render(); } break; }
     case 'chatOpen': S.chatOpen = true; render.keep = true; render(); setTimeout(() => { const i = $('#chat-in'); if (i) i.focus(); }, 50); break;
@@ -1063,6 +1228,7 @@ document.addEventListener('click', async (e) => {
     case 'stUse': { const st = S.studio, p = st.view, f = d.v, tab = STABS().find((t) => t.fams.includes(f));
       if (f === 'h3_ref2va' || f === 'qwen_image21') { if ((st.fam[tab.id] !== f) || !st.inputs.length) st.inputs = []; if (!st.inputs.includes(p)) st.inputs.push(p); } else st.inputs = [p];
       st.tab = tab.id; st.fam[tab.id] = f; st.view = null; render(); break; }
+    default: if (/^a[A-Z]/.test(a)) await aAct(a, d);
   }
 });
 document.addEventListener('input', (e) => {
