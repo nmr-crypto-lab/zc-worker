@@ -21,6 +21,8 @@ import registry as R
 import projects as PJ
 import store as ST
 import adult as AD
+import comic as CM
+import llm
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.realpath(f"{P.ROOT}/output")
@@ -241,9 +243,19 @@ def worker():
                     ST.add_file(o["path"], job.get("user") or ST.owner()["id"], jid, o.get("type"),
                                 adult=bool(job["input"].get("_adult")))
             _hero_after(job)
+            _comic_after(job)
         except Exception:
             traceback.print_exc()
         Q.task_done()
+
+
+def _comic_after(job):
+    m = job["input"].get("_comic")
+    if not m or job["status"] != "done":
+        return
+    for o in (job.get("result") or {}).get("outputs", []):
+        if o.get("type") == "image":
+            ST.add_comic_file(o["path"], m["id"], m["role"])
 
 
 def _hero_after(job):
@@ -383,6 +395,130 @@ async def gif_retext(jid: str, request: Request):
     for k in rel:
         ST.add_file(k, j.get("user") or me(request)["id"], jid, "video")
     return {"outputs": [{"path": k, "type": "video"} for k in rel]}
+
+
+# ------------------------------------------------------------------ Tell a story -> Comic
+def _comic_or_404(request, cid):
+    c = ST.comic(cid)
+    if not c or (c["user_id"] != me(request)["id"] and not is_admin(request)):
+        raise HTTPException(404)
+    return c
+
+
+def _comic_out(c):
+    files, d = ST.comic_files(c["id"]), c["data"]
+    for ch in d["characters"]:
+        ch["candidates"] = files.get("cast:" + ch["id"], [])
+    for i, p in enumerate(d["panels"]):
+        p["takes"] = files.get(f"panel:{i}", [])
+        p["image"] = p["takes"][0] if p["takes"] else None
+    jobs = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running")
+            and (JOBS[k]["input"].get("_comic") or {}).get("id") == c["id"]]
+    return {"id": c["id"], "style": c["style"], "data": d, "jobs": jobs}
+
+
+def _comic_check_text(request, d):
+    if H.prompt_violation(CM.all_text(d)):
+        ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
+        raise HTTPException(400, "Refused: content involving minors is not allowed")
+
+
+@app.get("/api/comics")
+def comics_list(request: Request):
+    return ST.comics_of(me(request)["id"])
+
+
+@app.post("/api/comics")
+async def comic_create(request: Request):
+    b = await request.json()
+    idea, style = (b.get("idea") or "").strip(), b.get("style") if b.get("style") in CM.STYLES else "comic"
+    if len(idea) < 3:
+        raise HTTPException(400, "tell the idea first")
+    if H.prompt_violation(idea):
+        ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
+        raise HTTPException(400, "Refused: content involving minors is not allowed")
+    try:
+        d = await asyncio.to_thread(CM.plan, idea, style, b.get("panels") or 6, b.get("lang") or "en")
+    except llm.NotConfigured as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"could not write the story: {str(e)[:200]}")
+    d["idea"] = idea[:3000]
+    _comic_check_text(request, d)
+    cid = ST.add_comic(me(request)["id"], style, d)
+    ST.event("comic_new", me(request)["id"], {"id": cid, "panels": len(d["panels"])})
+    return _comic_out(ST.comic(cid))
+
+
+@app.get("/api/comics/{cid}")
+def comic_one(cid: str, request: Request):
+    return _comic_out(_comic_or_404(request, cid))
+
+
+@app.patch("/api/comics/{cid}")
+async def comic_edit(cid: str, request: Request):
+    c = _comic_or_404(request, cid)
+    b = await request.json()
+    d = CM.normalize({"title": b.get("title", c["data"]["title"]), "characters": b.get("characters", c["data"]["characters"]),
+                      "panels": b.get("panels", c["data"]["panels"])})
+    # a changed look means the old portrait no longer fits; the user picks again
+    old = {ch["id"]: ch for ch in c["data"]["characters"]}
+    for ch in d["characters"]:
+        o = old.get(ch["id"])
+        ch["portrait"] = o["portrait"] if o and o.get("look") == ch["look"] else None
+    d["idea"] = c["data"].get("idea", "")
+    _comic_check_text(request, d)
+    ST.save_comic(cid, d)
+    return _comic_out(ST.comic(cid))
+
+
+@app.post("/api/comics/{cid}/cast")
+async def comic_cast(cid: str, request: Request):
+    """two portrait options for every hero without a portrait (or for one hero: {"char": id})"""
+    c = _comic_or_404(request, cid)
+    b = await request.json()
+    chars = [ch for ch in c["data"]["characters"] if (ch["id"] == b.get("char")) or (not b.get("char") and not ch.get("portrait"))]
+    u = me(request)
+    _limit_ok(u, 2 * len(chars))
+    jobs = [enqueue(dict(inp, _comic={"id": cid, "role": "cast:" + ch["id"]}), u["id"])
+            for ch in chars for inp in CM.cast_inputs(c["style"], ch)]
+    return {"jobs": jobs}
+
+
+@app.post("/api/comics/{cid}/pick")
+async def comic_pick(cid: str, request: Request):
+    c = _comic_or_404(request, cid)
+    b = await request.json()
+    files = ST.comic_files(cid)
+    for ch in c["data"]["characters"]:
+        if ch["id"] == b.get("char"):
+            if b.get("path") not in files.get("cast:" + ch["id"], []):
+                raise HTTPException(400, "pick one of the portraits")
+            ch["portrait"] = b["path"]
+    ST.save_comic(cid, c["data"])
+    return _comic_out(ST.comic(cid))
+
+
+@app.post("/api/comics/{cid}/draw")
+async def comic_draw(cid: str, request: Request):
+    """draw all panels, or one panel again ({"panel": i})"""
+    c = _comic_or_404(request, cid)
+    b = await request.json()
+    d = c["data"]
+    if any(not ch.get("portrait") for ch in d["characters"]):
+        raise HTTPException(400, "pick a portrait for every hero first")
+    idx = [int(b["panel"])] if b.get("panel") is not None else list(range(len(d["panels"])))
+    idx = [i for i in idx if 0 <= i < len(d["panels"])]
+    u = me(request)
+    _limit_ok(u, len(idx))
+    return {"jobs": [enqueue(dict(CM.panel_input(c["style"], d, i), _comic={"id": cid, "role": f"panel:{i}"}), u["id"]) for i in idx]}
+
+
+@app.delete("/api/comics/{cid}")
+def comic_delete(cid: str, request: Request):
+    _comic_or_404(request, cid)
+    ST.delete_comic(cid)
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------ 18+: heroines ("Meet someone", phase 1)
@@ -547,7 +683,7 @@ def enqueue(inp, uid):
 @app.post("/api/generate")
 async def generate(request: Request):
     inp = await request.json()
-    for k in ("out_prefix", "_project", "_hero", "_then", "_adult"):   # internal keys, set only by the server itself
+    for k in ("out_prefix", "_project", "_hero", "_then", "_adult", "_comic"):   # internal keys, set only by the server itself
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")

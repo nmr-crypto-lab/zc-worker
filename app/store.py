@@ -43,6 +43,11 @@ create table if not exists heroine_items (
   key text primary key, heroine_id text not null references heroines(id), user_id text not null references users(id),
   ask text, job_id text, created real not null);
 create index if not exists heroine_items_hu on heroine_items(heroine_id, user_id, created);
+create table if not exists comics (
+  id text primary key, user_id text not null references users(id), style text, data text not null,
+  created real not null, updated real not null, deleted real);
+create table if not exists comic_files (
+  key text primary key, comic_id text not null references comics(id), role text not null, created real not null);
 create table if not exists heroine_candidates (
   key text primary key, heroine_id text not null references heroines(id), job_id text, created real not null);
 """
@@ -319,3 +324,47 @@ def add_candidate(key, hid, job_id=None):
 
 def candidates(hid):
     return [r["key"] for r in _q("select key from heroine_candidates where heroine_id=? order by created desc limit 12", (hid,))]
+
+
+# ------------------------------------------------------------------ comics ("Tell a story")
+def add_comic(uid, style, data):
+    cid = uuid.uuid4().hex[:12]
+    now = time.time()
+    _x("insert into comics(id,user_id,style,data,created,updated) values(?,?,?,?,?,?)",
+       (cid, uid, style, _json.dumps(data, ensure_ascii=False), now, now))
+    return cid
+
+
+def comic(cid):
+    r = _q("select * from comics where id=? and deleted is null", (cid,), one=True)
+    if r:
+        r["data"] = _json.loads(r["data"])
+    return r
+
+
+def save_comic(cid, data):
+    _x("update comics set data=?, updated=? where id=?", (_json.dumps(data, ensure_ascii=False), time.time(), cid))
+
+
+def comics_of(uid, limit=30):
+    rows = _q("select id, style, data, updated from comics where user_id=? and deleted is null order by updated desc limit ?",
+              (uid, int(limit)))
+    for r in rows:
+        r["title"] = (_json.loads(r.pop("data")) or {}).get("title", "")
+    return rows
+
+
+def delete_comic(cid):
+    _x("update comics set deleted=? where id=?", (time.time(), cid))
+
+
+def add_comic_file(key, cid, role):
+    _x("insert or ignore into comic_files(key,comic_id,role,created) values(?,?,?,?)", (key, cid, role, time.time()))
+
+
+def comic_files(cid):
+    """role -> [keys, newest first]"""
+    out = {}
+    for r in _q("select key, role from comic_files where comic_id=? order by created desc", (cid,)):
+        out.setdefault(r["role"], []).append(r["key"])
+    return out
