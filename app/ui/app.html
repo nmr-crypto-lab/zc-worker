@@ -843,6 +843,19 @@ function vComic() {
     return h + '</div>';
   }
   const d = x.data, busy = (x.jobs || []).length, needCast = d.characters.some((ch) => !ch.candidates.length), needPick = d.characters.some((ch) => !ch.portrait), drawn = d.panels.some((p) => p.image);
+  const allDrawn = d.panels.length && d.panels.every((p) => p.image);
+  if (allDrawn && !busy && !c.edit) {
+    const sig = cSig();
+    if (c.finalSig !== sig && !cMakeFinal.busy) setTimeout(cMakeFinal, 0);
+    return h + `<div class="sub">${esc(L('Your comic is ready.', 'Ваш комикс готов.', 'Komik Anda sudah jadi.'))}</div>
+      <div style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираем комикс…', 'Menyusun komik…'))}</span>`}</div>
+      ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
+      <div class="stack" style="margin-top:14px;gap:10px">
+        <button class="btn" style="background:var(--ok)" data-act="cSave">${esc(L('Send or save', 'Отправить или сохранить', 'Kirim atau simpan'))}</button>
+        <button class="btn2" data-act="cEdit">${esc(L('Change something', 'Поправить', 'Ubah sesuatu'))}</button>
+        <button class="btn3" style="width:100%" data-act="cNew">${esc(L('New comic', 'Новый комикс', 'Komik baru'))}</button></div></div>`;
+  }
+  if (allDrawn && !busy) h += `<button class="btn2" style="margin-top:10px" data-act="cDone">${esc(L('Show the finished comic', 'Показать готовый комикс', 'Lihat komik jadi'))}</button>`;
   h += `<input class="field" data-c="title" style="margin-top:10px;font-weight:900" value="${esc(d.title)}">
     <div class="h2" style="margin-top:16px">1. ${esc(L('Heroes', 'Герои', 'Tokoh'))}</div>
     <div class="small">${esc(L('Every panel is drawn from these pictures. Not right? Draw again.', 'По этим картинкам рисуются все кадры. Не нравится — перерисуйте.', 'Semua panel digambar dari gambar ini. Kurang pas? Gambar ulang.'))}</div>`;
@@ -858,7 +871,7 @@ function vComic() {
     h += `<div class="card" style="margin-top:10px">
       ${p.image ? `<div style="position:relative;border-radius:12px;overflow:hidden"><img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block"><div style="position:absolute;left:8px;right:8px;bottom:8px">${cLinesHtml(p)}</div></div>` : ''}
       <div class="small" style="margin-top:${p.image ? 8 : 0}px;font-weight:900">${i + 1}</div>
-      <textarea class="field" rows="2" data-c="scene|${i}" style="font-size:13px;margin-top:4px">${esc(p.scene)}</textarea>
+      <details style="margin-top:4px"><summary class="small" style="cursor:pointer">${esc(L('What to draw (for the artist)', 'Что нарисовать (для художника)', 'Yang digambar (untuk ilustrator)'))}</summary><textarea class="field" rows="3" data-c="scene|${i}" style="font-size:13px;margin-top:4px">${esc(p.scene)}</textarea></details>
       <input class="field" data-c="cap|${i}" style="font-size:14px;margin-top:6px;height:44px" placeholder="${esc(L('Caption (optional)', 'Подпись (можно пусто)', 'Keterangan (opsional)'))}" value="${esc(p.caption)}">
       ${[0, 1].map((j) => { const l = p.lines[j] || { who: (p.chars[0] || (d.characters[0] || {}).id || ''), text: '' };
         return `<div class="row" style="gap:6px;margin-top:6px"><span class="small" style="flex:0 0 70px;font-weight:800">${esc(cName(l.who) || '—')}</span><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" style="font-size:14px;height:44px" value="${esc(l.text)}" placeholder="${esc(L('Line', 'Реплика', 'Dialog'))}"></div>`; }).join('')}
@@ -896,25 +909,49 @@ function cPoll() {
     cPoll();
   }, 3000);
 }
-async function cCompose() {   // one tall PNG: title + panels in 2 columns with the lines drawn on
-  const d = S.c.x.data, ps = d.panels.filter((p) => p.image), W = 1080, col = 2, gap = 16, pw = (W - gap * 3) / col, top = 110;
+function cSig() { const d = S.c.x.data; return JSON.stringify([d.title, d.panels.map((p) => [p.image, p.caption, p.lines])]); }
+async function cMakeFinal() {
+  if (!S.c.x) return; cMakeFinal.busy = true;
+  try { const sig = cSig(), b = await cCompose(); if (S.c.finalUrl) URL.revokeObjectURL(S.c.finalUrl);
+    S.c.finalUrl = URL.createObjectURL(b); S.c.finalBlob = b; S.c.finalSig = sig; }
+  catch (e) { S.c.err = L('Could not put the comic together.', 'Не получилось собрать комикс.', 'Gagal menyusun komik.'); S.c.finalSig = cSig(); }
+  finally { cMakeFinal.busy = false; }
+  if (S.screen === 'comic') { render.keep = true; render(); }
+}
+async function cCompose() {   // one tall PNG: title, then panels in 2 columns, each with its caption and lines UNDER the picture
+  const d = S.c.x.data, ps = d.panels.filter((p) => p.image), W = 1080, col = 2, gap = 18, pw = (W - gap * 3) / col, top = 112;
   const imgs = await Promise.all(ps.map((p) => new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = fileUrl(p.image); })));
-  const rows = Math.ceil(ps.length / col), cv = document.createElement('canvas'); cv.width = W; cv.height = top + rows * (pw + gap) + gap;
-  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, cv.height);
-  g.fillStyle = '#111'; g.font = '900 54px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(d.title || '', W / 2, 74); g.textAlign = 'left';
-  const wrap = (t, w, f) => { g.font = f; const out = []; let cur = ''; for (const wd of t.split(' ')) { const tr = cur ? cur + ' ' + wd : wd; if (g.measureText(tr).width > w && cur) { out.push(cur); cur = wd; } else cur = tr; } if (cur) out.push(cur); return out; };
-  ps.forEach((p, n) => {
-    const x = gap + (n % col) * (pw + gap), y = top + Math.floor(n / col) * (pw + gap);
-    g.drawImage(imgs[n], x, y, pw, pw); g.lineWidth = 4; g.strokeStyle = '#111'; g.strokeRect(x, y, pw, pw);
-    const boxes = []; if (p.caption) boxes.push({ t: p.caption, cap: true });
-    p.lines.forEach((l) => boxes.push({ t: (cName(l.who) ? cName(l.who) + ': ' : '') + l.text }));
-    let by = y + pw - 10; const fs = 26, f = `800 ${fs}px system-ui, sans-serif`;
-    for (const b of boxes.reverse()) {
-      const ls = wrap(b.t, pw - 52, f), bh = ls.length * (fs + 6) + 16; by -= bh;
-      g.fillStyle = b.cap ? '#fef08a' : '#fff'; g.strokeStyle = '#111'; g.lineWidth = 3;
-      g.beginPath(); if (g.roundRect) g.roundRect(x + 14, by, pw - 28, bh, b.cap ? 4 : 16); else g.rect(x + 14, by, pw - 28, bh); g.fill(); g.stroke();
-      g.fillStyle = '#111'; g.font = f; ls.forEach((ln, k) => g.fillText(ln, x + 26, by + 8 + fs + k * (fs + 6) - 4)); by -= 8;
+  const cv = document.createElement('canvas'), g = cv.getContext('2d'), fs = 27, lh = fs + 9, pad = 12, F = `700 ${fs}px system-ui, sans-serif`, FB = `900 ${fs}px system-ui, sans-serif`;
+  const wrap = (t, w, first) => { const out = []; let cur = '', lim = w - first; g.font = F;
+    for (const wd of t.split(' ')) { const tr = cur ? cur + ' ' + wd : wd; if (g.measureText(tr).width > lim && cur) { out.push(cur); cur = wd; lim = w; } else cur = tr; }
+    if (cur) out.push(cur); return out; };
+  const blocks = ps.map((p) => { const out = [];
+    if (p.caption) out.push({ cap: true, ls: wrap(p.caption, pw - 2 * pad, 0) });
+    p.lines.forEach((l) => { const nm = cName(l.who) ? cName(l.who) + ': ' : ''; g.font = FB; const nw = nm ? g.measureText(nm).width : 0; out.push({ nm, nw, ls: wrap(l.text, pw - 2 * pad, nw) }); });
+    return out; });
+  const textH = (bs) => bs.reduce((a, b) => a + b.ls.length * lh + 2 * pad - 6 + 8, bs.length ? 6 : 0);
+  const rows = []; for (let n = 0; n < ps.length; n += col) rows.push(Math.max(...blocks.slice(n, n + col).map(textH)));
+  cv.width = W; cv.height = top + rows.reduce((a, h) => a + pw + h + gap, 0) + gap;
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, cv.height);
+  g.fillStyle = '#111'; g.font = '900 56px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(d.title || '', W / 2, 76); g.textAlign = 'left';
+  let y = top;
+  rows.forEach((rh, r) => {
+    for (let c2 = 0; c2 < col; c2++) {
+      const n = r * col + c2; if (n >= ps.length) break;
+      const x = gap + c2 * (pw + gap);
+      g.drawImage(imgs[n], x, y, pw, pw); g.lineWidth = 4; g.strokeStyle = '#111'; g.strokeRect(x, y, pw, pw);
+      let by = y + pw + 10;
+      for (const b of blocks[n]) {
+        const bh = b.ls.length * lh + 2 * pad - 6;
+        g.fillStyle = b.cap ? '#fef08a' : '#f1f5f9'; g.strokeStyle = '#111'; g.lineWidth = 2.5;
+        g.beginPath(); if (g.roundRect) g.roundRect(x, by, pw, bh, b.cap ? 4 : 14); else g.rect(x, by, pw, bh); g.fill(); g.stroke();
+        b.ls.forEach((ln, k) => { let tx = x + pad; const ty = by + pad + fs - 3 + k * lh;
+          if (k === 0 && b.nm) { g.font = FB; g.fillStyle = '#1d4ed8'; g.fillText(b.nm, tx, ty); tx += b.nw; }
+          g.font = F; g.fillStyle = '#111'; g.fillText(ln, tx, ty); });
+        by += bh + 8;
+      }
     }
+    y += pw + rh + gap;
   });
   return new Promise((ok) => cv.toBlob((b) => ok(b), 'image/png'));
 }
@@ -931,16 +968,18 @@ async function cAct(a, d) {
         S.c.busy = true; re();
         try { S.c.x = await api('/api/comics', { idea: S.c.idea, style: S.c.style, panels: S.c.n, lang: S.lang }); S.c.idea = ''; history.replaceState({ s: 'comic', sec: S.sec }, ''); } finally { S.c.busy = false; }
         re(); break;
-      case 'cOpen': await cLoad(d.v); break;
+      case 'cOpen': S.c.edit = false; await cLoad(d.v); break;
       case 'cPick': await cSaveEdits(); S.c.x = await api(`/api/comics/${S.c.x.id}/pick`, { char: d.ch, path: d.v }); re(); break;
       case 'cCast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, {}); await cLoad(S.c.x.id); break;
       case 'cRecast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, { char: d.v }); await cLoad(S.c.x.id); break;
-      case 'cDraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, {}); await cLoad(S.c.x.id); break;
+      case 'cDraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, {}); S.c.edit = false; await cLoad(S.c.x.id); break;
       case 'cRedraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, { panel: +d.v }); await cLoad(S.c.x.id); break;
-      case 'cSave': { await cSaveEdits(); const b = await cCompose(), f = new File([b], 'comic.png', { type: 'image/png' });
+      case 'cEdit': S.c.edit = true; re(); break;
+      case 'cDone': await cSaveEdits(); S.c.edit = false; re(); window.scrollTo(0, 0); break;
+      case 'cSave': { await cSaveEdits(); const b = (S.c.finalBlob && S.c.finalSig === cSig()) ? S.c.finalBlob : await cCompose(), f = new File([b], (S.c.x.data.title || 'comic').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 40) + '.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); break; } catch (e) {} }
         dl(f); break; }
-      case 'cNew': await cSaveEdits(); S.c.x = null; try { S.c.list = await api('/api/comics'); } catch (e) {} re(); break;
+      case 'cNew': await cSaveEdits(); S.c.x = null; S.c.edit = false; try { S.c.list = await api('/api/comics'); } catch (e) {} re(); break;
     }
   } catch (e) { S.c.err = e.message; re(); }
 }
