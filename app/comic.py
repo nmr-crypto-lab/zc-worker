@@ -87,7 +87,8 @@ def panel_input(style, d, i):
     who = " ".join(f"{c['name']} is the character from reference image {refs.index(c) + 1} ({c['look']})." if c in refs
                    else f"{c['name']}: {c['look']}." for c in present)
     prompt = (f"{STYLES.get(style, STYLES['comic'])}. Comic panel. {p['scene']} {who} "
-              f"Keep every character exactly as in their reference image. {NO_TEXT}")
+              f"Keep every character exactly as in their reference image, but NOT their plain white background: "
+              f"show the full scene with a detailed background that fits the place. {NO_TEXT}")
     inp = {"family": "qwen_image21", "prompt": prompt, "width": 1024, "height": 1024}
     if refs:
         inp["images"] = [{"path": c["portrait"]} for c in refs]
