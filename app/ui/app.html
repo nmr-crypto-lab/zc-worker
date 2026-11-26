@@ -380,7 +380,7 @@ function SECTIONS() {
       line: L('A comic, a short clip or a mini-film from your idea, step by step', 'Комикс, клип или мини-фильм по вашей идее, шаг за шагом', 'Komik, klip atau film mini dari ide Anda, langkah demi langkah'),
       sub: L('Tell your idea or paste a joke, a tale, a family story. We plan the scenes, you check every step.', 'Расскажите идею или вставьте анекдот, сказку, байку. Мы разложим на сцены, вы проверяете каждый шаг.', 'Ceritakan ide atau tempel lelucon, dongeng, kisah keluarga. Kami susun adegannya, Anda cek setiap langkah.'),
       tasks: [
-        { id: 'comic', t: L('Comic', 'Комикс', 'Komik'), line: L('4–8 pictures with speech bubbles. Fast.', '4–8 картинок с репликами. Быстро.', '4–8 gambar dengan balon kata. Cepat.'), ex: [P('', '#1d4ed8')], soon: true },
+        { id: 'comic', t: L('Comic', 'Комикс', 'Komik'), tag: L('new', 'новое', 'baru'), line: L('4–8 pictures with lines. You check the story and the heroes before drawing.', '4–8 картинок с репликами. Историю и героев проверяете до рисования.', '4–8 gambar dengan dialog. Cek cerita dan tokoh sebelum digambar.'), ex: [P('', '#1d4ed8')] },
         { id: 'clip', t: L('Short clip', 'Короткий клип', 'Klip pendek'), line: L('Up to 60 s, with voices and music.', 'До 60 с, с голосами и музыкой.', 'Hingga 60 dtk, dengan suara dan musik.'), ex: [V('village')], soon: true },
         { id: 'us', t: L('Cartoon about us', 'Мультик про нас', 'Kartun tentang kami'), line: L('Family or friends in an adventure.', 'Семья или друзья в приключении.', 'Keluarga atau teman berpetualang.'), ex: [P('', '#7c3aed')], soon: true },
         { id: 'film', t: L('Film from a text', 'Фильм по тексту', 'Film dari teks'), line: L('A joke, a tale or a poem, scene by scene.', 'Анекдот, сказка или стих по сценам.', 'Lelucon, dongeng atau puisi per adegan.'), ex: [P(L('“The three bogatyrs”', '«Три богатыря»', '“Tiga ksatria”'), '#7c2d12')], soon: true }
@@ -460,7 +460,7 @@ function topBar(opts = {}) {
 }
 function footer(adult) {
   const t = TT();
-  return `<div class="foot"><button data-act="${adult ? 'home' : 'adult'}">${esc(adult ? L('Everyday section', 'Обычный раздел', 'Bagian umum') : t.adult)}</button><button data-act="studio">${esc(t.studio)}</button></div>`;
+  return `<div class="foot"><button data-act="${adult ? 'home' : 'adult'}">${esc(adult ? L('Everyday section', 'Обычный раздел', 'Bagian umum') : t.adult)}</button>${SHOW_STUDIO ? `<button data-act="studio">${esc(t.studio)}</button>` : ''}</div>`;
 }
 function media(m, cls) {
   if (!m) return '';
@@ -816,6 +816,135 @@ async function aAct(a, d) {
   }
 }
 
+const SHOW_STUDIO = false;   // the pro studio is hidden at launch; the code stays
+/* ---------------- Tell a story -> Comic: idea -> screenplay -> heroes -> panels -> lines on top ---------------- */
+const CSTY = () => [['comic', L('Comic book', 'Комикс', 'Komik'), '#1d4ed8'], ['manga', L('Manga', 'Манга', 'Manga'), '#334155'], ['toon3d', L('3D cartoon', '3D-мультик', 'Kartun 3D'), '#f59e0b'], ['toon2d', L('2D cartoon', '2D-мультик', 'Kartun 2D'), '#16a34a'], ['storybook', L('Storybook', 'Книжка', 'Buku cerita'), '#db2777']];
+S.c = { id: null, x: null, idea: '', style: 'comic', n: 6, busy: false, err: '', list: null, dirty: false };
+let cPollT = 0, cGrace = 0;
+function cName(id) { const ch = ((S.c.x && S.c.x.data.characters) || []).find((c) => c.id === id); return ch ? ch.name : ''; }
+function cLinesHtml(p) {
+  const box = 'display:block;background:#fff;color:#111;border:2px solid #111;border-radius:12px;padding:4px 8px;font-size:13px;font-weight:800;line-height:1.25;margin-top:4px;text-align:left';
+  return `${p.caption ? `<span style="display:block;background:#fef08a;color:#111;border:2px solid #111;padding:3px 7px;font-size:12px;font-weight:800;line-height:1.25;text-align:left">${esc(p.caption)}</span>` : ''}
+    ${p.lines.map((l) => `<span style="${box}">${cName(l.who) ? `<b style="color:#1d4ed8">${esc(cName(l.who))}:</b> ` : ''}${esc(l.text)}</span>`).join('')}`;
+}
+function vComic() {
+  const c = S.c, x = c.x;
+  let h = `${topBar({ back: true })}<div class="pad"><h1 style="margin:0">${esc(L('Comic', 'Комикс', 'Komik'))}</h1>`;
+  if (!x) {
+    h += `<div class="sub">${esc(L('Tell the idea, paste a joke or a family story. We write the comic, you check every step.', 'Расскажите идею, вставьте анекдот или семейную байку. Мы напишем комикс, вы проверите каждый шаг.', 'Ceritakan ide, tempel lelucon atau kisah keluarga. Kami tulis komiknya, Anda cek setiap langkah.'))}</div>
+      <textarea id="c-idea" class="field" rows="6" style="margin-top:14px" placeholder="${esc(L('e.g. Our cat steals sausages and blames the dog', 'Например: наш кот ворует сосиски и сваливает на собаку', 'mis. Kucing kami mencuri sosis dan menyalahkan anjing'))}">${esc(c.idea)}</textarea>
+      <div class="h2" style="margin-top:16px">${esc(L('Style', 'Стиль', 'Gaya'))}</div>
+      <div class="chips" style="margin-top:8px">${CSTY().map(([k, n]) => `<button class="chip ${c.style === k ? 'on' : ''}" data-act="cSty" data-v="${k}">${esc(n)}</button>`).join('')}</div>
+      <div class="h2" style="margin-top:16px">${esc(L('Pictures', 'Картинок', 'Gambar'))}</div>
+      <div class="chips" style="margin-top:8px">${[4, 6, 8].map((n) => `<button class="chip ${c.n === n ? 'on' : ''}" data-act="cN" data-v="${n}">${n}</button>`).join('')}</div>
+      ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
+      <div class="stack" style="margin-top:18px"><button class="btn" data-act="cPlan" ${c.busy ? 'disabled style="opacity:.6"' : ''}>${esc(c.busy ? L('Writing the story…', 'Пишем историю…', 'Menulis cerita…') : L('Write the story', 'Написать историю', 'Tulis ceritanya'))}</button></div>`;
+    if ((c.list || []).length) h += `<div class="h2" style="margin-top:22px">${esc(L('My comics', 'Мои комиксы', 'Komik saya'))}</div><div class="stack" style="margin-top:8px;gap:8px">${c.list.map((k) => `<button class="btn3" style="width:100%;text-align:left" data-act="cOpen" data-v="${k.id}">${esc(k.title || '…')}</button>`).join('')}</div>`;
+    return h + '</div>';
+  }
+  const d = x.data, busy = (x.jobs || []).length, needCast = d.characters.some((ch) => !ch.candidates.length), needPick = d.characters.some((ch) => !ch.portrait), drawn = d.panels.some((p) => p.image);
+  h += `<input class="field" data-c="title" style="margin-top:10px;font-weight:900" value="${esc(d.title)}">
+    <div class="h2" style="margin-top:16px">1. ${esc(L('Heroes', 'Герои', 'Tokoh'))}</div>
+    <div class="small">${esc(L('Tap the picture that fits. Every panel is drawn from it.', 'Нажмите на подходящую картинку — по ней рисуются все кадры.', 'Ketuk gambar yang cocok. Semua panel digambar darinya.'))}</div>`;
+  d.characters.forEach((ch, i) => {
+    h += `<div class="card" style="margin-top:10px"><div style="font-weight:900">${esc(ch.name)}</div>
+      <textarea class="field" rows="2" data-c="look|${i}" style="margin-top:6px;font-size:14px">${esc(ch.look)}</textarea>
+      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap">${ch.candidates.map((k) => `<button data-act="cPick" data-ch="${ch.id}" data-v="${esc(k)}" style="width:84px;height:84px;padding:0;border-radius:12px;overflow:hidden;border:3px solid ${k === ch.portrait ? 'var(--acc)' : 'transparent'};background:#e2e8f0"><img src="${thumbUrl(k)}" alt="" style="width:100%;height:100%;object-fit:cover"></button>`).join('')}
+      ${ch.candidates.length && !busy ? `<button class="btn3" style="min-height:84px;font-size:13px" data-act="cRecast" data-v="${ch.id}">${esc(L('2 more', 'Ещё 2', '2 lagi'))}</button>` : ''}</div></div>`;
+  });
+  if (needCast) h += `<button class="btn" style="margin-top:12px" data-act="cCast" ${busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Draw the heroes', 'Нарисовать героев', 'Gambar tokohnya'))}</button>`;
+  h += `<div class="h2" style="margin-top:20px">2. ${esc(L('The story', 'История', 'Cerita'))}</div>`;
+  d.panels.forEach((p, i) => {
+    h += `<div class="card" style="margin-top:10px">
+      ${p.image ? `<div style="position:relative;border-radius:12px;overflow:hidden"><img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block"><div style="position:absolute;left:8px;right:8px;bottom:8px">${cLinesHtml(p)}</div></div>` : ''}
+      <div class="small" style="margin-top:${p.image ? 8 : 0}px;font-weight:900">${i + 1}</div>
+      <textarea class="field" rows="2" data-c="scene|${i}" style="font-size:13px;margin-top:4px">${esc(p.scene)}</textarea>
+      <input class="field" data-c="cap|${i}" style="font-size:14px;margin-top:6px;height:44px" placeholder="${esc(L('Caption (optional)', 'Подпись (можно пусто)', 'Keterangan (opsional)'))}" value="${esc(p.caption)}">
+      ${[0, 1].map((j) => { const l = p.lines[j] || { who: (p.chars[0] || (d.characters[0] || {}).id || ''), text: '' };
+        return `<div class="row" style="gap:6px;margin-top:6px"><span class="small" style="flex:0 0 70px;font-weight:800">${esc(cName(l.who) || '—')}</span><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" style="font-size:14px;height:44px" value="${esc(l.text)}" placeholder="${esc(L('Line', 'Реплика', 'Dialog'))}"></div>`; }).join('')}
+      ${p.image && !busy ? `<button class="btn3" style="width:100%;margin-top:8px" data-act="cRedraw" data-v="${i}">${esc(L('Draw this picture again', 'Перерисовать эту картинку', 'Gambar ulang'))}</button>` : ''}</div>`;
+  });
+  if (c.err) h += `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>`;
+  if (busy) h += `<div class="card small" style="margin-top:12px">${esc(L('Drawing…', 'Рисуем…', 'Menggambar…'))} ${busy} ${esc(L('left', 'осталось', 'lagi'))}</div>`;
+  else if (!needPick) h += `<button class="btn" style="margin-top:14px" data-act="cDraw">${esc(drawn ? L('Draw the whole comic again', 'Перерисовать весь комикс', 'Gambar ulang semua') : L('Draw the comic', 'Нарисовать комикс', 'Gambar komiknya'))}</button>`;
+  if (drawn && !busy) h += `<button class="btn" style="margin-top:10px;background:var(--ok)" data-act="cSave">${esc(L('Save as a picture', 'Сохранить картинкой', 'Simpan sebagai gambar'))}</button>`;
+  h += `<button class="btn3" style="width:100%;margin-top:10px" data-act="cNew">${esc(L('New comic', 'Новый комикс', 'Komik baru'))}</button></div>`;
+  return h;
+}
+function cRead() {   // pull the edited fields into S.c.x.data
+  const x = S.c.x; if (!x) return; const d = x.data;
+  document.querySelectorAll('[data-c]').forEach((el) => {
+    const [k, i, j, who] = el.dataset.c.split('|'), v = el.value;
+    if (k === 'title') d.title = v;
+    else if (k === 'look') d.characters[+i].look = v;
+    else if (k === 'scene') d.panels[+i].scene = v;
+    else if (k === 'cap') d.panels[+i].caption = v;
+    else if (k === 'line') { const p = d.panels[+i]; const arr = [0, 1].map((n) => p.lines[n] || null); arr[+j] = v.trim() ? { who, text: v } : null; p.lines = arr.filter(Boolean); }
+  });
+}
+async function cSaveEdits() { if (!S.c.dirty || !S.c.x) return; S.c.x = await api('/api/comics/' + S.c.x.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(S.c.x.data) }); S.c.dirty = false; }
+async function cLoad(id) { try { S.c.x = await api('/api/comics/' + id); S.c.dirty = false; } catch (e) { toast(e.message); } render.keep = true; render(); cPoll(); }
+function cPoll() {
+  clearTimeout(cPollT);
+  if (S.screen !== 'comic' || !S.c.x) return;
+  if ((S.c.x.jobs || []).length) cGrace = 1; else if (cGrace > 0) cGrace--; else return;
+  cPollT = setTimeout(async () => {
+    if (S.screen !== 'comic' || !S.c.x) return;
+    if (S.c.dirty) { cPoll(); return; }   // do not overwrite what the person is typing
+    try { const nx = await api('/api/comics/' + S.c.x.id); const sig = (o) => JSON.stringify([o.jobs.length, o.data.characters.map((c) => c.candidates.length), o.data.panels.map((p) => p.image)]);
+      const changed = sig(nx) !== sig(S.c.x); S.c.x = nx; if (changed) { render.keep = true; render(); } } catch (e) {}
+    cPoll();
+  }, 3000);
+}
+async function cCompose() {   // one tall PNG: title + panels in 2 columns with the lines drawn on
+  const d = S.c.x.data, ps = d.panels.filter((p) => p.image), W = 1080, col = 2, gap = 16, pw = (W - gap * 3) / col, top = 110;
+  const imgs = await Promise.all(ps.map((p) => new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = fileUrl(p.image); })));
+  const rows = Math.ceil(ps.length / col), cv = document.createElement('canvas'); cv.width = W; cv.height = top + rows * (pw + gap) + gap;
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, cv.height);
+  g.fillStyle = '#111'; g.font = '900 54px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(d.title || '', W / 2, 74); g.textAlign = 'left';
+  const wrap = (t, w, f) => { g.font = f; const out = []; let cur = ''; for (const wd of t.split(' ')) { const tr = cur ? cur + ' ' + wd : wd; if (g.measureText(tr).width > w && cur) { out.push(cur); cur = wd; } else cur = tr; } if (cur) out.push(cur); return out; };
+  ps.forEach((p, n) => {
+    const x = gap + (n % col) * (pw + gap), y = top + Math.floor(n / col) * (pw + gap);
+    g.drawImage(imgs[n], x, y, pw, pw); g.lineWidth = 4; g.strokeStyle = '#111'; g.strokeRect(x, y, pw, pw);
+    const boxes = []; if (p.caption) boxes.push({ t: p.caption, cap: true });
+    p.lines.forEach((l) => boxes.push({ t: (cName(l.who) ? cName(l.who) + ': ' : '') + l.text }));
+    let by = y + pw - 10; const fs = 26, f = `800 ${fs}px system-ui, sans-serif`;
+    for (const b of boxes.reverse()) {
+      const ls = wrap(b.t, pw - 52, f), bh = ls.length * (fs + 6) + 16; by -= bh;
+      g.fillStyle = b.cap ? '#fef08a' : '#fff'; g.strokeStyle = '#111'; g.lineWidth = 3;
+      g.beginPath(); if (g.roundRect) g.roundRect(x + 14, by, pw - 28, bh, b.cap ? 4 : 16); else g.rect(x + 14, by, pw - 28, bh); g.fill(); g.stroke();
+      g.fillStyle = '#111'; g.font = f; ls.forEach((ln, k) => g.fillText(ln, x + 26, by + 8 + fs + k * (fs + 6) - 4)); by -= 8;
+    }
+  });
+  return new Promise((ok) => cv.toBlob((b) => ok(b), 'image/png'));
+}
+async function cAct(a, d) {
+  const re = () => { render.keep = true; render(); };
+  if (S.c.x) { const before = JSON.stringify(S.c.x.data); cRead(); if (JSON.stringify(S.c.x.data) !== before) S.c.dirty = true; }
+  const idea = $('#c-idea'); if (idea) S.c.idea = idea.value;
+  S.c.err = '';
+  try {
+    switch (a) {
+      case 'cSty': S.c.style = d.v; re(); break;
+      case 'cN': S.c.n = +d.v; re(); break;
+      case 'cPlan': if (S.c.idea.trim().length < 3) { S.c.err = L('Tell the idea first.', 'Сначала расскажите идею.', 'Ceritakan idenya dulu.'); re(); break; }
+        S.c.busy = true; re();
+        try { S.c.x = await api('/api/comics', { idea: S.c.idea, style: S.c.style, panels: S.c.n, lang: S.lang }); S.c.idea = ''; history.replaceState({ s: 'comic', sec: S.sec }, ''); } finally { S.c.busy = false; }
+        re(); break;
+      case 'cOpen': await cLoad(d.v); break;
+      case 'cPick': await cSaveEdits(); S.c.x = await api(`/api/comics/${S.c.x.id}/pick`, { char: d.ch, path: d.v }); re(); break;
+      case 'cCast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, {}); await cLoad(S.c.x.id); break;
+      case 'cRecast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, { char: d.v }); await cLoad(S.c.x.id); break;
+      case 'cDraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, {}); await cLoad(S.c.x.id); break;
+      case 'cRedraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, { panel: +d.v }); await cLoad(S.c.x.id); break;
+      case 'cSave': { await cSaveEdits(); const b = await cCompose(), f = new File([b], 'comic.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); break; } catch (e) {} }
+        dl(f); break; }
+      case 'cNew': await cSaveEdits(); S.c.x = null; try { S.c.list = await api('/api/comics'); } catch (e) {} re(); break;
+    }
+  } catch (e) { S.c.err = e.message; re(); }
+}
+
 /* ---------------- Studio for pros: every model and option of the admin, in a friendlier shape ---------------- */
 const SFAM_INPUTS = { qwen_image21: [0, 10], flux3_klein: [0, 10], qwen_aio: [1, 1], wan22_i2v: [1, 1], h3_fl2va: [1, 2], h3_ref2va: [1, 9] };
 const STABS = () => [
@@ -1034,6 +1163,7 @@ function render() {
   else if (S.screen === 'a18hero') h = vA18Hero();
   else if (S.screen === 'a18new') h = vA18New();
   else if (S.screen === 'studio') h = vStudio();
+  else if (S.screen === 'comic') h = vComic();
   if (S.screen !== 'gate' && S.screen !== 'studio') h += `<button class="fab" data-act="chatOpen" aria-label="${esc(L('Ask Pip', 'Спросить Пипа', 'Tanya Pip'))}">${pipEl(56, A18.includes(S.screen))}</button>`;
   if (S.chatOpen) h += vChat();
   const sy = window.scrollY, keepScroll = render.keep; render.keep = false;
@@ -1157,6 +1287,7 @@ function openTask(sec, task) {
   if (!task) { go('section', { sec }); return; }
   const k = taskById(sec, task);
   if (!k) { go('section', { sec }); return; }
+  if (task === 'comic') { S.c.x = null; go('comic', { sec }); api('/api/comics').then((l) => { S.c.list = l; if (S.screen === 'comic') { render.keep = true; render(); } }).catch(() => {}); return; }
   if (k.upload) { toast(TT().uploadSoon); go('section', { sec }); return; }
   if (k.soon || !k.r) { toast(TT().soonMsg); go('section', { sec }); return; }
   S.ans = {}; S.jobs = []; S.layer = null;
@@ -1228,7 +1359,7 @@ document.addEventListener('click', async (e) => {
     case 'stUse': { const st = S.studio, p = st.view, f = d.v, tab = STABS().find((t) => t.fams.includes(f));
       if (f === 'h3_ref2va' || f === 'qwen_image21') { if ((st.fam[tab.id] !== f) || !st.inputs.length) st.inputs = []; if (!st.inputs.includes(p)) st.inputs.push(p); } else st.inputs = [p];
       st.tab = tab.id; st.fam[tab.id] = f; st.view = null; render(); break; }
-    default: if (/^a[A-Z]/.test(a)) await aAct(a, d);
+    default: if (/^a[A-Z]/.test(a)) await aAct(a, d); else if (/^c[A-Z]/.test(a)) await cAct(a, d);
   }
 });
 document.addEventListener('input', (e) => {
