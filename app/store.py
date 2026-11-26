@@ -34,6 +34,17 @@ create table if not exists projects (
 create table if not exists events (
   id integer primary key autoincrement, ts real not null, user_id text, kind text not null, data text);
 create table if not exists meta (k text primary key, v text);
+create table if not exists user_flags (user_id text not null, k text not null, v text, primary key (user_id, k));
+create table if not exists heroines (
+  id text primary key, owner_id text references users(id), name text not null, age integer not null,
+  style text not null, vibe text, look text not null, story text, tags text, anchor text,
+  created real not null, deleted real);
+create table if not exists heroine_items (
+  key text primary key, heroine_id text not null references heroines(id), user_id text not null references users(id),
+  ask text, job_id text, created real not null);
+create index if not exists heroine_items_hu on heroine_items(heroine_id, user_id, created);
+create table if not exists heroine_candidates (
+  key text primary key, heroine_id text not null references heroines(id), job_id text, created real not null);
 """
 
 OWNER_NAME = "Owner"
@@ -212,3 +223,90 @@ def adopt_legacy(out_dir, media_ext, project_slugs):
     for s in project_slugs:
         add_project(s, oid)
     flag("legacy_adopted", time.time())
+
+
+# ------------------------------------------------------------------ per-user flags (e.g. confirmed 18+)
+def user_flag(uid, k, v=None):
+    if v is None:
+        r = _q("select v from user_flags where user_id=? and k=?", (uid, k), one=True)
+        return r["v"] if r else None
+    _x("insert or replace into user_flags(user_id,k,v) values(?,?,?)", (uid, k, str(v)))
+
+
+# ------------------------------------------------------------------ 18+ heroines
+# owner_id NULL = the public catalog (made by the admin); otherwise a user's own heroine, visible only to them.
+# story/tags are JSON {"en":..,"ru":..,"id":..}; look is the English appearance text used in every prompt.
+import json as _json
+
+_HCOLS = ("name", "age", "style", "vibe", "look", "story", "tags", "anchor")
+
+
+def _hrow(r):
+    if not r:
+        return None
+    for k in ("story", "tags"):
+        try:
+            r[k] = _json.loads(r[k]) if r[k] else {}
+        except ValueError:
+            r[k] = {}
+    return r
+
+
+def add_heroine(owner_id, name, age, style, look, vibe="", story=None, tags=None, hid=None):
+    hid = hid or str(uuid.uuid4())
+    _x("insert into heroines(id,owner_id,name,age,style,vibe,look,story,tags,created) values(?,?,?,?,?,?,?,?,?,?)",
+       (hid, owner_id, name, int(age), style, vibe, look, _json.dumps(story or {}, ensure_ascii=False),
+        _json.dumps(tags or {}, ensure_ascii=False), time.time()))
+    return hid
+
+
+def heroine(hid):
+    return _hrow(_q("select * from heroines where id=? and deleted is null", (hid,), one=True))
+
+
+def heroines_for(uid):
+    """the catalog plus the user's own heroines"""
+    return [_hrow(r) for r in _q("""select h.*, (select count(*) from heroine_items i where i.heroine_id=h.id and i.user_id=?) as items,
+                                    (select max(created) from heroine_items i where i.heroine_id=h.id and i.user_id=?) as last_used
+                                  from heroines h where h.deleted is null and (h.owner_id is null or h.owner_id=?)
+                                  order by h.owner_id is not null desc, h.created""", (uid, uid, uid))]
+
+
+def catalog_count():
+    r = _q("select count(*) as n from heroines where owner_id is null", one=True)
+    return r["n"] if r else 0
+
+
+def update_heroine(hid, **kw):
+    for k, v in kw.items():
+        if k in _HCOLS and v is not None:
+            if k in ("story", "tags"):
+                v = _json.dumps(v, ensure_ascii=False)
+            _x(f"update heroines set {k}=? where id=?", (v, hid))
+
+
+def delete_heroine(hid):
+    _x("update heroines set deleted=? where id=?", (time.time(), hid))
+
+
+def is_public_anchor(key):
+    """catalog portraits are visible to everyone (they are the catalog covers)"""
+    return bool(_q("select 1 from heroines where anchor=? and owner_id is null and deleted is null", (key,), one=True))
+
+
+def add_hero_item(key, hid, uid, ask=None, job_id=None):
+    _x("insert or ignore into heroine_items(key,heroine_id,user_id,ask,job_id,created) values(?,?,?,?,?,?)",
+       (key, hid, uid, ask, job_id, time.time()))
+
+
+def hero_items(hid, uid, limit=60):
+    return _q("""select i.key, i.ask, i.created from heroine_items i join files f on f.key=i.key and f.deleted is null
+                 where i.heroine_id=? and i.user_id=? order by i.created desc limit ?""", (hid, uid, int(limit)))
+
+
+def add_candidate(key, hid, job_id=None):
+    _x("insert or ignore into heroine_candidates(key,heroine_id,job_id,created) values(?,?,?,?)", (key, hid, job_id, time.time()))
+
+
+def candidates(hid):
+    return [r["key"] for r in _q("select key from heroine_candidates where heroine_id=? order by created desc limit 12", (hid,))]

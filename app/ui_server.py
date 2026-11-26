@@ -20,6 +20,7 @@ import handler as H
 import registry as R
 import projects as PJ
 import store as ST
+import adult as AD
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.realpath(f"{P.ROOT}/output")
@@ -145,7 +146,7 @@ def can_file(request, key):
         return True
     if key.startswith("projects/"):
         return ST.project_owner(key.split("/")[1]) == me(request)["id"]
-    return ST.file_owner(key) == me(request)["id"]
+    return ST.file_owner(key) == me(request)["id"] or ST.is_public_anchor(key)
 
 
 def can_job(request, job):
@@ -238,15 +239,38 @@ def worker():
             for o in (job.get("result") or {}).get("outputs", []):
                 if not o["path"].startswith("projects/"):
                     ST.add_file(o["path"], job.get("user") or ST.owner()["id"], jid, o.get("type"))
+            _hero_after(job)
         except Exception:
             traceback.print_exc()
         Q.task_done()
+
+
+def _hero_after(job):
+    """18+ heroine jobs: file the results in her album (or as portrait candidates); run the follow-up edit step"""
+    m = job["input"].get("_hero")
+    if not m or job["status"] != "done":
+        return
+    outs = [o for o in (job.get("result") or {}).get("outputs", []) if o.get("type") == "image"]
+    uid = job.get("user") or ST.owner()["id"]
+    for o in outs:
+        if m.get("cand"):
+            ST.add_candidate(o["path"], m["id"], job["id"])
+        else:
+            ST.add_hero_item(o["path"], m["id"], uid, m.get("ask"), job["id"])
+    then = job["input"].get("_then")
+    if then and outs:
+        nxt = dict(then, images=[{"path": outs[0]["path"]}], _hero=m)
+        job["next"] = enqueue(nxt, uid)
 
 
 _restore()
 ST.owner()
 try:
     ST.adopt_legacy(OUT, MEDIA, [p["slug"] for p in PJ.list_projects()])
+except Exception:
+    traceback.print_exc()
+try:
+    AD.seed_catalog(ST)
 except Exception:
     traceback.print_exc()
 threading.Thread(target=worker, daemon=True).start()
@@ -328,7 +352,7 @@ def job_one(jid: str, request: Request):
     j = JOBS.get(jid)
     if not j or not can_job(request, j):
         raise HTTPException(404)
-    d = {k: j.get(k) for k in ("id", "status", "error", "progress")}
+    d = {k: j.get(k) for k in ("id", "status", "error", "progress", "note", "next")}
     d["queue_pos"] = next((n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued") if k == jid), None)
     if j.get("result"):
         d["outputs"] = [{"path": o["path"], "type": o["type"]} for o in j["result"].get("outputs", [])]
@@ -360,6 +384,150 @@ async def gif_retext(jid: str, request: Request):
     return {"outputs": [{"path": k, "type": "video"} for k in rel]}
 
 
+# ------------------------------------------------------------------ 18+: heroines ("Meet someone", phase 1)
+def _adult(request):
+    u = me(request)
+    if u["role"] != "admin" and not ST.user_flag(u["id"], "adult_ok"):
+        raise HTTPException(403, "confirm that you are 18+ first")
+    return u
+
+
+def _hero_or_404(request, hid):
+    h = ST.heroine(hid)
+    u = me(request)
+    if not h or (h["owner_id"] and h["owner_id"] != u["id"] and u["role"] != "admin"):
+        raise HTTPException(404)
+    return h
+
+
+def _can_edit_hero(request, h):
+    u = me(request)
+    return h["owner_id"] == u["id"] or (u["role"] == "admin" and not h["owner_id"])
+
+
+def _limit_ok(u, n=1):
+    if u["role"] != "admin" and ST.jobs_last_24h(u["id"]) + n > u["daily_limit"]:
+        ST.event("limit_hit", u["id"])
+        raise HTTPException(429, f"Daily limit reached ({u['daily_limit']} per 24 h). Please try again later.")
+
+
+def _hero_out(h, uid):
+    return {k: h.get(k) for k in ("id", "name", "age", "style", "vibe", "story", "tags", "anchor", "items", "last_used")} | \
+        {"mine": h.get("owner_id") == uid, "catalog": not h.get("owner_id")}
+
+
+@app.post("/api/adult/ok")
+def adult_ok(request: Request):
+    u = me(request)
+    if not ST.user_flag(u["id"], "adult_ok"):
+        ST.user_flag(u["id"], "adult_ok", time.time())
+        ST.event("adult_ok", u["id"])
+    return {"ok": True}
+
+
+@app.get("/api/heroines")
+def heroines_list(request: Request):
+    u = _adult(request)
+    return [_hero_out(h, u["id"]) for h in ST.heroines_for(u["id"])]
+
+
+@app.get("/api/heroines/{hid}")
+def heroine_one(hid: str, request: Request):
+    u = _adult(request)
+    h = _hero_or_404(request, hid)
+    d = _hero_out(h, u["id"])
+    d["can_edit"] = _can_edit_hero(request, h)
+    d["items"] = [{"path": i["key"], "ask": i["ask"], "type": "video" if i["key"].lower().endswith((".mp4", ".webm")) else "image"}
+                  for i in ST.hero_items(hid, u["id"])]
+    d["candidates"] = ST.candidates(hid) if d["can_edit"] else []
+    d["jobs"] = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running") and JOBS[k].get("user") == u["id"]
+                 and (JOBS[k]["input"].get("_hero") or {}).get("id") == hid]
+    return d
+
+
+@app.post("/api/heroines")
+async def heroine_create(request: Request):
+    u = _adult(request)
+    b = await request.json()
+    look = AD.look_from_form(b)
+    name = (b.get("name") or "").strip()[:30]
+    try:
+        age = int(b.get("age") or 0)
+    except ValueError:
+        age = 0
+    if not name or not look:
+        raise HTTPException(400, "name and appearance are needed")
+    if age < AD.MIN_AGE:
+        raise HTTPException(400, f"heroines are {AD.MIN_AGE} or older")
+    if b.get("style") not in AD.STYLES:
+        raise HTTPException(400, "unknown style")
+    if H.prompt_violation(look) or H.prompt_violation(name):
+        ST.event("prompt_refused", u["id"], {"where": "heroine"})
+        raise HTTPException(400, "Refused: content involving minors is not allowed")
+    _limit_ok(u, 4)
+    catalog = bool(b.get("catalog")) and u["role"] == "admin"
+    hid = ST.add_heroine(None if catalog else u["id"], name, age, b["style"], look, vibe=(b.get("vibe") or "")[:20])
+    ST.event("heroine_new", u["id"], {"id": hid, "style": b["style"]})
+    h = ST.heroine(hid)
+    jobs = [enqueue(dict(inp, _hero={"id": hid, "cand": True}), u["id"]) for inp in AD.portrait_inputs(h)]
+    return {"id": hid, "jobs": jobs}
+
+
+@app.post("/api/heroines/{hid}/portraits")
+def heroine_portraits(hid: str, request: Request):
+    u = _adult(request)
+    h = _hero_or_404(request, hid)
+    if not _can_edit_hero(request, h):
+        raise HTTPException(403)
+    _limit_ok(u, 4)
+    return {"jobs": [enqueue(dict(inp, _hero={"id": hid, "cand": True}), u["id"]) for inp in AD.portrait_inputs(h)]}
+
+
+@app.post("/api/heroines/{hid}/anchor")
+async def heroine_anchor(hid: str, request: Request):
+    _adult(request)
+    h = _hero_or_404(request, hid)
+    if not _can_edit_hero(request, h):
+        raise HTTPException(403)
+    key = (await request.json()).get("path")
+    if key not in ST.candidates(hid):
+        raise HTTPException(400, "pick one of her portraits")
+    ST.update_heroine(hid, anchor=key)
+    return {"ok": True}
+
+
+@app.delete("/api/heroines/{hid}")
+def heroine_delete(hid: str, request: Request):
+    _adult(request)
+    h = _hero_or_404(request, hid)
+    if not _can_edit_hero(request, h):
+        raise HTTPException(403)
+    ST.delete_heroine(hid)
+    return {"ok": True}
+
+
+@app.post("/api/heroines/{hid}/ask")
+async def heroine_ask(hid: str, request: Request):
+    u = _adult(request)
+    h = _hero_or_404(request, hid)
+    b = await request.json()
+    opt = b.get("opt") or {}
+    if H.prompt_violation(opt.get("place_text")):
+        ST.event("prompt_refused", u["id"], {"where": "ask"})
+        raise HTTPException(400, "Refused: content involving minors is not allowed")
+    try:
+        first, then = AD.ask_inputs(h, b.get("ask"), opt)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    _limit_ok(u, 2 if then else 1)
+    meta = {"id": hid, "ask": b.get("ask")}
+    first = dict(first, _hero=meta)
+    if then:
+        first["_then"] = then
+    ST.event("heroine_ask", u["id"], {"id": hid, "ask": b.get("ask")})
+    return {"id": enqueue(first, u["id"])}
+
+
 @app.get("/api/models")
 def models():
     return H.models_info()
@@ -378,7 +546,7 @@ def enqueue(inp, uid):
 @app.post("/api/generate")
 async def generate(request: Request):
     inp = await request.json()
-    for k in ("out_prefix", "_project"):          # internal keys, set only by the project runner
+    for k in ("out_prefix", "_project", "_hero", "_then"):   # internal keys, set only by the server itself
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")
