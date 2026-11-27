@@ -83,6 +83,14 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 .stage{position:relative;border-radius:20px;overflow:hidden;background:#172033}
 .stage img,.stage video{display:block;width:100%;height:auto}
 .layer{position:absolute;left:5%;right:5%;text-align:center;white-space:pre-line;pointer-events:none;line-height:1.12}
+.lphoto{position:absolute;transform:translate(-50%,-50%);object-fit:cover;border:1.4cqw solid #fff;box-shadow:0 1cqw 4cqw rgba(0,0,0,.35);pointer-events:none}
+.ups{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
+.upslot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:4/5;border-radius:18px;border:2px dashed #94a3b8;background:#fff;color:var(--muted);font-size:14px;font-weight:800;text-align:center;padding:10px;box-sizing:border-box;cursor:pointer;overflow:hidden}
+.upslot.on{border:0;padding:0;background:#172033}
+.upslot img{width:100%;height:100%;object-fit:cover;display:block}
+.upslot .x{position:absolute;right:6px;top:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;font-weight:900;line-height:32px;padding:0;cursor:pointer}
+.upslot .cap{position:absolute;left:0;right:0;bottom:0;padding:6px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:12px;font-weight:800}
+.upslot input{position:absolute;width:1px;height:1px;opacity:0}
 .vgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .vthumb{aspect-ratio:1/1;border-radius:12px;overflow:hidden;border:4px solid transparent;padding:0;background:#cbd5e1;position:relative}
 .vthumb.on{border-color:var(--acc)}
@@ -257,7 +265,7 @@ const ICON = {
 /* ---------------- state ---------------- */
 const S = {
   lang: LS.get('lang', 'en'), screen: 'home', sec: null, task: null, step: 'preview',
-  ans: {}, jobs: [], picked: 0, layer: null, chatOpen: false, chat: [], adultOk: LS.get('adultOk', false),
+  ans: {}, jobs: [], ups: [], upBusy: {}, picked: 0, layer: null, chatOpen: false, chat: [], adultOk: LS.get('adultOk', false),
   studio: { tab: 'pic', fam: {}, model: {}, inputs: [], prompt: {}, size: {}, sec: {}, mp: '0.5', aspect: '9:16', neg: {}, loras: {}, nvar: 2, seed: '', gkind: '', glimit: 30, gallery: null, jobs: [], picking: false, pickGal: [], view: null, delArm: false, advOpen: false, err: '', M: null }, works: LS.get('works', [])
 };
 const L = (en, ru, id) => ({ en, ru, id })[S.lang] || en;
@@ -333,6 +341,52 @@ const R = {
     prompt: () => `a beautiful cozy small shop front with plants and warm lights, festive ribbons, inviting${NOTEXT}`,
     layer: (a) => ({ text: a.ohead || L('We are open!', 'Мы открылись!', 'Kami buka!'), style: 'classic', pos: 'bottom', size: 2 }) }
 };
+/* photo recipes: S.ups = uploaded photos [{path,w,h}]. Real photos go only to everyday models (the server enforces it). */
+const upOr = (u) => !u ? 'sq' : u.w > u.h * 1.15 ? 'land' : u.h > u.w * 1.15 ? 'port' : 'sq';
+const wanWH = (u) => ({ land: [832, 480], port: [480, 832], sq: [640, 640] })[upOr(u)];
+const refJob = (prompt, ups, wh) => ({ family: 'qwen_image21', prompt, images: ups.map((u) => ({ path: u.path })), ...(wh ? { width: wh[0], height: wh[1] } : { keep_size: true }) });
+const x3 = (fn) => [0, 1, 2].map(fn);
+const SAME_FACE = 'Keep every face exactly as in the reference photo: the same face, age, hair and expression. Photorealistic.';
+const PHOTO_ONE = () => [{ l: L('Photo of the person', 'Фото человека', 'Foto orangnya') }];
+const VIDEO_ETA = () => L('2 versions, about 3–6 minutes', '2 варианта, примерно 3–6 минут', '2 versi, sekitar 3–6 menit');
+Object.assign(R, {
+  photocard: { kind: 'pic', ups: PHOTO_ONE, qs: ['occ', 'who', 'text', 'mood'], w: 1152, h: 1152,
+    pip: () => L('Pick a photo where the face is clear. It goes on the card exactly as it is.', 'Выберите фото, где хорошо видно лицо. На открытку оно встанет как есть.', 'Pilih foto dengan wajah yang jelas. Fotonya dipasang apa adanya.'),
+    jobs: (a) => x3(() => ({ family: 'qwen_image21', prompt: `greeting card background, ${OCC()[a.occ || 0].scene}, ${MOOD()[a.mood || 0].p}, a large empty area in the center for a photo frame, decorative border${NOTEXT}`, width: 1152, height: 1152 })),
+    layer: (a, u) => { const top = OCC()[a.occ || 0].pos === 'top'; return { text: textOf(a), style: 'script', pos: top ? 'top' : 'bottom', size: 1, photo: { path: u[0].path, shape: 'round', x: 50, y: top ? 57 : 42, w: 52 } }; } },
+  memcard: { kind: 'pic', ups: PHOTO_ONE, qs: ['mname', 'myears', 'mwords', 'mbg'], w: 896, h: 1344,
+    pip: () => L('A quiet card to remember. The photo stays exactly as it is.', 'Спокойная открытка на память. Фото останется как есть.', 'Kartu kenangan yang tenang. Fotonya tetap apa adanya.'),
+    jobs: (a) => x3(() => ({ family: 'qwen_image21', prompt: `calm memorial card background, ${['a single lit candle and soft light', 'white lilies and roses', 'a soft sky with light clouds', 'golden autumn leaves'][a.mbg || 0]}, soft muted colors, peaceful, an empty area in the upper middle for a photo, empty space at the bottom${NOTEXT}`, width: 896, height: 1344 })),
+    layer: (a, u) => ({ text: [a.mname || '', a.myears || '', a.mwords || ''].filter(Boolean).join('\n'), style: 'elegant', pos: 'bottom', size: 1, color: (a.mbg || 0) === 0 ? '#fff7ed' : '#2b2f36', photo: { path: u[0].path, shape: 'oval', x: 50, y: 33, w: 50 } }) },
+  together: { kind: 'pic', ups: () => [{ l: L('First person', 'Первый человек', 'Orang pertama') }, { l: L('Second person', 'Второй человек', 'Orang kedua') }], qs: ['tplace', 'tpose'],
+    pip: () => L('Two photos — one of each person. Old ones are fine, I bring them into one picture.', 'Два фото — по одному на каждого. Старые тоже подойдут, я соединю их на одной картинке.', 'Dua foto — satu untuk tiap orang. Foto lama juga boleh.'),
+    jobs: (a, u) => x3(() => refJob(`A modern color photo: the person from reference image 1 and the person from reference image 2 together, ${['standing side by side', 'hugging warmly', 'the older one holding the younger one on the lap', 'holding hands'][a.tpose || 0]}, ${['in a sunny garden', 'at home on a cozy sofa', 'on a beach at sunset', 'in a photo studio with a soft background'][a.tplace || 0]}. Keep both people exactly as in their photos: the same faces, ages and hair. Natural light, consistent colors, photorealistic${NOTEXT}`, u.slice(0, 2), [1152, 1152])) },
+  oldlive: { kind: 'video', ups: PHOTO_ONE, qs: ['lmove'], eta: VIDEO_ETA,
+    pip: () => L('One photo with a clear face. I make it move gently — like a living moment.', 'Одно фото с хорошо видным лицом. Я его бережно оживлю.', 'Satu foto dengan wajah jelas. Aku buat bergerak lembut.'),
+    jobs: (a, u) => [0, 1].map(() => { const [w, h] = wanWH(u[0]); return { family: 'wan22_i2v', prompt: `${['the person gently smiles', 'the person smiles, blinks and slightly turns the head', 'the person waves hello and smiles', 'the person nods softly and smiles'][a.lmove || 0]}, subtle natural motion, the camera does not move, keep the face exactly the same`, images: [{ path: u[0].path }], seconds: 5, mp4: true, width: w, height: h }; }) },
+  restore: { kind: 'pic', ups: PHOTO_ONE, qs: ['rcolor'],
+    pip: () => L('Scratches, folds, faded colors — show me the photo, I fix it.', 'Царапины, заломы, выцветшие цвета — покажите фото, я поправлю.', 'Goresan, lipatan, warna pudar — tunjukkan fotonya.'),
+    jobs: (a, u) => x3(() => refJob(`Restore this old photo: remove scratches, dust, creases, stains and tears, repair faded areas, make it sharp and clear${(a.rcolor || 0) === 0 ? ', colorize it with natural realistic colors' : ', keep it black and white'}. Keep every face, expression, pose, clothes and detail exactly the same. Photorealistic.`, u.slice(0, 1))) },
+  memvideo: { kind: 'video', ups: () => [], multi: [3, 10], qs: [], montage: true,
+    eta: () => L('About 1 minute per photo', 'Примерно минута на каждое фото', 'Sekitar 1 menit per foto'),
+    pip: () => L('Pick 3 to 10 photos in the order you like. Each comes gently alive, then I join them into one video.', 'Выберите от 3 до 10 фото по порядку. Каждое бережно оживёт, потом я соберу их в одно видео.', 'Pilih 3–10 foto berurutan. Tiap foto bergerak lembut, lalu digabung jadi satu video.'),
+    jobs: (a, u) => u.map((x) => { const [w, h] = wanWH(x); return { family: 'wan22_i2v', prompt: 'very gentle natural motion, people softly smile and breathe, a slow subtle camera push-in, warm nostalgic mood, keep every face exactly the same', images: [{ path: x.path }], seconds: 4, mp4: true, width: w, height: h }; }) },
+  painting: { kind: 'pic', ups: PHOTO_ONE, qs: ['pstyle'],
+    pip: () => L('Your photo, and a style. I paint it so you are still recognizable.', 'Ваше фото и стиль. Нарисую так, чтобы вас узнавали.', 'Foto Anda dan gayanya. Tetap mudah dikenali.'),
+    jobs: (a, u) => x3(() => refJob(`Turn the photo from reference image 1 into ${['a Van Gogh style oil painting with swirling brush strokes', 'a soft watercolor painting', 'a beautiful anime illustration', 'a classical oil portrait painting', 'a bright pop art poster', 'a detailed pencil sketch'][a.pstyle || 0]}. Keep the person recognizable: the same face, hairstyle, pose and expression${NOTEXT}`, u.slice(0, 1))) },
+  petking: { kind: 'pic', ups: () => [{ l: L('Photo of your pet', 'Фото питомца', 'Foto hewan Anda') }], qs: ['prole', 'pname'],
+    pip: () => L('Show me your pet! It will rule — or at least look like it does.', 'Покажите питомца! Он будет править — или хотя бы так выглядеть.', 'Tunjukkan hewan Anda! Dia akan berkuasa.'),
+    jobs: (a, u) => x3(() => refJob(`The pet animal from reference image 1 as ${['a majestic king sitting on a golden throne, wearing a crown and a red velvet mantle, royal palace', 'a brave knight in shining armor with a small shield, castle in the background', 'an 18th-century noble in a classical oil painting in an ornate gold frame', 'an astronaut in a spacesuit floating in space, Earth behind'][a.prole || 0]}. Keep the same animal: the same species, fur color, markings and face, leave some empty space at the bottom${NOTEXT}`, u.slice(0, 1), [896, 1152])),
+    layer: (a) => ({ text: a.pname ? `${[L('King', 'Король', 'Raja'), L('Sir', 'Сэр', 'Sir'), L('Count', 'Граф', 'Bangsawan'), L('Captain', 'Капитан', 'Kapten')][a.prole || 0]} ${a.pname}${(a.prole || 0) === 0 ? ' I' : ''}` : '', style: 'elegant', pos: 'bottom', size: 1 }) },
+  moon: { kind: 'pic', ups: PHOTO_ONE, qs: ['mplace'],
+    pip: () => L('You or a friend — and a place where nobody expects you.', 'Вы или друг — и место, где вас никто не ждёт.', 'Anda atau teman — di tempat tak terduga.'),
+    jobs: (a, u) => x3(() => refJob(`The person from reference image 1 ${['standing on the Moon in a white spacesuit with the helmet off, the Earth in the black sky', 'next to the Eiffel Tower in Paris on a sunny day', 'walking among friendly dinosaurs in a prehistoric jungle', 'on a red carpet at a film premiere with camera flashes', 'riding a camel in the desert near the pyramids', 'on a tropical island under a palm tree'][a.mplace || 0]}. ${SAME_FACE} Natural lighting${NOTEXT}`, u.slice(0, 1), [896, 1152])) },
+  product: { kind: 'pic', ups: () => [{ l: L('Photo of the product', 'Фото товара', 'Foto produk') }], qs: ['pbg'],
+    pip: () => L('A phone photo is enough. I put the product on a clean, shop-ready background.', 'Хватит фото с телефона. Поставлю товар на чистый фон, как в магазине.', 'Foto ponsel cukup. Produk dipasang di latar rapi.'),
+    jobs: (a, u) => x3(() => refJob(`Professional e-commerce product photo of the product from reference image 1. Exactly the same product: the same shape, colors, label and print on it. ${['On a pure white studio background with a soft shadow', 'On a white marble surface', 'On a wooden table with green plants, soft daylight', 'In a bright lifestyle scene outdoors'][a.pbg || 0]}, soft studio lighting, sharp focus, high detail, no extra text`, u.slice(0, 1), [1152, 1152])) }
+});
+R.hero.upsOpt = () => [{ l: L('Child’s photo (optional)', 'Фото ребёнка (необязательно)', 'Foto anak (opsional)') }];
+R.hero.jobs = (a, u) => x3(() => { const p = R.hero.prompt(a); return u && u[0] ? refJob(p.replace('character with', 'character that looks like the child in reference image 1 (the same face and hair color), with'), u.slice(0, 1), [896, 1344]) : { family: 'qwen_image21', prompt: p, width: 896, height: 1344 }; });
 function textOf(a) {
   if (a.textOwn) return a.textOwn;
   const o = OCC()[a.occ || 0];
@@ -370,6 +424,19 @@ const Q = {
   bitems: { l: () => L('Dishes and prices, one per line', 'Блюда и цены, по одному в строке', 'Menu dan harga, satu per baris'), type: 'area', ph: () => 'Pad Thai — 60\nGreen Curry — 70' },
   bstyle: { l: () => L('Style', 'Стиль', 'Gaya'), opts: () => [L('Chalkboard', 'Меловая доска', 'Papan kapur'), L('Bright', 'Яркий', 'Cerah'), L('Minimal', 'Минимализм', 'Minimalis')] },
   ohead: { l: () => L('Main text', 'Главный текст', 'Teks utama'), type: 'input', ph: () => L('TODAY ONLY 1+1', 'ТОЛЬКО СЕГОДНЯ 1+1', 'HARI INI SAJA 1+1') },
+  tplace: { l: () => L('Where?', 'Где?', 'Di mana?'), opts: () => [L('Garden', 'В саду', 'Taman'), L('At home', 'Дома', 'Di rumah'), L('Beach', 'На пляже', 'Pantai'), L('Photo studio', 'Фотостудия', 'Studio foto')] },
+  tpose: { l: () => L('How?', 'Как?', 'Bagaimana?'), opts: () => [L('Side by side', 'Рядом', 'Berdampingan'), L('Hugging', 'Обнимаются', 'Berpelukan'), L('On the lap', 'На коленях', 'Di pangkuan'), L('Holding hands', 'За руки', 'Bergandengan')] },
+  lmove: { l: () => L('What should happen?', 'Что должно произойти?', 'Apa yang terjadi?'), opts: () => [L('A gentle smile', 'Лёгкая улыбка', 'Senyum lembut'), L('Smile and look around', 'Улыбка и взгляд', 'Senyum dan menoleh'), L('Wave hello', 'Помахать рукой', 'Melambai'), L('A soft nod', 'Кивок', 'Mengangguk')] },
+  rcolor: { l: () => L('Colors', 'Цвета', 'Warna'), opts: () => [L('Add natural colors', 'Раскрасить', 'Beri warna'), L('Keep black and white', 'Оставить чёрно-белым', 'Tetap hitam putih')] },
+  pstyle: { l: () => L('Style', 'Стиль', 'Gaya'), opts: () => [L('Van Gogh', 'Ван Гог', 'Van Gogh'), L('Watercolor', 'Акварель', 'Cat air'), L('Anime', 'Аниме', 'Anime'), L('Oil portrait', 'Портрет маслом', 'Potret minyak'), L('Pop art', 'Поп-арт', 'Pop art'), L('Pencil', 'Карандаш', 'Pensil')] },
+  prole: { l: () => L('Who will your pet be?', 'Кем будет питомец?', 'Jadi apa hewan Anda?'), opts: () => [L('King', 'Король', 'Raja'), L('Knight', 'Рыцарь', 'Ksatria'), L('Old painting', 'Старинный портрет', 'Lukisan kuno'), L('Astronaut', 'Космонавт', 'Astronot')] },
+  pname: { l: () => L('Pet’s name (optional)', 'Кличка (необязательно)', 'Nama hewan (opsional)'), type: 'input', ph: () => 'Murzik' },
+  mplace: { l: () => L('Where to?', 'Куда?', 'Ke mana?'), opts: () => [L('The Moon', 'Луна', 'Bulan'), L('Paris', 'Париж', 'Paris'), L('Dinosaurs', 'К динозаврам', 'Dinosaurus'), L('Red carpet', 'Красная дорожка', 'Karpet merah'), L('Pyramids', 'Пирамиды', 'Piramida'), L('Tropical island', 'Тропический остров', 'Pulau tropis')] },
+  pbg: { l: () => L('Background', 'Фон', 'Latar'), opts: () => [L('White studio', 'Белый фон', 'Studio putih'), L('Marble', 'Мрамор', 'Marmer'), L('Wood and plants', 'Дерево и зелень', 'Kayu & tanaman'), L('Lifestyle outdoors', 'На улице', 'Luar ruangan')] },
+  mname: { l: () => L('Name', 'Имя', 'Nama'), type: 'input', ph: () => L('Maria Ivanova', 'Мария Ивановна', 'Maria') },
+  myears: { l: () => L('Years (optional)', 'Годы жизни (необязательно)', 'Tahun (opsional)'), type: 'input', ph: () => '1941 — 2024' },
+  mwords: { l: () => L('A few words (optional)', 'Несколько слов (необязательно)', 'Beberapa kata (opsional)'), type: 'input', ph: () => L('Forever in our hearts', 'Навсегда в наших сердцах', 'Selalu di hati kami') },
+  mbg: { l: () => L('Design', 'Оформление', 'Desain'), opts: () => [L('Candle', 'Свеча', 'Lilin'), L('White flowers', 'Белые цветы', 'Bunga putih'), L('Sky', 'Небо', 'Langit'), L('Autumn leaves', 'Осенние листья', 'Daun musim gugur')] },
   osub: { l: () => L('Small text (optional)', 'Мелкий текст (необязательно)', 'Teks kecil (opsional)'), type: 'input', ph: () => L('until Sunday', 'до воскресенья', 'sampai Minggu') }
 };
 
@@ -388,18 +455,18 @@ function SECTIONS() {
         { id: 'voice', t: L('Video greeting with a voice', 'Видео-поздравление с голосом', 'Video ucapan bersuara'), tag: L('soon', 'скоро', 'segera'), line: L('A cat, a teddy bear or Santa says your greeting out loud — with the person’s name.', 'Кот, мишка или Дед Мороз говорит ваше поздравление вслух — с именем человека.', 'Kucing, beruang atau Sinterklas mengucapkan salam Anda — dengan nama orangnya.'), ex: [P(L('Cat sings “Happy birthday, Anna!”', 'Кот поёт «С днём рождения, Аня!»', 'Kucing menyanyi untuk Anna'), '#db2777'), P(L('Santa: “Happy New Year, Misha!”', 'Дед Мороз: «С Новым годом, Миша!»', 'Sinterklas untuk Misha'), '#b91c1c')], soon: true },
         { id: 'piccard', t: L('Picture card', 'Открытка-картинка', 'Kartu gambar'), line: L('A beautiful still card. Change the words any time — no waiting.', 'Красивая открытка. Надпись меняется в любой момент — без ожидания.', 'Kartu cantik. Tulisan bisa diganti kapan saja — tanpa menunggu.'), ex: [P(L('Roses and “For my dearest mom”', 'Розы и «Любимой маме»', 'Mawar dan “Untuk ibu tersayang”'), '#be185d'), P(L('Snowy village “Happy New Year”', 'Зимняя деревня «С Новым годом»', 'Desa bersalju'), '#1d4ed8')], r: 'piccard' },
         { id: 'invite', t: L('Invitation', 'Приглашение', 'Undangan'), line: L('Birthday, wedding or party — with date, time and place on the card.', 'День рождения, свадьба или праздник — с датой, временем и местом.', 'Ulang tahun, pernikahan atau pesta — dengan tanggal, jam dan tempat.'), ex: [I('invite')], r: 'invite' },
-        { id: 'photocard', t: L('Card with a photo', 'Открытка с фото', 'Kartu dengan foto'), line: L('Put a photo of the person on a card or make it come alive.', 'Фото человека на открытке или оживлённое фото.', 'Foto orangnya di kartu atau dibuat bergerak.'), ex: [P(L('Your photo here', 'Здесь ваше фото', 'Foto Anda di sini'), '#64748b')], upload: true }
+        { id: 'photocard', t: L('Card with a photo', 'Открытка с фото', 'Kartu dengan foto'), line: L('Put a photo of the person on a card or make it come alive.', 'Фото человека на открытке или оживлённое фото.', 'Foto orangnya di kartu atau dibuat bergerak.'), ex: [P(L('Your photo here', 'Здесь ваше фото', 'Foto Anda di sini'), '#64748b')], upload: true, r: 'photocard' }
       ] },
     { id: 'memory', th: 'th-memory', cover: { ph: '', bg: '#64748b', photo: true }, t: L('Memories and photos', 'Память и фото', 'Kenangan & foto'),
       line: L('Together again, bring an old photo to life, restore it, a card in loving memory', 'Снова вместе, оживить старое фото, восстановить, открытка в память', 'Bersama lagi, hidupkan foto lama, perbaiki, kartu kenangan'),
       sub: L('Bring back the people you love: in old photos, together again, or in a card to remember them.', 'Верните близких: на старых фото, снова вместе или в открытке на память.', 'Hadirkan lagi orang tercinta: di foto lama, bersama lagi, atau di kartu kenangan.'),
       note: L('Your photos are private. Only you see them. They are deleted after 30 days unless you save the result.', 'Ваши фото приватны, их видите только вы. Через 30 дней они удаляются, если вы не сохранили результат.', 'Foto Anda pribadi, hanya Anda yang melihat. Dihapus setelah 30 hari kecuali hasilnya disimpan.'),
       tasks: [
-        { id: 'together', t: L('Together again', 'Снова вместе', 'Bersama lagi'), tag: L('most loved', 'самое ценное', 'paling disukai'), line: L('People from different photos in one picture — grandpa holding the grandson he never met.', 'Люди с разных фото на одной картинке — дедушка с внуком, которого не застал.', 'Orang dari foto berbeda dalam satu gambar — kakek dengan cucu yang belum pernah ia temui.'), ex: [P(L('Grandpa, 1975', 'Дедушка, 1975', 'Kakek, 1975'), '#8b7d6b'), P(L('Grandson, 2025', 'Внук, 2025', 'Cucu, 2025'), '#a78b6f'), P(L('Together in the garden', 'Вместе в саду', 'Bersama di taman'), '#5b21b6')], upload: true },
-        { id: 'oldlive', t: L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'), line: L('A gentle smile, a blink, a turn of the head.', 'Лёгкая улыбка, взгляд, поворот головы.', 'Senyum lembut, kedipan, menoleh.'), ex: [P(L('Grandma smiles', 'Бабушка улыбается', 'Nenek tersenyum'), '#6b6257')], upload: true },
-        { id: 'restore', t: L('Restore and colorize', 'Восстановить и раскрасить', 'Perbaiki & warnai'), line: L('Remove scratches and folds, make it sharp, add natural colors.', 'Убрать царапины и заломы, сделать резче, добавить цвета.', 'Hilangkan goresan, pertajam, beri warna alami.'), ex: [P(L('Before → after', 'До → после', 'Sebelum → sesudah'), '#9a9187')], upload: true },
-        { id: 'memcard', t: L('Card in loving memory', 'Открытка в память', 'Kartu kenangan'), line: L('A photo, the name, the years and a few words. Calm designs.', 'Фото, имя, годы жизни и несколько слов. Спокойное оформление.', 'Foto, nama, tahun dan beberapa kata. Desain tenang.'), ex: [P(L('With a candle', 'Со свечой', 'Dengan lilin'), '#3f4652')], upload: true },
-        { id: 'memvideo', t: L('Memory video', 'Видео-воспоминание', 'Video kenangan'), line: L('3 to 10 photos come gently alive, with soft music.', 'От 3 до 10 фото по очереди оживают, с тихой музыкой.', '3–10 foto bergerak lembut bergantian, dengan musik.'), ex: [P(L('“Our 50 years” — 45 s', '«Наши 50 лет» — 45 с', '“50 tahun kita” — 45 dtk'), '#4b4458')], upload: true }
+        { id: 'together', t: L('Together again', 'Снова вместе', 'Bersama lagi'), tag: L('most loved', 'самое ценное', 'paling disukai'), line: L('People from different photos in one picture — grandpa holding the grandson he never met.', 'Люди с разных фото на одной картинке — дедушка с внуком, которого не застал.', 'Orang dari foto berbeda dalam satu gambar — kakek dengan cucu yang belum pernah ia temui.'), ex: [P(L('Grandpa, 1975', 'Дедушка, 1975', 'Kakek, 1975'), '#8b7d6b'), P(L('Grandson, 2025', 'Внук, 2025', 'Cucu, 2025'), '#a78b6f'), P(L('Together in the garden', 'Вместе в саду', 'Bersama di taman'), '#5b21b6')], upload: true, r: 'together' },
+        { id: 'oldlive', t: L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'), line: L('A gentle smile, a blink, a turn of the head.', 'Лёгкая улыбка, взгляд, поворот головы.', 'Senyum lembut, kedipan, menoleh.'), ex: [P(L('Grandma smiles', 'Бабушка улыбается', 'Nenek tersenyum'), '#6b6257')], upload: true, r: 'oldlive' },
+        { id: 'restore', t: L('Restore and colorize', 'Восстановить и раскрасить', 'Perbaiki & warnai'), line: L('Remove scratches and folds, make it sharp, add natural colors.', 'Убрать царапины и заломы, сделать резче, добавить цвета.', 'Hilangkan goresan, pertajam, beri warna alami.'), ex: [P(L('Before → after', 'До → после', 'Sebelum → sesudah'), '#9a9187')], upload: true, r: 'restore' },
+        { id: 'memcard', t: L('Card in loving memory', 'Открытка в память', 'Kartu kenangan'), line: L('A photo, the name, the years and a few words. Calm designs.', 'Фото, имя, годы жизни и несколько слов. Спокойное оформление.', 'Foto, nama, tahun dan beberapa kata. Desain tenang.'), ex: [P(L('With a candle', 'Со свечой', 'Dengan lilin'), '#3f4652')], upload: true, r: 'memcard' },
+        { id: 'memvideo', t: L('Memory video', 'Видео-воспоминание', 'Video kenangan'), line: L('3 to 10 photos come gently alive, with soft music.', 'От 3 до 10 фото по очереди оживают, с тихой музыкой.', '3–10 foto bergerak lembut bergantian, dengan musik.'), ex: [P(L('“Our 50 years” — 45 s', '«Наши 50 лет» — 45 с', '“50 tahun kita” — 45 dtk'), '#4b4458')], upload: true, r: 'memvideo' }
       ] },
     { id: 'home', th: '', cover: V('lake'), t: L('For my home and me', 'Для дома и себя', 'Untuk rumah & diri sendiri'),
       line: L('Prints for T-shirts and mugs, wall art, phone wallpaper, avatar', 'Принты на футболку и кружку, картина на стену, обои, аватарка', 'Cetakan kaos dan mug, hiasan dinding, wallpaper, avatar'),
@@ -409,7 +476,7 @@ function SECTIONS() {
         { id: 'wallart', t: L('Art for the wall', 'Картина на стену', 'Hiasan dinding'), line: L('Watercolor, oil, minimal — in colors that suit your room.', 'Акварель, масло, минимализм — в цветах под ваш интерьер.', 'Cat air, minyak, minimalis — sesuai warna ruangan.'), ex: [V('lake')], r: 'wallart' },
         { id: 'wallpaper', t: L('Phone wallpaper', 'Обои на телефон', 'Wallpaper ponsel'), line: L('Calm or bright, for your mood.', 'Спокойные или яркие, под настроение.', 'Tenang atau cerah, sesuai suasana.'), ex: [V('village')], r: 'wallpaper' },
         { id: 'avatar', t: L('Avatar', 'Аватарка', 'Avatar'), line: L('A drawn character for your profile.', 'Нарисованный персонаж для профиля.', 'Karakter gambar untuk profil.'), ex: [P('', '#7c3aed')], soon: true },
-        { id: 'painting', t: L('Me as a painting', 'Я как картина', 'Aku sebagai lukisan'), line: L('Your photo in the style of Van Gogh, anime or watercolor.', 'Ваше фото в стиле Ван Гога, аниме или акварели.', 'Foto Anda gaya Van Gogh, anime atau cat air.'), ex: [P('', '#64748b')], upload: true }
+        { id: 'painting', t: L('Me as a painting', 'Я как картина', 'Aku sebagai lukisan'), line: L('Your photo in the style of Van Gogh, anime or watercolor.', 'Ваше фото в стиле Ван Гога, аниме или акварели.', 'Foto Anda gaya Van Gogh, anime atau cat air.'), ex: [P('', '#64748b')], upload: true, r: 'painting' }
       ] },
     { id: 'kids', th: 'th-kids', cover: I('fox'), t: L('For kids and grandkids', 'Для детей и внуков', 'Untuk anak & cucu'),
       line: L('Bedtime stories with pictures, coloring pages, a hero with the child’s name', 'Сказки с картинками, раскраски, герой с именем ребёнка', 'Dongeng bergambar, halaman mewarnai, tokoh dengan nama anak'),
@@ -437,8 +504,8 @@ function SECTIONS() {
       tasks: [
         { id: 'meme', t: L('Meme', 'Мем', 'Meme'), tag: L('in seconds', 'за секунды', 'dalam detik'), line: L('Pick a situation or write your own — get a picture with a caption.', 'Выберите ситуацию или напишите свою — картинка с подписью.', 'Pilih situasi atau tulis sendiri — gambar dengan teks.'), ex: [P(L('ME ON MONDAY', 'Я В ПОНЕДЕЛЬНИК', 'AKU HARI SENIN'), '#475569')], r: 'meme' },
         { id: 'funcard', t: L('Funny card for a friend', 'Смешная открытка другу', 'Kartu lucu untuk teman'), line: L('A greeting with a friendly tease.', 'Поздравление с доброй подколкой.', 'Ucapan dengan godaan ramah.'), ex: [P(L('Getting old is no fun', 'Старость не радость', 'Tua itu tidak asyik'), '#7c3aed')], r: 'funcard' },
-        { id: 'petking', t: L('My cat is a king', 'Мой кот — король', 'Kucingku jadi raja'), line: L('Your pet as a king, a knight or on an old painting.', 'Ваш питомец — король, рыцарь или на старинной картине.', 'Hewan Anda jadi raja atau ksatria.'), ex: [P(L('King Murzik I', 'Король Мурзик I', 'Raja Murzik I'), '#a16207')], upload: true },
-        { id: 'moon', t: L('Me on the Moon', 'Я на Луне', 'Aku di Bulan'), line: L('You or a friend in a funny place.', 'Вы или друг в смешном месте.', 'Anda atau teman di tempat lucu.'), ex: [P('', '#1e3a8a')], upload: true },
+        { id: 'petking', t: L('My cat is a king', 'Мой кот — король', 'Kucingku jadi raja'), line: L('Your pet as a king, a knight or on an old painting.', 'Ваш питомец — король, рыцарь или на старинной картине.', 'Hewan Anda jadi raja atau ksatria.'), ex: [P(L('King Murzik I', 'Король Мурзик I', 'Raja Murzik I'), '#a16207')], upload: true, r: 'petking' },
+        { id: 'moon', t: L('Me on the Moon', 'Я на Луне', 'Aku di Bulan'), line: L('You or a friend in a funny place.', 'Вы или друг в смешном месте.', 'Anda atau teman di tempat lucu.'), ex: [P('', '#1e3a8a')], upload: true, r: 'moon' },
         { id: 'react', t: L('Reaction GIF', 'Гифка-реакция', 'GIF reaksi'), line: L('A short moving answer for the chat.', 'Короткий живой ответ для чата.', 'Jawaban bergerak untuk chat.'), ex: [P(L('Wow!', 'Ну ты даёшь!', 'Wah!'), '#9d174d')], soon: true }
       ] },
     { id: 'biz', th: 'th-biz', cover: I('menu'), t: L('For my business', 'Для своего дела', 'Untuk usaha saya'),
@@ -449,7 +516,7 @@ function SECTIONS() {
         { id: 'menu', t: L('Menu', 'Меню', 'Menu'), tag: L('popular', 'популярное', 'populer'), line: L('Your dishes and prices, for printing and the screen.', 'Ваши блюда и цены, для печати и экрана.', 'Menu dan harga Anda, untuk cetak dan layar.'), ex: [I('menu')], r: 'menu' },
         { id: 'offer', t: L('Today’s offer', 'Акция дня', 'Promo hari ini'), line: L('“1+1 on coffee”, “20% off till Sunday”.', '«1+1 на кофе», «Скидка 20% до воскресенья».', '“1+1 kopi”, “Diskon 20% sampai Minggu”.'), ex: [I('offer')], r: 'offer' },
         { id: 'post', t: L('Social post', 'Пост в соцсети', 'Postingan medsos'), line: L('“We are open”, “New!”.', '«Мы открылись», «Новинка!».', '“Kami buka”, “Baru!”.'), ex: [P('', '#0e7490')], r: 'post' },
-        { id: 'product', t: L('Product photo', 'Фото товара', 'Foto produk'), line: L('Phone photo → clean shop picture.', 'Фото с телефона → как для магазина.', 'Foto ponsel → foto toko rapi.'), ex: [P('', '#78716c')], upload: true },
+        { id: 'product', t: L('Product photo', 'Фото товара', 'Foto produk'), line: L('Phone photo → clean shop picture.', 'Фото с телефона → как для магазина.', 'Foto ponsel → foto toko rapi.'), ex: [P('', '#78716c')], upload: true, r: 'product' },
         { id: 'sign', t: L('Sign and business card', 'Вывеска и визитка', 'Papan nama & kartu nama'), line: L('Several designs from your name.', 'Несколько вариантов по названию.', 'Beberapa desain dari nama Anda.'), ex: [P('', '#334155')], soon: true }
       ] }
   ];
@@ -546,9 +613,9 @@ function vSection() {
       ${k.tag ? `<span class="pill ${k.soon ? 'grey' : ''}">${esc(k.tag)}</span>` : ''}${k.upload ? `<span class="pill grey">${esc(L('photo', 'фото', 'foto'))}</span>` : ''}</div>
       <div class="small" style="font-size:14px;margin-top:3px">${esc(k.line)}</div>
       <div class="hscroll">${k.ex.map((e) => `<button class="ex" data-act="open" data-sec="${s.id}" data-task="${k.id}" aria-label="${esc(k.t)}">${media(e)}</button>`).join('')}</div>
-      <div style="margin-top:12px" class="stack">${k.upload ? `<button class="btn2" data-act="uploadSoon">${ICON.up} ${esc(t.upload)}</button>` :
+      <div style="margin-top:12px" class="stack">${k.upload ? `<button class="btn" data-act="open" data-sec="${s.id}" data-task="${k.id}">${ICON.up} ${esc(t.upload)}</button>` :
         k.soon ? `<button class="btn2" data-act="soon">${esc(k.t)} — ${esc(t.soon)}</button>` :
-        `<button class="btn" data-act="open" data-sec="${s.id}" data-task="${k.id}">${esc(t.make)}: ${esc(k.t.toLowerCase())}</button>${k.alsoUpload ? `<button class="btn2" data-act="uploadSoon">${ICON.up} ${esc(L('From a photo', 'По фото', 'Dari foto'))}</button>` : ''}`}</div>
+        `<button class="btn" data-act="open" data-sec="${s.id}" data-task="${k.id}">${esc(t.make)}: ${esc(k.t.toLowerCase())}</button>${k.alsoUpload ? `<button class="btn2" data-act="open" data-sec="${s.id}" data-task="${k.id}">${ICON.up} ${esc(L('From a photo', 'По фото', 'Dari foto'))}</button>` : ''}`}</div>
     </div>`).join('')}</div>${footer()}`;
 }
 function vFlow() {
@@ -564,7 +631,7 @@ function vPreview(k) {
     <div style="font-size:13px;font-weight:900;color:var(--acc);letter-spacing:.6px;text-transform:uppercase">${esc(L('Example', 'Пример', 'Contoh'))}</div>
     <h1 style="margin-top:2px">${esc(k.t)}</h1>
     <div class="stage" style="margin-top:12px;min-height:200px">${ex.v ? `<video src="${ex.v}" poster="${ex.p}" autoplay muted loop playsinline></video>` : ex.i ? `<img src="${ex.i}" alt="">` : `<div style="aspect-ratio:1/1;position:relative">${media(ex)}</div>`}</div>
-    <p class="sub">${esc(k.line)} ${esc(L('You answer 2–3 quick questions, we make 3 versions, you pick one and send it.', 'Ответьте на 2–3 вопроса, мы сделаем 3 варианта, вы выберете и отправите.', 'Jawab 2–3 pertanyaan, kami buat 3 versi, Anda pilih lalu kirim.'))}</p>
+    <p class="sub">${esc(k.line)} ${esc(k.upload ? L('Add your photo, answer 1–2 quick questions — we do the rest.', 'Добавьте фото, ответьте на 1–2 вопроса — остальное сделаем мы.', 'Tambah foto, jawab 1–2 pertanyaan — sisanya kami kerjakan.') : L('You answer 2–3 quick questions, we make 3 versions, you pick one and send it.', 'Ответьте на 2–3 вопроса, мы сделаем 3 варианта, вы выберете и отправите.', 'Jawab 2–3 pertanyaan, kami buat 3 versi, Anda pilih lalu kirim.'))}</p>
     <div class="stack" style="margin-top:14px"><button class="btn" data-act="toQs">${esc(L('Make my own', 'Сделать свою', 'Buat punya saya'))}</button></div></div>`;
 }
 function qBlock(id) {
@@ -585,12 +652,33 @@ function qBlock(id) {
   }
   return h;
 }
+function upSlot(i, label, u, removable) {
+  if (S.upBusy[i]) return `<div class="upslot">${pipEl(48, false, 'think')}<span>${esc(L('Checking the photo…', 'Проверяю фото…', 'Memeriksa foto…'))}</span></div>`;
+  if (u) return `<div class="upslot on"><img src="${thumbUrl(u.path)}" alt="">${label ? `<span class="cap">${esc(label)}</span>` : ''}<button class="x" data-act="upDel" data-v="${i}" aria-label="${esc(L('Remove', 'Убрать', 'Hapus'))}">×</button></div>`;
+  return `<label class="upslot">${ICON.up}<span>${esc(label || L('Add a photo', 'Добавить фото', 'Tambah foto'))}</span><input type="file" accept="image/*" data-up="${i}" ${removable ? 'multiple' : ''}></label>`;
+}
+function upBlock(r) {
+  const slots = r.ups ? r.ups() : r.upsOpt ? r.upsOpt() : [];
+  if (!r.multi && !slots.length) return '';
+  let h = '';
+  if (r.multi) {
+    const have = S.ups.filter(Boolean), busy = Object.keys(S.upBusy).length;
+    h = `<div style="font-size:17px;font-weight:900;margin-top:16px">${esc(L(`Photos: ${have.length} of ${r.multi[0]}–${r.multi[1]}`, `Фото: ${have.length} из ${r.multi[0]}–${r.multi[1]}`, `Foto: ${have.length} dari ${r.multi[0]}–${r.multi[1]}`))}</div>
+      <div class="ups">${have.map((u, i) => upSlot(i, String(i + 1), u, true)).join('')}${Object.keys(S.upBusy).map((i) => upSlot(i)).join('')}${have.length + busy < r.multi[1] ? upSlot('add', '', null, true) : ''}</div>`;
+  } else {
+    h = `<div class="ups">${slots.map((sl, i) => upSlot(i, sl.l, S.ups[i], false)).join('')}</div>`;
+  }
+  return h + `<div class="small" style="margin-top:8px">${esc(L('Only you see your photos. They are deleted after 30 days. Use photos of yourself or of people who agree.', 'Фото видите только вы, через 30 дней они удаляются. Используйте свои фото или фото людей, которые не против.', 'Hanya Anda yang melihat foto Anda; dihapus setelah 30 hari. Gunakan foto sendiri atau orang yang setuju.'))}</div>`;
+}
 function vQuestions(k, r) {
+  const hasUp = !!(r.ups || r.upsOpt || r.multi);
   return `${topBar({ back: true })}<div class="pad narrow"><h1>${esc(k.t)}</h1>
-    <p class="sub">${esc(L('Answer a couple of quick questions. You can change everything later.', 'Ответьте на пару вопросов. Всё можно поменять потом.', 'Jawab beberapa pertanyaan. Semua bisa diubah nanti.'))}</p>
+    ${r.pip ? `<div class="row" style="gap:10px;align-items:flex-end;margin-top:10px">${pipEl(56)}<div class="bubble" style="font-size:16px">${esc(r.pip())}</div></div>` :
+      `<p class="sub">${esc(L('Answer a couple of quick questions. You can change everything later.', 'Ответьте на пару вопросов. Всё можно поменять потом.', 'Jawab beberapa pertanyaan. Semua bisa diubah nanti.'))}</p>`}
+    ${hasUp ? upBlock(r) : ''}
     ${r.qs.map(qBlock).join('')}
     <div class="stack" style="margin-top:24px"><button class="btn" style="min-height:58px;font-size:19px" data-act="make">${esc(L('Make it', 'Сделать', 'Buat'))}</button>
-    <div class="small" style="text-align:center">${esc(r.kind === 'gif' ? L('3 versions, about 1–3 minutes', '3 варианта, примерно 1–3 минуты', '3 versi, sekitar 1–3 menit') : L('3 versions in under a minute', '3 варианта меньше чем за минуту', '3 versi dalam semenit'))}</div></div></div>`;
+    <div class="small" style="text-align:center">${esc(r.eta ? r.eta() : r.kind === 'gif' ? L('3 versions, about 1–3 minutes', '3 варианта, примерно 1–3 минуты', '3 versi, sekitar 1–3 menit') : L('3 versions in under a minute', '3 варианта меньше чем за минуту', '3 versi dalam semenit'))}</div></div></div>`;
 }
 function jobsProgress() {
   const n = S.jobs.length, done = S.jobs.filter((j) => j.status === 'done').length;
@@ -599,6 +687,7 @@ function jobsProgress() {
   if (run && run.progress && typeof run.progress.frac === 'number') frac += run.progress.frac / n;
   let msg = L('Starting…', 'Начинаем…', 'Memulai…');
   if (run) msg = L(`Making version ${done + 1} of ${n}…`, `Делаем вариант ${done + 1} из ${n}…`, `Membuat versi ${done + 1} dari ${n}…`);
+  if (S.montaging) msg = L('Joining the photos into one video…', 'Собираю фото в одно видео…', 'Menggabungkan foto jadi satu video…');
   else if (q && q.queue_pos) msg = L(`In line: ${q.queue_pos - 1} ahead of you`, `В очереди: перед вами ${q.queue_pos - 1}`, `Antre: ${q.queue_pos - 1} di depan Anda`);
   return { frac: Math.min(1, frac), msg, done, n };
 }
@@ -617,8 +706,15 @@ function curOut() {
   const ok = S.jobs.filter((j) => j.status === 'done' && j.outputs && j.outputs.length);
   return { ok, cur: ok[Math.min(S.picked, ok.length - 1)] };
 }
+function photoCss(ph) {
+  if (!ph) return '';
+  const ar = ph.shape === 'round' ? '1/1' : '4/5', rad = ph.shape === 'rect' ? '3cqw' : '50%';
+  return `<img class="lphoto" src="${fileUrl(ph.path)}" alt="" crossorigin="anonymous" style="left:${ph.x}%;top:${ph.y}%;width:${ph.w}%;aspect-ratio:${ar};border-radius:${rad}">`;
+}
 function layerCss(lay, forThumb) {
-  if (!lay || !lay.text) return '';
+  if (!lay) return '';
+  if (lay.photo && !forThumb) return photoCss(lay.photo) + layerCss({ ...lay, photo: null });
+  if (!lay.text) return '';
   const st = TSTYLES[lay.style] || TSTYLES.classic, size = [4.6, 6.6, 9][lay.size == null ? 1 : lay.size] * (st.k || 1) * (forThumb ? 1 : 1);
   const fam = st.font.replace(/^\d+ \{s\}px /, ''), weight = st.font.split(' ')[0];
   const sw = st.stroke ? `-webkit-text-stroke:${(st.sw * size * 0.6).toFixed(2)}cqw ${st.stroke};paint-order:stroke fill;` : '';
@@ -648,7 +744,7 @@ function vResult(k, r) {
     <div class="stack" style="margin-top:16px">
       <button class="btn" style="background:var(--ok)" data-act="share">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
       <div class="row"><button class="btn3" style="flex:1" data-act="download">${esc(L('Save to phone', 'Сохранить', 'Simpan'))}</button>
-      <button class="btn3" style="flex:1" data-act="again">${esc(L('3 more versions', 'Ещё 3 варианта', '3 versi lagi'))}</button></div>
+      <button class="btn3" style="flex:1" data-act="again">${esc(r.kind === 'video' ? L('Make again', 'Сделать ещё', 'Buat lagi') : L('3 more versions', 'Ещё 3 варианта', '3 versi lagi'))}</button></div>
       ${isPrint ? `<button class="btn2" data-act="orderSoon">${esc(L('Order printed', 'Заказать с печатью', 'Pesan cetak'))}</button>` : ''}
       <button class="btn3" style="width:100%" data-act="toQs">${esc(L('Change the answers', 'Поменять ответы', 'Ubah jawaban'))}</button>
     </div>
@@ -1294,7 +1390,17 @@ async function poll() {
     if (j.status === 'done' && j.outputs) j.outputs.forEach((o) => { if (!S.works.find((w) => w.path === o.path) && !/\.gif$/i.test(o.path)) S.works.unshift({ path: o.path, t: Date.now() }); });
   }
   S.works = S.works.slice(0, 60); LS.set('works', S.works);
-  if (S.screen === 'flow' && S.step === 'gen' && S.jobs.length && S.jobs.every((j) => ['done', 'error', 'cancelled'].includes(j.status)) && S.jobs.some((j) => j.status === 'done')) S.step = 'result';
+  const kk = S.screen === 'flow' && taskById(S.sec, S.task), rr = kk && R[kk.r];
+  if (rr && rr.montage && S.step === 'gen' && !S.montaged && !S.montaging && S.jobs.length && S.jobs.every((j) => ['done', 'error', 'cancelled'].includes(j.status))) {
+    S.montaging = true; render.keep = true; render();
+    try {
+      const outs = S.jobs.filter((j) => j.status === 'done' && j.outputs).map((j) => (j.outputs.find((o) => /\.(mp4|webm|mov|webp)$/i.test(o.path)) || {}).path).filter(Boolean);
+      if (outs.length >= 2) { const m = await api('/api/montage', { paths: outs, landscape: S.ups.filter((u) => u && upOr(u) === 'land').length > S.ups.length / 2 }); S.jobs = [{ id: 'montage', status: 'done', outputs: [m], family: 'Wan 2.2 + montage' }]; }
+    } catch (x) { toast(x.message); }
+    S.montaging = false; S.montaged = true;
+  }
+  if (rr && rr.montage && !S.montaged) { /* wait for the montage */ }
+  else if (S.screen === 'flow' && S.step === 'gen' && S.jobs.length && S.jobs.every((j) => ['done', 'error', 'cancelled'].includes(j.status)) && S.jobs.some((j) => j.status === 'done')) S.step = 'result';
   if (S.screen === 'flow' && (S.step === 'gen' || S.step === 'result')) { render.keep = true; if (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render(); }
   const still = S.jobs.some((j) => j.id !== '-' && !['done', 'error', 'cancelled'].includes(j.status));
   if (still) pollT = setTimeout(poll, 2000);
@@ -1313,6 +1419,17 @@ async function composeImage(src, lay) {
   const img = await loadImg(src), W = img.naturalWidth, H = img.naturalHeight;
   const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
   ctx.drawImage(img, 0, 0);
+  if (lay && lay.photo) {
+    const ph = lay.photo, pim = await loadImg(fileUrl(ph.path));
+    const w = W * ph.w / 100, h = ph.shape === 'round' ? w : w * 1.25, cx = W * ph.x / 100, cy = H * ph.y / 100, x = cx - w / 2, y = cy - h / 2;
+    const path = new Path2D();
+    if (ph.shape === 'rect') path.roundRect(x, y, w, h, W * 0.03); else path.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = W * 0.04; ctx.shadowOffsetY = W * 0.01; ctx.fillStyle = '#fff'; ctx.fill(path); ctx.restore();
+    ctx.save(); ctx.clip(path);
+    const k = Math.max(w / pim.naturalWidth, h / pim.naturalHeight), sw = w / k, sh = h / k;
+    ctx.drawImage(pim, (pim.naturalWidth - sw) / 2, (pim.naturalHeight - sh) / 2, sw, sh, x, y, w, h); ctx.restore();
+    ctx.save(); ctx.lineWidth = W * 0.028; ctx.strokeStyle = '#fff'; ctx.stroke(path); ctx.restore();
+  }
   if (lay && lay.text) {
     const st = TSTYLES[lay.style] || TSTYLES.classic, size = Math.round(W * [4.6, 6.6, 9][lay.size == null ? 1 : lay.size] * (st.k || 1) / 100);
     ctx.font = st.font.replace('{s}', size); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -1339,6 +1456,8 @@ async function finalFile() {
     const b = await (await fetch(fileUrl(mp4.path))).blob();
     return { file: new File([b], 'wishly.mp4', { type: 'video/mp4' }), gifUrl: gif && fileUrl(gif.path) };
   }
+  const vid = cur.outputs.find((o) => /\.(mp4|webm|mov)$/i.test(o.path));
+  if (r.kind === 'video' && vid) { const b = await (await fetch(fileUrl(vid.path))).blob(); return { file: new File([b], 'wishly.mp4', { type: 'video/mp4' }) }; }
   const img = cur.outputs.find((o) => o.type === 'image');
   const blob = await composeImage(fileUrl(img.path), S.layer);
   return { file: new File([blob], 'wishly.jpg', { type: 'image/jpeg' }) };
@@ -1355,7 +1474,9 @@ function dl(file) { const a = document.createElement('a'); a.href = URL.createOb
 /* ---------------- Pip: simple intent router (placeholder for the agent) ---------------- */
 function pipRoute(text) {
   const s = text.toLowerCase(), m = (re) => re.test(s);
-  if (m(/(фото|photo|foto|старое|old|вместе|together|память|memory|kenang)/)) return [L('Photos and memories are here. Photo upload arrives in the next test build.', 'Фото и память — здесь. Загрузка фото появится в следующей тестовой версии.', 'Foto dan kenangan ada di sini.'), ['memory'], L('Open “Memories”', 'Открыть «Память»', 'Buka “Kenangan”')];
+  if (m(/(восстанов|реставр|restore|colori|раскрас.*фото|perbaiki)/)) return [L('Show me the old photo — I clean it up and add colors.', 'Покажите старое фото — я его почищу и раскрашу.', 'Tunjukkan foto lamanya — aku perbaiki.'), ['memory', 'restore'], L('Restore a photo', 'Восстановить фото', 'Perbaiki foto')];
+  if (m(/(оживи|оживить|bring.*life|hidupkan|animate)/)) return [L('Let’s bring the photo to life!', 'Оживим фото!', 'Ayo hidupkan fotonya!'), ['memory', 'oldlive'], L('Bring a photo to life', 'Оживить фото', 'Hidupkan foto')];
+  if (m(/(фото|photo|foto|старое|old|вместе|together|память|memory|kenang)/)) return [L('Photos and memories are here — add a photo and I do the rest.', 'Фото и память — здесь. Добавьте фото, остальное сделаю я.', 'Foto dan kenangan ada di sini — tambah foto, sisanya aku.'), ['memory'], L('Open “Memories”', 'Открыть «Память»', 'Buka “Kenangan”')];
   if (m(/(мем|meme|смешн|funny|lucu|прикол|ржак)/)) return [L('Let’s make a meme!', 'Сделаем мем!', 'Ayo bikin meme!'), ['fun', 'meme'], L('Make a meme', 'Сделать мем', 'Buat meme')];
   if (m(/(меню|menu|кафе|cafe|warung|акци|promo|offer|скидк)/)) return [L('A menu or an offer for your place — easy.', 'Меню или акция для вашего заведения — легко.', 'Menu atau promo — gampang.'), ['biz', m(/(акци|promo|offer|скидк)/) ? 'offer' : 'menu'], L('Let’s do it', 'Поехали', 'Ayo')];
   if (m(/(раскраск|coloring|mewarna|внук|ребён|ребен|kid|anak|cucu)/)) return [L('A coloring page for the little one!', 'Раскраска для малыша!', 'Halaman mewarnai untuk si kecil!'), ['kids', 'coloring'], L('Make a coloring page', 'Сделать раскраску', 'Buat halaman mewarnai')];
@@ -1377,9 +1498,9 @@ function openTask(sec, task) {
   const k = taskById(sec, task);
   if (!k) { go('section', { sec }); return; }
   if (task === 'comic') { S.c.x = null; go('comic', { sec }); api('/api/comics').then((l) => { S.c.list = l; if (S.screen === 'comic') { render.keep = true; render(); } }).catch(() => {}); return; }
-  if (k.upload) { toast(TT().uploadSoon); go('section', { sec }); return; }
-  if (k.soon || !k.r) { toast(TT().soonMsg); go('section', { sec }); return; }
-  S.ans = {}; S.jobs = []; S.layer = null;
+  if (k.soon || !k.r || !R[k.r]) { toast(TT().soonMsg); go('section', { sec }); return; }
+  S.ans = {}; S.jobs = []; S.layer = null; S.ups = []; S.upBusy = {}; S.montaged = false;
+  if (k.upload) { go('flow', { sec, task, step: 'questions' }); return; }
   go('flow', { sec, task, step: 'preview' });
 }
 
@@ -1397,6 +1518,7 @@ document.addEventListener('click', async (e) => {
     case 'open': e.preventDefault(); openTask(d.sec, d.task); break;
     case 'soon': toast(TT().soonMsg); break;
     case 'uploadSoon': toast(TT().uploadSoon); break;
+    case 'upDel': { const k = taskById(S.sec, S.task), r = R[k.r]; if (r.multi) S.ups.splice(+d.v, 1); else S.ups[+d.v] = null; render.keep = true; render(); break; }
     case 'orderSoon': toast(L('Ordering printed things comes later. Download the file meanwhile.', 'Заказ печати появится позже. Пока скачайте файл.', 'Pesan cetak hadir nanti.')); break;
     case 'works': try { S.worksSrv = await api('/api/gallery?limit=90'); } catch (x) { S.worksSrv = []; } go('works'); break;
     case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); if (S.adultOk) aEnter(); break;
@@ -1410,9 +1532,13 @@ document.addEventListener('click', async (e) => {
     case 'ans': S.ans[d.q] = +d.v; if (d.q === 'text') S.ans.textOwn = ''; render.keep = true; render(); break;
     case 'fill': S.ans[d.q] = d.v; render.keep = true; render(); break;
     case 'make': case 'again': {
-      const k = taskById(S.sec, S.task), r = R[k.r];
-      const list = r.kind === 'gif' ? r.jobs(S.ans) : [0, 1, 2].map(() => ({ family: 'qwen_image21', prompt: r.prompt(S.ans), width: r.w, height: r.h }));
-      if (a === 'make' || !S.layer) S.layer = r.layer ? r.layer(S.ans) : null;
+      const k = taskById(S.sec, S.task), r = R[k.r], ups = S.ups.filter(Boolean);
+      if (Object.keys(S.upBusy).length) { toast(L('Wait a second — the photo is still loading.', 'Секунду — фото ещё загружается.', 'Sebentar — foto masih dimuat.')); break; }
+      const need = r.multi ? r.multi[0] : r.ups ? r.ups().length : 0;
+      if ((r.multi ? ups.length : r.ups ? r.ups().filter((x, i) => S.ups[i]).length : need) < need) { toast(need > 1 ? L(`Add ${need} photos first`, `Сначала добавьте фото: ${need}`, `Tambah ${need} foto dulu`) : L('Add a photo first', 'Сначала добавьте фото', 'Tambah foto dulu')); break; }
+      const list = r.jobs ? r.jobs(S.ans, r.multi ? ups : S.ups) : [0, 1, 2].map(() => ({ family: 'qwen_image21', prompt: r.prompt(S.ans), width: r.w, height: r.h }));
+      S.montaged = false;
+      if (a === 'make' || !S.layer) S.layer = r.layer ? r.layer(S.ans, S.ups) : null;
       await startJobs(list); break;
     }
     case 'seeNow': S.step = 'result'; render(); break;
@@ -1460,6 +1586,36 @@ document.addEventListener('input', (e) => {
     else if (k === 'sec') { st.sec[fam] = +el.value; const v = $('#st-secv'); if (v) v.textContent = el.value; }
     else if (k === 'lora') { st.loras[el.dataset.k] = +el.value; const v = document.getElementById('lv-' + el.dataset.k); if (v) v.textContent = (+el.value).toFixed(2); }
     else st[k] = el.value; }
+});
+/* photo upload: downscale in the browser (also drops EXIF), then POST the bytes */
+async function prepPhoto(file) {
+  try {
+    const bm = await createImageBitmap(file, { imageOrientation: 'from-image' }), k = Math.min(1, 2048 / Math.max(bm.width, bm.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+    c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+    return await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9));
+  } catch (e) { return file; }
+}
+async function uploadPhoto(file) {
+  const b = await prepPhoto(file);
+  const r = await fetch('/api/uploads', { method: 'POST', headers: { 'Content-Type': b.type || 'application/octet-stream' }, body: b });
+  if (!r.ok) { let m = r.status + ''; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
+  return r.json();
+}
+document.addEventListener('change', async (e) => {
+  const el = e.target; if (!el.dataset || el.dataset.up == null || !el.files || !el.files.length) return;
+  const k = taskById(S.sec, S.task), r = k && R[k.r]; if (!r) return;
+  let files = [...el.files], slot = el.dataset.up;
+  if (r.multi) files = files.slice(0, r.multi[1] - S.ups.filter(Boolean).length);
+  else files = files.slice(0, 1);
+  const tags = files.map((f, n) => (r.multi ? 'b' + Date.now() + n : slot));
+  tags.forEach((t) => { S.upBusy[t] = true; }); render.keep = true; render();
+  await Promise.all(files.map(async (f, n) => {
+    try { const u = await uploadPhoto(f); if (r.multi) S.ups.push(u); else S.ups[+slot] = u; }
+    catch (x) { toast(x.message); }
+    delete S.upBusy[tags[n]];
+  }));
+  render.keep = true; render();
 });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.shiftKey) return;
