@@ -176,11 +176,31 @@ def file_owner(key):
 
 
 def files_of(uid, kind="", limit=120, adult=False):
-    rows = _q("select key, kind, created from files where user_id=? and deleted is null and adult=? order by created desc limit ?",
-              (uid, 1 if adult else 0, int(limit) * 2 if kind else int(limit)))
+    """results, newest first; uploaded photos (kind 'upload') only when asked for explicitly"""
+    if kind == "upload":
+        return _q("select key, kind, created from files where user_id=? and deleted is null and kind='upload'"
+                  " order by created desc limit ?", (uid, int(limit)))
+    up = " and coalesce(kind,'') != 'upload'"
+    rows = _q("select key, kind, created from files where user_id=? and deleted is null and adult=?" + up +
+              " order by created desc limit ?", (uid, 1 if adult else 0, int(limit) * 2 if kind else int(limit)))
     if kind:
         rows = [r for r in rows if (r["kind"] or "").startswith(kind)][:int(limit)]
     return rows
+
+
+def file_kind(key):
+    r = _q("select kind from files where key=?", (key,), one=True)
+    return r["kind"] if r else None
+
+
+def is_upload(key):
+    """a photo a person uploaded (a real photo): usable only in the fixed photo recipes, never in 18+ / studio refs"""
+    return key.startswith("upload/") or file_kind(key) == "upload"
+
+
+def old_uploads(days):
+    return [r["key"] for r in _q("select key from files where kind='upload' and deleted is null and created<?",
+                                 (time.time() - days * 86400,))]
 
 
 def delete_file(key):

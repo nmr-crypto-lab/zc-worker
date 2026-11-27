@@ -17,8 +17,11 @@ Output: {"outputs": [{"path", "type", "b64"?, "key"?, "url"?}], "removed": n, "g
   path = location under <volume>/zc/output (pods and serverless); b64 = inline copy for small files when no
   object store is configured (the site cannot read the volume); key/url only if R2 is configured (optional).
 
-INPUT RULES (no real people): input images must be results this service generated: {"path": ...} under
-<volume>/zc/output, or {"r2_key": ...} if R2 is configured. Arbitrary uploads / URLs are refused.
+INPUT RULES: input images are files under <volume>/zc/output ({"path": ...}) or {"r2_key": ...} if R2 is configured;
+URLs are refused. Normally these are results this service generated. Photos people upload (real photos, under
+output/upload/) are allowed only with "_real": true (set by the UI server, never from user input): then only the
+everyday families in REAL_FAMILIES, no LoRAs, no sexual words in the prompt, and every result is deleted if the
+tagger rates it questionable/explicit. Real photos never go to the 18+ section or to NSFW-capable models.
 Every input is age-gated again before use.
 Every output is age-gated before upload; flagged/uncheckable outputs are deleted, only metadata is logged.
 """
@@ -55,6 +58,8 @@ _AGE = re.compile(r"\b(\d{1,2})\s*(?:yo|y/o|years?[- ]old|year[- ]old|yrs?|ле�
 # Everyday section on models that cannot make nudity: children are fine (fairy tales, kids' cards),
 # only together with sexual words they are refused. Everywhere else (18+, NSFW-capable models): strict.
 SFW_FAMILIES = {"qwen_image21", "flux3_klein", "gif"}
+REAL_FAMILIES = {"qwen_image21", "flux3_klein", "wan22_i2v"}      # what an uploaded (real) photo may be used with
+REAL_RISKY = float(os.environ.get("ZC_REAL_RISKY", "0.3"))         # tagger questionable+explicit above this -> deleted
 _SEXUAL = re.compile(
     r"\b(nude|naked|nsfw|sex|sexy|sexual|erotic\w*|lingerie|topless|bottomless|breasts?|nipples?|genitals?|porn\w*|"
     r"undress\w*|seductive|bikini|underwear|panties|bra|kiss\w*|lewd|fetish)\b|"
@@ -168,6 +173,14 @@ def generate(inp, job_id, progress=None, cancel=None):
     if v:
         zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})
         raise ValueError("prompt refused: content involving minors is not allowed")
+    real = bool(inp.get("_real"))
+    if real:
+        if fam not in REAL_FAMILIES or inp.get("_adult"):
+            raise ValueError("uploaded photos can only be used in the photo recipes")
+        if _SEXUAL.search(inp.get("prompt") or ""):
+            zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": "real+sexual"})
+            raise ValueError("prompt refused for a real photo")
+        inp["loras"] = {}
     if fam == "gif":
         import gif as G
         v = prompt_violation(inp.get("text"), sfw) or prompt_violation(inp.get("motion"), sfw)
@@ -179,7 +192,7 @@ def generate(inp, job_id, progress=None, cancel=None):
                 "secs": info["secs"], "seed": info["seed"]}
     names = [fetch_input(it, job_id, i) for i, it in enumerate(inp.get("images") or [])]
     kw = {k: inp[k] for k in ("model", "prompt", "negative", "seed", "loras", "width", "height", "seconds",
-                              "megapixels", "aspect", "turbo", "steps", "length", "keep_size") if k in inp}
+                              "megapixels", "aspect", "turbo", "steps", "length", "keep_size", "mp4") if k in inp}
     if fam in ("qwen_aio", "wan22_i2v", "h3_fl2va"):
         if not names:
             raise ValueError(f"{fam} needs an input image")
@@ -208,8 +221,31 @@ def generate(inp, job_id, progress=None, cancel=None):
     wf = T.build(fam, **kw)
     kept, info = zc.run(wf, {"job": job_id, "family": fam, "model": inp.get("model"), "seed": wf_seed(wf)},
                         progress=progress, cancel=cancel)
+    if real:
+        kept, n = _real_filter(kept, job_id)
+        info["removed"] = (info.get("removed") or 0) + n
     return {"outputs": [publish(p, job_id) for p in kept], "removed": info["removed"], "gate": info["gate"],
             "secs": info["secs"], "seed": wf_seed(wf)}
+
+
+def _real_filter(paths, job_id):
+    """results made from a real photo: anything the tagger finds suggestive is deleted (only metadata is logged)"""
+    keep, removed = [], 0
+    for p in paths:
+        g = zc.gate().check(p)
+        r = g.get("rating") or {}
+        risky = r.get("questionable", 0) + r.get("explicit", 0)
+        if g.get("ok") and risky < REAL_RISKY:
+            keep.append(p)
+            continue
+        removed += 1
+        zc.safety_log({"source": "handler_real", "job": job_id, "gate": {k: g.get(k) for k in ("ok", "min_age", "error")},
+                       "risky": round(risky, 3), "action": "deleted"})
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+    return keep, removed
 
 
 def wf_seed(wf):

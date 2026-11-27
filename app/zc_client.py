@@ -119,6 +119,7 @@ class AgeGate:
             if tags is not None:
                 res["tag_max"] = tags["max"]
                 res["tag_hits"] = tags["hits"]
+                res["rating"] = tags.get("rating") or {}
                 if tags["flag"]:
                     ok = False
             elif os.environ.get("ZC_REQUIRE_TAGGER", "1") == "1":

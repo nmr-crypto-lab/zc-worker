@@ -397,6 +397,134 @@ async def gif_retext(jid: str, request: Request):
     return {"outputs": [{"path": k, "type": "video"} for k in rel]}
 
 
+# ------------------------------------------------------------------ photo uploads (real photos for the photo recipes)
+UPLOAD_MAX = 20 * 1024 * 1024
+UPLOAD_PX = 2048
+UPLOAD_DAYS = 30
+UPLOAD_RISKY = float(os.environ.get("ZC_UPLOAD_RISKY", "0.35"))
+
+
+def _upload_check(path):
+    """an uploaded photo is refused if it shows nudity / sexual content, or a young person in a not clearly safe picture"""
+    import zc_client as zc
+    g = zc.gate().check(path)
+    r = g.get("rating") or {}
+    risky = r.get("questionable", 0) + r.get("explicit", 0)
+    return bool(g.get("ok")) and risky < UPLOAD_RISKY, g, risky
+
+
+@app.post("/api/uploads")
+async def upload_photo(request: Request):
+    """body = the image bytes (the app sends a downscaled JPEG). Stored privately under output/upload/<user>/,
+    EXIF removed, at most 2048 px; deleted after 30 days."""
+    from io import BytesIO
+    from PIL import Image, ImageOps
+    u = me(request)
+    data = await request.body()
+    if not data or len(data) > UPLOAD_MAX:
+        raise HTTPException(400, "photo too large" if data else "no photo")
+    if u["role"] != "admin" and ST.jobs_last_24h(u["id"]) >= u["daily_limit"]:
+        raise HTTPException(429, f"Daily limit reached ({u['daily_limit']} per 24 h). Please try again later.")
+    try:
+        im = Image.open(BytesIO(data))
+        im.load()
+        im = ImageOps.exif_transpose(im).convert("RGB")       # drops EXIF (place, phone) as well
+    except Exception:
+        raise HTTPException(400, "This file is not a photo we can read. Please choose a JPG or PNG.")
+    if min(im.size) < 128:
+        raise HTTPException(400, "The photo is too small.")
+    im.thumbnail((UPLOAD_PX, UPLOAD_PX))
+    key = f"upload/{u['id']}/{uuid.uuid4().hex[:16]}.jpg"
+    path = os.path.join(OUT, key)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    im.save(path, "JPEG", quality=92)
+    ok, g, risky = await asyncio.to_thread(_upload_check, path)
+    if not ok:
+        os.remove(path)
+        ST.event("upload_refused", u["id"], {"min_age": g.get("min_age"), "risky": round(risky, 3), "error": g.get("error")})
+        raise HTTPException(400, "This photo can't be used here. Please choose another one.")
+    ST.add_file(key, u["id"], None, "upload")
+    ST.event("upload", u["id"])
+    return {"path": key, "w": im.size[0], "h": im.size[1]}
+
+
+@app.get("/api/uploads")
+def uploads_list(request: Request, limit: int = 30):
+    out = []
+    for r in ST.files_of(me(request)["id"], "upload", limit):
+        p = os.path.join(OUT, r["key"])
+        try:
+            from PIL import Image
+            w, h = Image.open(p).size
+            out.append({"path": r["key"], "w": w, "h": h, "mtime": int(os.path.getmtime(p))})
+        except OSError:
+            continue
+    return out
+
+
+def _upload_cleanup():
+    while True:
+        try:
+            for k in ST.old_uploads(UPLOAD_DAYS):
+                try:
+                    os.remove(os.path.join(OUT, k))
+                except OSError:
+                    pass
+                ST.delete_file(k)
+        except Exception:
+            traceback.print_exc()
+        time.sleep(6 * 3600)
+
+
+threading.Thread(target=_upload_cleanup, daemon=True).start()
+
+
+def _probe_secs(p):
+    import subprocess
+    try:
+        return float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p],
+                                    capture_output=True, text=True, timeout=30).stdout.strip())
+    except Exception:
+        return 5.0
+
+
+def _montage(paths, out, landscape):
+    """clips one after another with a soft fade between them (memory video). No GPU."""
+    import subprocess
+    W, H = (1280, 720) if landscape else (720, 1280)
+    args, chains = ["ffmpeg", "-y", "-loglevel", "error"], []
+    for i, p in enumerate(paths):
+        args += ["-i", p]
+        d = _probe_secs(p)
+        chains.append(f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,"
+                      f"setsar=1,fps=24,format=yuv420p,fade=t=in:st=0:d=0.5,fade=t=out:st={max(0.1, d - 0.5):.2f}:d=0.5[v{i}]")
+    graph = ";".join(chains) + ";" + "".join(f"[v{i}]" for i in range(len(paths))) + f"concat=n={len(paths)}:v=1:a=0[out]"
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    subprocess.run(args + ["-filter_complex", graph, "-map", "[out]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                           "-movflags", "+faststart", out], check=True, timeout=600)
+
+
+@app.post("/api/montage")
+async def montage(request: Request):
+    b = await request.json()
+    paths = [p for p in (b.get("paths") or []) if isinstance(p, str)][:12]
+    if len(paths) < 2:
+        raise HTTPException(400, "need at least 2 clips")
+    for p in paths:
+        if not can_file(request, p) or not p.lower().endswith((".mp4", ".webm", ".mov", ".webp")):
+            raise HTTPException(403, "you can only use your own videos")
+        if ST.file_is_adult(p):
+            raise HTTPException(403, "videos from the 18+ section stay there")
+    key = f"video/montage/{uuid.uuid4().hex[:12]}.mp4"
+    try:
+        await asyncio.to_thread(_montage, [_media(p) for p in paths], os.path.join(OUT, key), bool(b.get("landscape")))
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(500, f"could not join the clips: {e.__class__.__name__}")
+    ST.add_file(key, me(request)["id"], None, "video")
+    return {"path": key, "type": "video"}
+
+
 # ------------------------------------------------------------------ Tell a story -> Comic
 def _comic_or_404(request, cid):
     c = ST.comic(cid)
@@ -689,7 +817,7 @@ def enqueue(inp, uid):
 @app.post("/api/generate")
 async def generate(request: Request):
     inp = await request.json()
-    for k in ("out_prefix", "_project", "_hero", "_then", "_adult", "_comic"):   # internal keys, set only by the server itself
+    for k in ("out_prefix", "_project", "_hero", "_then", "_adult", "_comic", "_real"):   # internal keys, set only by the server
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")
@@ -702,6 +830,15 @@ async def generate(request: Request):
             raise HTTPException(403, "you can only use your own pictures")
         if ST.file_is_adult(it["path"]):
             raise HTTPException(403, "pictures from the 18+ section stay there")
+        if ST.is_upload(it["path"]):
+            inp["_real"] = True
+    if inp.get("_real"):          # a real photo: everyday models only, no LoRAs, no sexual words (handler re-checks)
+        if inp["family"] not in H.REAL_FAMILIES:
+            raise HTTPException(403, "uploaded photos can only be used in the photo recipes")
+        if H._SEXUAL.search(inp.get("prompt") or ""):
+            ST.event("prompt_refused", me(request)["id"], {"family": inp.get("family"), "real": True})
+            raise HTTPException(400, "Prompt refused for a real photo")
+        inp["loras"] = {}
     u = me(request)
     if u["role"] != "admin" and ST.jobs_last_24h(u["id"]) >= u["daily_limit"]:
         ST.event("limit_hit", u["id"])
@@ -919,6 +1056,8 @@ async def project_add_ref(slug: str, request: Request):
         raise HTTPException(403, "you can only use your own pictures")
     if ST.file_is_adult(b.get("path") or ""):
         raise HTTPException(403, "pictures from the 18+ section stay there")
+    if ST.is_upload(b.get("path") or ""):
+        raise HTTPException(403, "uploaded photos can only be used in the photo recipes")
     return {"name": _pj(PJ.add_ref, slug, b.get("name"), b.get("path"), b.get("desc", ""))}
 
 
