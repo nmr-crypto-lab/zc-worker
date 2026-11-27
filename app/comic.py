@@ -176,3 +176,87 @@ def clip_input(style, d, i, lang):
               "soft ambient sound, no music, no subtitles, no text.")
     return {"family": "h3_fl2va", "prompt": prompt, "images": [{"path": p["image"]}], "seconds": clip_seconds(p),
             "megapixels": 0.6, "_story": True}
+
+
+FONT_DIRS = ("/usr/share/fonts/truetype/dejavu", "/usr/local/lib/python3.12/dist-packages/cv2/qt/fonts")
+
+
+def _font(bold, size):
+    from PIL import ImageFont
+    import os
+    for d in FONT_DIRS:
+        p = os.path.join(d, "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf")
+        if os.path.exists(p):
+            return ImageFont.truetype(p, size)
+    return ImageFont.load_default()
+
+
+def compose(d, root, out):
+    """the finished comic as one picture, the same layout as the app: title, pictures in 2 columns,
+    caption and lines UNDER each picture. Built on the server from pictures that already passed the age gate."""
+    import os
+    from PIL import Image, ImageDraw
+    ps = [p for p in d["panels"] if p.get("image")]
+    names = {c["id"]: c["name"] for c in d["characters"]}
+    W, col, gap, top, fs, pad = 1080, 2, 18, 112, 27, 12
+    pw = (W - gap * 3) // col
+    F, FB, FT = _font(False, fs), _font(True, fs), _font(True, 56)
+    lh = fs + 9
+    tmp = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+
+    def wrap(t, w, first, font):
+        out_, cur, lim = [], "", w - first
+        for wd in t.split(" "):
+            tr = (cur + " " + wd) if cur else wd
+            if tmp.textlength(tr, font=font) > lim and cur:
+                out_.append(cur)
+                cur, lim = wd, w
+            else:
+                cur = tr
+        if cur:
+            out_.append(cur)
+        return out_
+
+    blocks = []
+    for p in ps:
+        bl = []
+        if p.get("caption"):
+            bl.append({"cap": True, "nm": "", "nw": 0, "ls": wrap(p["caption"], pw - 2 * pad, 0, F)})
+        for l in p.get("lines", []):
+            nm = (names.get(l["who"]) + ": ") if names.get(l["who"]) else ""
+            nw = tmp.textlength(nm, font=FB) if nm else 0
+            bl.append({"cap": False, "nm": nm, "nw": nw, "ls": wrap(l["text"], pw - 2 * pad, nw, F)})
+        blocks.append(bl)
+    th = lambda bs: sum(len(b["ls"]) * lh + 2 * pad - 6 + 8 for b in bs) + (6 if bs else 0)
+    rows = [max(th(b) for b in blocks[n:n + col]) for n in range(0, len(ps), col)]
+    H = top + sum(pw + rh + gap for rh in rows) + gap
+    im = Image.new("RGB", (W, H), "white")
+    g = ImageDraw.Draw(im)
+    g.text((W // 2, 76), d.get("title") or "", font=FT, fill="#111111", anchor="ms")
+    y = top
+    for r, rh in enumerate(rows):
+        for c2 in range(col):
+            n = r * col + c2
+            if n >= len(ps):
+                break
+            x = gap + c2 * (pw + gap)
+            pic = Image.open(os.path.join(root, ps[n]["image"])).convert("RGB")
+            s = min(pic.width, pic.height)       # square crop from the middle (film stills are vertical)
+            pic = pic.crop(((pic.width - s) // 2, (pic.height - s) // 2, (pic.width + s) // 2, (pic.height + s) // 2)).resize((pw, pw))
+            im.paste(pic, (x, y))
+            g.rectangle((x, y, x + pw, y + pw), outline="#111111", width=4)
+            by = y + pw + 10
+            for b in blocks[n]:
+                bh = len(b["ls"]) * lh + 2 * pad - 6
+                g.rounded_rectangle((x, by, x + pw, by + bh), radius=4 if b["cap"] else 14,
+                                    fill="#fef08a" if b["cap"] else "#f1f5f9", outline="#111111", width=3)
+                for k, ln in enumerate(b["ls"]):
+                    tx, ty = x + pad, by + pad + k * lh
+                    if k == 0 and b["nm"]:
+                        g.text((tx, ty), b["nm"], font=FB, fill="#1d4ed8")
+                        tx += b["nw"]
+                    g.text((tx, ty), ln, font=F, fill="#111111")
+                by += bh + 8
+        y += pw + rh + gap
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    im.save(out, "PNG", optimize=True)

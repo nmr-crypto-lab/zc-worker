@@ -782,21 +782,18 @@ async def comic_film(cid: str, request: Request):
 
 @app.post("/api/comics/{cid}/final")
 async def comic_final(cid: str, request: Request):
-    """the finished comic as one picture (put together in the app) is kept as a work of its own"""
-    from io import BytesIO
-    from PIL import Image
+    """the finished comic as one picture, put together on the server from its (already checked) pictures;
+    kept as a work of its own (gallery, My works)"""
     c = _comic_or_404(request, cid)
-    data = await request.body()
-    if not data or len(data) > 30 * 1024 * 1024:
-        raise HTTPException(400, "no picture")
-    try:
-        im = Image.open(BytesIO(data))
-        im.load()
-    except Exception:
-        raise HTTPException(400, "not a picture")
+    d = _comic_out(c)["data"]
+    if not any(p["image"] for p in d["panels"]):
+        raise HTTPException(400, "no pictures yet")
     key = f"image/comic/{cid}_{int(time.time())}.png"
-    os.makedirs(os.path.join(OUT, "image/comic"), exist_ok=True)
-    im.convert("RGB").save(os.path.join(OUT, key), "PNG", optimize=True)
+    try:
+        await asyncio.to_thread(CM.compose, d, OUT, os.path.join(OUT, key))
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(500, f"could not put the comic together: {e.__class__.__name__}")
     for old in ST.comic_files(cid).get("final", []):
         ST.delete_file(old)
     ST.drop_comic_role(cid, "final")
