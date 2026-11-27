@@ -9,6 +9,9 @@ import zc_client as zc
 import zc_paths as P
 
 DIRS = [P.OUTPUT, f"{P.COMFY_DIR}/temp"]
+# Joined by the UI server only from files that already passed the gate (story films, memory videos, finished
+# comics): re-checking the joined file only adds false alarms. Skipped on the owner's decision (Nov 2026).
+COMPOSED = tuple(os.path.join(P.OUTPUT, d) + os.sep for d in ("video/film", "video/montage", "image/comic"))
 EXT = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".mov", ".mkv")
 seen = {}  # path -> mtime already checked
 
@@ -43,7 +46,7 @@ def main():
     while True:
         now = time.time()
         for p, m, sz in scan():
-            if seen.get(p) == m:
+            if seen.get(p) == m or p.startswith(COMPOSED):
                 continue
             if sz == 0 or now - m < STABLE_SECS:
                 continue  # still being written
