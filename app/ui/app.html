@@ -183,6 +183,51 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 #movie .ep-clip,#mv-lb .ep-clip{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
 #movie .ep-clip textarea,#mv-lb .ep-clip textarea{min-height:70px;margin-top:6px}
 #movie .mv-cap,#mv-lb .mv-cap{max-width:min(900px,92vw);margin-bottom:8px}
+
+/* ---------- responsive: phone (default) / tablet >=760 / desktop >=1100 ---------- */
+.split>.side,.split>.main{min-width:0}
+@media (min-width:760px){
+  #app{max-width:760px}
+  .fab{right:max(16px,calc(50vw - 364px))}
+  .pad{padding:18px 24px 0}
+  .hscroll{margin:10px -14px 0}
+  .stack.tasks,.stack.secs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .stack.tasks>.card{display:flex;flex-direction:column}
+  .stack.tasks>.card>.stack{margin-top:auto!important;padding-top:12px}
+  .vgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .a-tiles,.a-cat{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .cg{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .cg>.card{margin-top:10px}
+  .narrow{max-width:680px;margin-left:auto;margin-right:auto}
+  .sheet>div{max-width:560px}
+  .thumb{flex-basis:132px;width:132px;height:132px}
+  .ex{width:132px;height:132px}
+  .toast{bottom:110px}
+}
+@media (min-width:1100px){
+  #app{max-width:1240px}
+  .fab{right:max(16px,calc(50vw - 604px));width:72px;height:72px}
+  .top{padding:14px 28px 12px}
+  h1{font-size:32px}
+  .sub{font-size:17px}
+  .split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;align-items:start;padding:0 12px}
+  .split>.side{position:sticky;top:74px}
+  .split>.side .row:has(>.pip),.split>.side .row:has(>.bob){flex-direction:column;align-items:center!important;text-align:center}
+  .split>.side .pip{width:150px;height:150px}
+  .split>.side .bubble{border-radius:22px;font-size:20px;width:100%;box-sizing:border-box}
+  .stack.secs{grid-template-columns:1fr 1fr}
+  .stack.tasks{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .a-tiles{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .a-cat{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  .cg{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .res{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;align-items:start}
+  .a-hero{display:grid;grid-template-columns:400px minmax(0,1fr);gap:24px;align-items:start}
+  .a-hero>.a-hero-l{position:sticky;top:74px}
+  .final-comic{max-width:900px;margin-left:auto;margin-right:auto}
+  .narrow{max-width:720px}
+  .sheet{background:rgba(23,32,51,.25)}
+  .sheet>div{position:fixed;right:28px;bottom:104px;max-width:420px;border-radius:22px;max-height:72vh;box-shadow:0 12px 40px rgba(23,32,51,.3)}
+}
 </style>
 </head>
 <body>
@@ -474,7 +519,7 @@ function media(m, cls) {
 /* ---------------- screens ---------------- */
 function vHome() {
   const t = TT();
-  return `${topBar()}
+  return `${topBar()}<div class="split"><div class="side">
   <div class="pad row" style="align-items:flex-end;gap:10px">${pipEl(80)}<div class="bubble">${esc(t.hi)}</div></div>
   <div class="pad" style="padding-top:12px">
     <div class="row"><label class="sr" for="ask">${esc(t.tell)}</label><input id="ask" class="field" style="border-color:#fb7c4f" placeholder="${esc(t.tell)}" data-enter="ask">
@@ -483,20 +528,20 @@ function vHome() {
       <button class="chip" data-act="open" data-sec="greet" data-task="gifcard">${esc(L('A card for mom', 'Открытка маме', 'Kartu untuk ibu'))}</button>
       <button class="chip" data-act="sec" data-sec="memory">${esc(L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'))}</button>
       <button class="chip" data-act="open" data-sec="fun" data-task="meme">${esc(L('Something funny', 'Что-нибудь смешное', 'Sesuatu yang lucu'))}</button>
-    </div></div>
+    </div></div></div><div class="main">
   <div class="pad h2" style="padding-top:22px">${esc(t.orPick)}</div>
-  <div class="pad stack" style="padding-top:10px;gap:10px">
+  <div class="pad stack secs" style="padding-top:10px;gap:10px">
     ${SECTIONS().map((s) => `<button class="intent" data-act="sec" data-sec="${s.id}"><span class="thumb">${media(s.cover)}</span>
       <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:4px 0"><span style="font-size:18px;font-weight:900;line-height:1.15">${esc(s.t)}</span>
       <span style="font-size:14px;line-height:1.35;color:var(--muted)">${esc(s.line)}</span></span>${ICON.chev}</button>`).join('')}
-  </div>${footer()}`;
+  </div>${footer()}</div></div>`;
 }
 function vSection() {
   const s = secById(S.sec), t = TT();
   return `${topBar({ back: true })}
   <div class="pad"><h1>${esc(s.t)}</h1><p class="sub">${esc(s.sub)}</p></div>
   ${s.note ? `<div class="pad"><div class="card small" style="font-size:14px">${esc(s.note)}</div></div>` : ''}
-  <div class="pad stack">${s.tasks.map((k) => `<div class="card">
+  <div class="pad stack tasks">${s.tasks.map((k) => `<div class="card">
       <div class="row" style="flex-wrap:wrap;gap:6px"><span style="font-size:19px;font-weight:900;line-height:1.2">${esc(k.t)}</span>
       ${k.tag ? `<span class="pill ${k.soon ? 'grey' : ''}">${esc(k.tag)}</span>` : ''}${k.upload ? `<span class="pill grey">${esc(L('photo', 'фото', 'foto'))}</span>` : ''}</div>
       <div class="small" style="font-size:14px;margin-top:3px">${esc(k.line)}</div>
@@ -515,7 +560,7 @@ function vFlow() {
 }
 function vPreview(k) {
   const ex = k.ex[0] || {};
-  return `${topBar({ back: true })}<div class="pad">
+  return `${topBar({ back: true })}<div class="pad narrow">
     <div style="font-size:13px;font-weight:900;color:var(--acc);letter-spacing:.6px;text-transform:uppercase">${esc(L('Example', 'Пример', 'Contoh'))}</div>
     <h1 style="margin-top:2px">${esc(k.t)}</h1>
     <div class="stage" style="margin-top:12px;min-height:200px">${ex.v ? `<video src="${ex.v}" poster="${ex.p}" autoplay muted loop playsinline></video>` : ex.i ? `<img src="${ex.i}" alt="">` : `<div style="aspect-ratio:1/1;position:relative">${media(ex)}</div>`}</div>
@@ -541,7 +586,7 @@ function qBlock(id) {
   return h;
 }
 function vQuestions(k, r) {
-  return `${topBar({ back: true })}<div class="pad"><h1>${esc(k.t)}</h1>
+  return `${topBar({ back: true })}<div class="pad narrow"><h1>${esc(k.t)}</h1>
     <p class="sub">${esc(L('Answer a couple of quick questions. You can change everything later.', 'Ответьте на пару вопросов. Всё можно поменять потом.', 'Jawab beberapa pertanyaan. Semua bisa diubah nanti.'))}</p>
     ${r.qs.map(qBlock).join('')}
     <div class="stack" style="margin-top:24px"><button class="btn" style="min-height:58px;font-size:19px" data-act="make">${esc(L('Make it', 'Сделать', 'Buat'))}</button>
@@ -559,7 +604,7 @@ function jobsProgress() {
 }
 function vGen(k) {
   const p = jobsProgress(), errs = S.jobs.filter((j) => j.status === 'error');
-  return `${topBar({ back: true })}<div class="gate">
+  return `${topBar({ back: true })}<div class="gate narrow">
     <div style="display:flex;justify-content:center">${pipEl(110, false, 'think')}</div>
     <div style="font-size:24px;font-weight:900;margin-top:20px">${esc(p.msg)}</div>
     <div class="sub">${esc(L('You can leave this screen — your works are kept in “My works”.', 'Можно уйти с этого экрана — результаты сохранятся в «Моих работах».', 'Boleh tinggalkan layar ini — hasil tersimpan di “Karya saya”.'))}</div>
@@ -595,9 +640,10 @@ function vResult(k, r) {
   const stage = `<div class="stage" style="container-type:inline-size;${isPrint ? 'background:#fff' : ''}">${mainMedia(cur)}${layerCss(lay)}</div>`;
   return `${topBar({ back: true })}<div class="pad">
     <div class="row" style="gap:10px">${pipEl(44, false, 'happy')}<div class="h2">${esc(L('Done! Pick the one you like', 'Готово! Выберите понравившийся', 'Selesai! Pilih yang Anda suka'))}</div></div>
-    <div style="margin-top:10px">${isPrint ? `<div class="tee"><svg viewBox="0 0 100 100" width="92%" style="position:absolute" aria-hidden="true"><path d="M30 10l-22 13 9 18 11-6v57h44V35l11 6 9-18-22-13c-3 6-10 10-20 10s-17-4-20-10z" fill="#1e293b"/></svg><div style="position:relative;width:38%;margin-top:4%;border-radius:6px;overflow:hidden">${stage}</div></div>` : stage}</div>
+    <div class="res"><div><div style="margin-top:10px">${isPrint ? `<div class="tee"><svg viewBox="0 0 100 100" width="92%" style="position:absolute" aria-hidden="true"><path d="M30 10l-22 13 9 18 11-6v57h44V35l11 6 9-18-22-13c-3 6-10 10-20 10s-17-4-20-10z" fill="#1e293b"/></svg><div style="position:relative;width:38%;margin-top:4%;border-radius:6px;overflow:hidden">${stage}</div></div>` : stage}</div>
     <div class="vgrid" style="margin-top:10px">${ok.map((o, i) => `<button class="vthumb ${i === Math.min(S.picked, ok.length - 1) ? 'on' : ''}" data-act="pick" data-v="${i}" aria-label="${esc(L('Version', 'Вариант', 'Versi'))} ${i + 1}">${mainMedia(o)}</button>`).join('')}
       ${S.jobs.filter((j) => j.status !== 'done' && j.status !== 'error' && j.status !== 'cancelled').map(() => `<div class="vthumb" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#475569">${esc(L('making…', 'делаем…', 'membuat…'))}</div>`).join('')}</div>
+    </div><div>
     ${lay ? vEditor(lay, isGif) : ''}
     <div class="stack" style="margin-top:16px">
       <button class="btn" style="background:var(--ok)" data-act="share">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
@@ -608,7 +654,7 @@ function vResult(k, r) {
     </div>
     <details style="margin-top:14px"><summary class="small" style="font-weight:800;cursor:pointer">${esc(L('Details', 'Подробности', 'Detail'))}</summary>
       <div class="small" style="font-family:ui-monospace,Menlo,monospace;margin-top:6px;word-break:break-word">${esc(cur.family || (isGif ? 'gif: Qwen-Image 2.1 + Wan 2.2 loop' : 'Qwen-Image 2.1'))} · seed ${esc(cur.seed || '—')} · job ${esc(cur.id)}</div></details>
-  </div>`;
+  </div></div></div>`;
 }
 function vEditor(lay, isGif) {
   const N = TSTYLE_NAMES();
@@ -627,7 +673,7 @@ function vWorks() {
     <div class="vgrid" style="margin-top:12px">${(S.worksSrv || []).filter((w) => !/\.gif$/i.test(w.path)).map((w) => `<a class="vthumb" href="${fileUrl(w.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${thumbUrl(w.path, w.mtime)}" alt="">${/\.mp4$/i.test(w.path) ? `<span style="position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:0 5px">▶</span>` : ''}</a>`).join('') || `<div class="small">${esc(L('Nothing yet.', 'Пока пусто.', 'Belum ada.'))}</div>`}</div></div>`;
 }
 function vGate() {
-  return `${topBar({ back: true })}<div class="gate">
+  return `${topBar({ back: true })}<div class="gate narrow">
     <div style="width:84px;height:84px;margin:0 auto;border-radius:24px;background:#172033;color:#fff;font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center">18+</div>
     <div style="font-size:24px;font-weight:900;margin-top:20px">${esc(L('Are you 18 or older?', 'Вам есть 18 лет?', 'Apakah Anda 18+?'))}</div>
     <div class="sub">${esc(L('This section has adult content. It is kept apart from the rest of the site.', 'В этом разделе контент для взрослых. Он отделён от остального сайта.', 'Bagian ini berisi konten dewasa dan terpisah dari bagian lain.'))}</div>
@@ -674,15 +720,15 @@ function vAdult() {
     ['soon', '#be185d', 'M4 5h16v14H4zM4 9h16', L('Your fantasy scene', 'Сцена по твоей фантазии', 'Adegan fantasimu'), L('Frames and a clip from your story.', 'Кадры и клип по вашей истории.', 'Bingkai dan klip dari ceritamu.')],
     ['soon', '#a21caf', 'M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z', L('Other worlds', 'Другие миры', 'Dunia lain'), L('Elf, succubus, cyberpunk.', 'Эльфийка, суккуб, киберпанк.', 'Peri, succubus, cyberpunk.')],
     ['soon', '#86198f', 'M5 3h14v18H5zM8 7h8M8 11h5', L('Make a cover', 'Обложка', 'Buat sampul'), L('Pin-up poster or a magazine.', 'Пин-ап или журнал.', 'Poster pin-up atau majalah.')]];
-  return `${topBar({ back: true, adult: true })}
-  ${aDirector(L('Hey. Who are we spending the evening with?', 'Привет. С кем проведём вечер?', 'Hai. Malam ini bersama siapa?'), 64)}
+  const rules = `<div class="pad"><div class="card small" style="font-size:13px">${esc(L('Only made-up adult characters, 21+, adult-looking in every style including anime. No photos of real people, no lookalikes of anyone real. Everything here is stored separately.', 'Только выдуманные взрослые героини 21+, взрослые на вид в любом стиле, и в аниме тоже. Без фото реальных людей и без сходства с кем-то реальным. Всё здесь хранится отдельно.', 'Hanya karakter dewasa rekaan 21+, tampak dewasa di semua gaya. Tanpa foto orang nyata. Disimpan terpisah.'))}</div></div>`;
+  return `${topBar({ back: true, adult: true })}<div class="split"><div class="side">
+  ${aDirector(L('Hey. Who are we spending the evening with?', 'Привет. С кем проведём вечер?', 'Hai. Malam ini bersama siapa?'), 64)}${rules}</div><div class="main">
   ${recent.length ? `<div class="pad h2" style="padding-top:18px">${esc(L('Continue with', 'Продолжить с', 'Lanjut dengan'))}</div>
   <div class="pad"><div class="hscroll" style="margin:0 -16px;padding:0 16px">${recent.map((h) => `<button data-act="aOpen" data-v="${h.id}" style="flex:0 0 auto;width:96px;padding:0;border:0;background:none;text-align:left;color:inherit">${aCover(h, 120)}<span style="display:block;font-size:14px;font-weight:900;margin-top:6px">${esc(h.name)}</span></button>`).join('')}</div></div>` : ''}
   <div class="pad h2" style="padding-top:20px">${esc(L('What are we in the mood for?', 'Чего хочется?', 'Lagi ingin apa?'))}</div>
-  <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:10px">${tiles.map(([act, c, d, t, l]) => `<button class="intent" style="flex-direction:column;gap:8px;min-height:132px;border:1px solid var(--line);box-shadow:none;padding:12px;${act === 'soon' ? 'opacity:.6' : ''}" data-act="${act}">${ic(c, d)}
+  <div class="pad a-tiles" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:10px">${tiles.map(([act, c, d, t, l]) => `<button class="intent" style="flex-direction:column;gap:8px;min-height:132px;border:1px solid var(--line);box-shadow:none;padding:12px;${act === 'soon' ? 'opacity:.6' : ''}" data-act="${act}">${ic(c, d)}
     <span style="display:block;font-size:16px;font-weight:900;line-height:1.2">${esc(t)}${act === 'soon' ? ` <span class="small">· ${esc(L('soon', 'скоро', 'segera'))}</span>` : ''}</span><span style="display:block;font-size:12.5px;line-height:1.35;color:var(--muted)">${esc(l)}</span></button>`).join('')}</div>
-  <div class="pad"><div class="card small" style="font-size:13px">${esc(L('Only made-up adult characters, 21+, adult-looking in every style including anime. No photos of real people, no lookalikes of anyone real. Everything here is stored separately.', 'Только выдуманные взрослые героини 21+, взрослые на вид в любом стиле, и в аниме тоже. Без фото реальных людей и без сходства с кем-то реальным. Всё здесь хранится отдельно.', 'Hanya karakter dewasa rekaan 21+, tampak dewasa di semua gaya. Tanpa foto orang nyata. Disimpan terpisah.'))}</div></div>
-  ${footer(true)}`;
+  ${footer(true)}</div></div>`;
 }
 
 function vA18Cat() {
@@ -691,7 +737,7 @@ function vA18Cat() {
   ${aDirector(L('Everyone here has a character and a story. Tap anyone you like.', 'У каждой свой характер и история. Нажмите на ту, что понравится.', 'Masing-masing punya karakter dan cerita. Ketuk yang Anda suka.'))}
   <div class="pad" style="padding-top:14px"><h1 style="margin:0">${esc(L('Meet someone', 'Познакомиться', 'Kenalan'))}</h1><div class="sub">${esc(L('Made-up heroines, all 21+.', 'Выдуманные героини, все 21+.', 'Tokoh rekaan, semua 21+.'))}</div></div>
   <div class="pad" style="padding-top:12px">${aSeg('aSt', S.a.st)}${aChips('aVibe', AVIBE(), S.a.vibe)}</div>
-  <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px">${list.map((h) => `<button data-act="aOpen" data-v="${h.id}" style="padding:0;border:0;background:none;color:inherit;text-align:left">${aCover(h, 210)}
+  <div class="pad a-cat" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px">${list.map((h) => `<button data-act="aOpen" data-v="${h.id}" style="padding:0;border:0;background:none;color:inherit;text-align:left">${aCover(h, 210)}
     <span style="display:flex;align-items:baseline;gap:6px;margin-top:7px"><span style="font-size:17px;font-weight:900">${esc(h.name)}</span><span style="font-size:13px;color:var(--muted);font-weight:800">${h.age}</span>${h.mine ? `<span class="tag18" style="font-size:10px;padding:2px 6px">${esc(L('yours', 'ваша', 'milikmu'))}</span>` : ''}</span>
     <span style="display:block;font-size:13px;line-height:1.3;color:var(--muted);margin-top:2px">${esc(aTxt(h.story))}</span></button>`).join('') || `<div class="small">${esc(S.a.list ? L('No one here yet.', 'Пока никого.', 'Belum ada.') : L('Loading…', 'Загрузка…', 'Memuat…'))}</div>`}</div>
   <div class="pad"><button class="btn2" data-act="aNew">+ ${esc(L('Make your own heroine', 'Создать свою героиню', 'Buat tokoh sendiri'))}</button></div>`;
@@ -712,9 +758,9 @@ function vA18Hero() {
     : S.a.ask === 'go' ? `${aChips('aPlace', APLACE(), S.a.placeText ? '' : S.a.place)}<input id="a-place" class="field" style="margin-top:8px;background:#17141f" placeholder="${esc(L('Or name your own place…', 'Или своё место…', 'Atau tempat sendiri…'))}" value="${esc(S.a.placeText)}">` : '';
   return `${topBar({ back: true, adult: true })}
   ${aDirector(L('Ask her for something. She answers with a photo.', 'Попросите её о чём-нибудь. Она ответит фото.', 'Minta sesuatu. Dia menjawab dengan foto.'))}
-  <div class="pad" style="padding-top:14px"><div style="position:relative">${aCover(h, 320, true)}
+  <div class="a-hero"><div class="a-hero-l"><div class="pad" style="padding-top:14px"><div style="position:relative">${aCover(h, 320, true)}
     <div style="position:absolute;left:0;right:0;bottom:0;padding:40px 16px 14px;border-radius:0 0 16px 16px;background:linear-gradient(transparent,rgba(10,8,14,.85))"><div style="font-size:30px;font-weight:900">${esc(h.name)}</div><div style="font-size:14px;font-weight:800;color:#d6cfe0">${h.age} · ${esc(aStName(h.style))}</div></div></div>
-    ${aTxt(h.story) ? `<div style="font-size:14.5px;line-height:1.5;color:#d6cfe0;margin-top:10px">${esc(aTxt(h.story))}</div>` : ''}</div>
+    ${aTxt(h.story) ? `<div style="font-size:14.5px;line-height:1.5;color:#d6cfe0;margin-top:10px">${esc(aTxt(h.story))}</div>` : ''}</div></div><div class="a-hero-r">
   ${ph}
   ${needPortrait ? `<div class="pad"><div class="card small" style="font-size:13px">${esc(L('Pick her portrait first — then you can ask her for photos.', 'Сначала выберите её портрет — потом можно просить фото.', 'Pilih potretnya dulu — lalu minta foto.'))}</div></div>` : `
   <div class="pad h2" style="padding-top:20px">${esc(L('Ask her', 'Попросить', 'Minta dia'))}</div>
@@ -724,13 +770,13 @@ function vA18Hero() {
     ${S.a.err ? `<div class="small" style="margin-top:8px;color:#f9a8d4">${esc(S.a.err)}</div>` : ''}</div>`}
   <div class="pad h2" style="padding-top:20px">${esc(L('What she sent you', 'Что она вам присылала', 'Yang dia kirim untukmu'))}</div>
   <div class="pad"><div class="vgrid">${(h.items || []).map((i) => `<a class="vthumb" href="${fileUrl(i.path)}" target="_blank" rel="noopener" style="aspect-ratio:3/4;border:0;background:#1a1622"><img loading="lazy" src="${thumbUrl(i.path)}" alt=""></a>`).join('') || `<div class="small" style="grid-column:1/-1">${esc(L('Nothing yet — ask her for a selfie.', 'Пока пусто — попросите селфи.', 'Belum ada — minta selfie.'))}</div>`}</div></div>
-  ${h.mine ? `<div class="pad"><button class="btn3" style="width:100%" data-act="aDel">${esc(S.a.delArm ? L('Tap again to delete her', 'Нажмите ещё раз, чтобы удалить', 'Ketuk lagi untuk menghapus') : L('Delete this heroine', 'Удалить героиню', 'Hapus tokoh ini'))}</button></div>` : ''}`;
+  ${h.mine ? `<div class="pad"><button class="btn3" style="width:100%" data-act="aDel">${esc(S.a.delArm ? L('Tap again to delete her', 'Нажмите ещё раз, чтобы удалить', 'Ketuk lagi untuk menghapus') : L('Delete this heroine', 'Удалить героиню', 'Hapus tokoh ini'))}</button></div>` : ''}</div></div>`;
 }
 
 function vA18New() {
   const f = S.a.form;
   return `${topBar({ back: true, adult: true })}
-  ${aDirector(L('Pick her look. I will bring four portraits, you choose the one that is really her.', 'Выберите внешность. Я принесу четыре портрета, вы выберете тот, где это точно она.', 'Pilih penampilannya. Saya bawa empat potret, Anda pilih.'))}
+  <div class="narrow">${aDirector(L('Pick her look. I will bring four portraits, you choose the one that is really her.', 'Выберите внешность. Я принесу четыре портрета, вы выберете тот, где это точно она.', 'Pilih penampilannya. Saya bawa empat potret, Anda pilih.'))}
   <div class="pad" style="padding-top:14px"><h1 style="margin:0">${esc(L('Your ideal type', 'Твой идеальный типаж', 'Tipe idealmu'))}</h1></div>
   <div class="pad h2" style="padding-top:14px">${esc(L('Style', 'Стиль', 'Gaya'))}</div><div class="pad" style="padding-top:8px">${aSeg('aFormSt', f.style)}</div>
   <div class="pad row" style="padding-top:14px;gap:8px"><input id="a-name" class="field" style="background:#17141f;flex:2" placeholder="${esc(L('Her name', 'Её имя', 'Namanya'))}" value="${esc(f.name)}">
@@ -743,7 +789,7 @@ function vA18New() {
   <div class="pad" style="padding-top:12px"><input id="a-extra" class="field" style="background:#17141f" placeholder="${esc(L('Anything else, in English: e.g. tanned skin, glasses', 'Что-то ещё, по-английски: напр. tanned skin, glasses', 'Lainnya, dalam bahasa Inggris'))}" value="${esc(f.extra)}">
     <div class="small" style="margin-top:6px">${esc(L('Tip: hair, eyes, figure and one simple tattoo stay the same in every picture. Beauty marks, freckles and piercings drift, so better skip them.', 'Совет: волосы, глаза, фигура и одна простая тату сохраняются на всех картинках. Родинки, веснушки и пирсинг плавают — лучше без них.', 'Tips: rambut, mata, tubuh dan satu tato sederhana tetap sama. Tahi lalat dan tindik sering berubah.'))}</div></div>
   ${S.a.err ? `<div class="pad small" style="color:#f9a8d4">${esc(S.a.err)}</div>` : ''}
-  <div class="pad"><button class="btn" data-act="aCreate" ${S.a.busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Show me 4 portraits', 'Показать 4 портрета', 'Tampilkan 4 potret'))}</button></div>`;
+  <div class="pad"><button class="btn" data-act="aCreate" ${S.a.busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Show me 4 portraits', 'Показать 4 портрета', 'Tampilkan 4 potret'))}</button></div></div>`;
 }
 
 let aPollT = 0, aGrace = 0;
@@ -829,7 +875,7 @@ function cLinesHtml(p) {
 }
 function vComic() {
   const c = S.c, x = c.x;
-  let h = `${topBar({ back: true })}<div class="pad"><h1 style="margin:0">${esc(L('Comic', 'Комикс', 'Komik'))}</h1>`;
+  let h = `${topBar({ back: true })}<div class="pad ${x ? '' : 'narrow'}"><h1 style="margin:0">${esc(L('Comic', 'Комикс', 'Komik'))}</h1>`;
   if (!x) {
     h += `<div class="sub">${esc(L('Tell the idea, paste a joke or a family story. We write the comic, you check every step.', 'Расскажите идею, вставьте анекдот или семейную байку. Мы напишем комикс, вы проверите каждый шаг.', 'Ceritakan ide, tempel lelucon atau kisah keluarga. Kami tulis komiknya, Anda cek setiap langkah.'))}</div>
       <textarea id="c-idea" class="field" rows="6" style="margin-top:14px" placeholder="${esc(L('e.g. Our cat steals sausages and blames the dog', 'Например: наш кот ворует сосиски и сваливает на собаку', 'mis. Kucing kami mencuri sosis dan menyalahkan anjing'))}">${esc(c.idea)}</textarea>
@@ -848,9 +894,9 @@ function vComic() {
     const sig = cSig();
     if (c.finalSig !== sig && !cMakeFinal.busy) setTimeout(cMakeFinal, 0);
     return h + `<div class="sub">${esc(L('Your comic is ready.', 'Ваш комикс готов.', 'Komik Anda sudah jadi.'))}</div>
-      <div style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираем комикс…', 'Menyusun komik…'))}</span>`}</div>
+      <div class="final-comic" style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираем комикс…', 'Menyusun komik…'))}</span>`}</div>
       ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
-      <div class="stack" style="margin-top:14px;gap:10px">
+      <div class="stack final-comic" style="margin-top:14px;gap:10px">
         <button class="btn" style="background:var(--ok)" data-act="cSave">${esc(L('Send or save', 'Отправить или сохранить', 'Kirim atau simpan'))}</button>
         <button class="btn2" data-act="cEdit">${esc(L('Change something', 'Поправить', 'Ubah sesuatu'))}</button>
         <button class="btn3" style="width:100%" data-act="cNew">${esc(L('New comic', 'Новый комикс', 'Komik baru'))}</button></div></div>`;
@@ -859,14 +905,17 @@ function vComic() {
   h += `<input class="field" data-c="title" style="margin-top:10px;font-weight:900" value="${esc(d.title)}">
     <div class="h2" style="margin-top:16px">1. ${esc(L('Heroes', 'Герои', 'Tokoh'))}</div>
     <div class="small">${esc(L('Every panel is drawn from these pictures. Not right? Draw again.', 'По этим картинкам рисуются все кадры. Не нравится — перерисуйте.', 'Semua panel digambar dari gambar ini. Kurang pas? Gambar ulang.'))}</div>`;
+  h += '<div class="cg">';
   d.characters.forEach((ch, i) => {
     h += `<div class="card" style="margin-top:10px"><div style="font-weight:900">${esc(ch.name)}</div>
       <textarea class="field" rows="2" data-c="look|${i}" style="margin-top:6px;font-size:14px">${esc(ch.look)}</textarea>
       <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap">${ch.candidates.slice(0, 4).map((k) => `<button data-act="cPick" data-ch="${ch.id}" data-v="${esc(k)}" style="width:84px;height:84px;padding:0;border-radius:12px;overflow:hidden;border:3px solid ${k === ch.portrait ? 'var(--acc)' : 'transparent'};background:#e2e8f0"><img src="${thumbUrl(k)}" alt="" style="width:100%;height:100%;object-fit:cover"></button>`).join('')}
       ${ch.candidates.length && !busy ? `<button class="btn3" style="min-height:84px;font-size:13px" data-act="cRecast" data-v="${ch.id}">${esc(L('Draw again', 'Переделать', 'Gambar ulang'))}</button>` : ''}</div></div>`;
   });
+  h += '</div>';
   if (needCast) h += `<button class="btn" style="margin-top:12px" data-act="cCast" ${busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Draw the heroes', 'Нарисовать героев', 'Gambar tokohnya'))}</button>`;
   h += `<div class="h2" style="margin-top:20px">2. ${esc(L('The story', 'История', 'Cerita'))}</div>`;
+  h += '<div class="cg">';
   d.panels.forEach((p, i) => {
     h += `<div class="card" style="margin-top:10px">
       ${p.image ? `<div style="position:relative;border-radius:12px;overflow:hidden"><img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block"><div style="position:absolute;left:8px;right:8px;bottom:8px">${cLinesHtml(p)}</div></div>` : ''}
@@ -877,6 +926,7 @@ function vComic() {
         return `<div class="row" style="gap:6px;margin-top:6px"><span class="small" style="flex:0 0 70px;font-weight:800">${esc(cName(l.who) || '—')}</span><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" style="font-size:14px;height:44px" value="${esc(l.text)}" placeholder="${esc(L('Line', 'Реплика', 'Dialog'))}"></div>`; }).join('')}
       ${p.image && !busy ? `<button class="btn3" style="width:100%;margin-top:8px" data-act="cRedraw" data-v="${i}">${esc(L('Draw this picture again', 'Перерисовать эту картинку', 'Gambar ulang'))}</button>` : ''}</div>`;
   });
+  h += '</div>';
   if (c.err) h += `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>`;
   if (busy) h += `<div class="card small" style="margin-top:12px">${esc(L('Drawing…', 'Рисуем…', 'Menggambar…'))} ${busy} ${esc(L('left', 'осталось', 'lagi'))}</div>`;
   else if (!needPick) h += `<button class="btn" style="margin-top:14px" data-act="cDraw">${esc(drawn ? L('Draw the whole comic again', 'Перерисовать весь комикс', 'Gambar ulang semua') : L('Draw the comic', 'Нарисовать комикс', 'Gambar komiknya'))}</button>`;
