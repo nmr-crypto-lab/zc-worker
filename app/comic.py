@@ -50,6 +50,10 @@ EXTRA"""
 FILM_EXTRA = """- This is an animated film: every panel is one shot of 5-8 seconds that will come alive with sound.
   "motion" = what moves in the shot and how (gestures, facial expressions, camera move), in English, one sentence.
   Lines are spoken aloud: natural, short, easy to say; at most 2 lines per shot. Captions are read by a narrator."""
+TALE_EXTRA = """- This is a bedtime story for a small child, read aloud by a parent. The child named in the idea is the hero.
+  Each panel is a page: "caption" = the story text of that page in LANG, 2-3 short sentences, up to 280 characters;
+  "lines" = [] (no dialogue). Gentle and warm, a little adventure, no scary parts; the last page ends with the hero falling asleep.
+  "style" = storybook unless the idea asks otherwise."""
 US_EXTRA = """- The heroes are real people from the user's photos. Use EXACTLY these characters (ids and names), add none:
 PEOPLE
   For them "look" = only clothes and outfit for this story (the face, hair and age come from their photo)."""
@@ -61,9 +65,11 @@ def plan(idea, style, n, lang, kind="comic", people=None, variant=0):
     extra = ""
     if kind in ("film", "us"):
         extra += FILM_EXTRA
+    if kind == "tale":
+        extra += TALE_EXTRA
     if kind == "us" and people:
         extra += "\n" + US_EXTRA.replace("PEOPLE", "\n".join(f'  {{"id": "c{i + 1}", "name": "{p["name"]}"}}' for i, p in enumerate(people)))
-    system = SYSTEM.replace("LANG", lang_name).replace("KIND", "animated film" if kind in ("film", "us") else "comic").replace("EXTRA", extra)
+    system = SYSTEM.replace("EXTRA", extra).replace("LANG", lang_name).replace("KIND", "animated film" if kind in ("film", "us") else "bedtime story with pictures" if kind == "tale" else "comic")
     user = f"LANG: {lang_name}\nPANELS: exactly {n}\n" + (f"STYLE: {style}\n" if style in STYLES else "") + \
            (f"VARIANT: {variant} (write a clearly different take than an obvious first version)\n" if variant else "") + \
            f"IDEA:\n{idea.strip()[:3000]}"
@@ -100,14 +106,14 @@ def normalize(d, n=8):
                  for l in (p.get("lines") or [])[:2] if _s(l.get("text"), 120)]
         panels.append({"scene": _s(p.get("scene"), 400), "motion": _s(p.get("motion"), 300),
                        "chars": [c for c in (p.get("chars") or []) if c in ids][:3],
-                       "caption": _s(p.get("caption"), 100), "lines": lines,
+                       "caption": _s(p.get("caption"), 300 if d.get("kind") == "tale" else 100), "lines": lines,
                        "image": p.get("image") if isinstance(p.get("image"), str) else None})
     pip = d.get("pip") if isinstance(d.get("pip"), dict) else {}
     pip = {"start": _s(pip.get("start"), 120), "final": _s(pip.get("final"), 120),
            "heroes": {k: _s(v, 120) for k, v in (pip.get("heroes") or {}).items() if k in ids} if isinstance(pip.get("heroes"), dict) else {},
            "panels": [_s(x, 120) for x in (pip.get("panels") or [])][:len(panels)] if isinstance(pip.get("panels"), list) else []}
     style = d.get("style") if d.get("style") in STYLES else None
-    return {"title": _s(d.get("title"), 80), "kind": d.get("kind") if d.get("kind") in ("comic", "film", "us") else "comic",
+    return {"title": _s(d.get("title"), 80), "kind": d.get("kind") if d.get("kind") in ("comic", "film", "us", "tale") else "comic",
             "style": style, "characters": chars, "panels": panels, "pip": pip}
 
 

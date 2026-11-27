@@ -244,6 +244,7 @@ def worker():
                                 adult=bool(job["input"].get("_adult")))
             _hero_after(job)
             _comic_after(job)
+            _chain_after(job)
         except Exception:
             traceback.print_exc()
         Q.task_done()
@@ -257,6 +258,16 @@ def _comic_after(job):
     for o in (job.get("result") or {}).get("outputs", []):
         if o.get("type") == want and (want == "image" or o["path"].lower().endswith(".mp4")):
             ST.add_comic_file(o["path"], m["id"], m["role"])
+
+
+def _chain_after(job):
+    """two-step recipes built by the server (a picture, then a clip of it): run the second step on the first result"""
+    then = job["input"].get("_then")
+    if not then or job["input"].get("_hero") or job["status"] != "done":
+        return
+    outs = [o for o in (job.get("result") or {}).get("outputs", []) if o.get("type") == "image"]
+    if outs:
+        job["next"] = enqueue(dict(then, images=[{"path": outs[0]["path"]}]), job.get("user") or ST.owner()["id"])
 
 
 def _hero_after(job):
@@ -554,6 +565,39 @@ async def montage(request: Request):
     return {"path": key, "type": "video"}
 
 
+# ------------------------------------------------------------------ video greeting with a voice (picture -> H3 clip)
+VOICE_CHARS = {
+    "cat": "a fluffy ginger cat", "bear": "a cute brown teddy bear", "santa": "Santa Claus with a white beard in a red coat",
+    "puppy": "a cute beagle puppy", "snowman": "a friendly snowman with a carrot nose and a scarf", "dragon": "a cute little green dragon",
+}
+LANG_NAMES = {"en": "English", "ru": "Russian", "id": "Indonesian"}
+
+
+@app.post("/api/recipe/voice")
+async def recipe_voice(request: Request):
+    b = await request.json()
+    u = me(request)
+    ch = VOICE_CHARS.get(b.get("char")) or VOICE_CHARS["cat"]
+    scene = re.sub(r"\s+", " ", str(b.get("scene") or ""))[:300]
+    text = re.sub(r"\s+", " ", str(b.get("text") or "")).strip()[:140]
+    if len(text) < 2:
+        raise HTTPException(400, "write what to say")
+    if H.prompt_violation(text + " " + scene, True) or H._SEXUAL.search(text + " " + scene):
+        ST.event("prompt_refused", u["id"], {"where": "voice"})
+        raise HTTPException(400, "Refused: this greeting can't be made here")
+    n = max(1, min(3, int(b.get("n") or 2)))
+    _limit_ok(u, 2 * n)
+    first = {"family": "qwen_image21", "width": 768, "height": 1344,
+             "prompt": f"{ch} looking straight at the camera, front view, cheerful, mouth closed, {scene}, "
+                       f"3D animated cartoon movie look, soft warm light, vertical frame. No text, no letters."}
+    secs = int(max(4, min(8, round(2.5 + len(text) / 13))))
+    then = {"family": "h3_fl2va", "seconds": secs, "megapixels": 0.6, "_story": True,
+            "prompt": f"Cartoon animation. {ch} looks at the camera, smiles and says warmly in {LANG_NAMES.get(b.get('lang'), 'English')}: "
+                      f"\"{text}\" Friendly expressive voice, matching mouth movement, soft festive background sound, no music, no subtitles, no text."}
+    ST.event("voice", u["id"])
+    return {"ids": [enqueue(dict(first, _then=then), u["id"]) for _ in range(n)]}
+
+
 # ------------------------------------------------------------------ Tell a story -> Comic / Film / Cartoon about us
 def _comic_or_404(request, cid):
     c = ST.comic(cid)
@@ -594,7 +638,7 @@ def _qpos(jid):
 
 def _comic_check_text(request, d):
     t = CM.all_text(d)
-    if H.prompt_violation(t, True) or (d.get("kind") in ("film", "us") and H._SEXUAL.search(t)):
+    if H.prompt_violation(t, True) or (d.get("kind") in ("film", "us", "tale") and H._SEXUAL.search(t)):
         ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
         raise HTTPException(400, "Refused: this story can't be made here")
 
@@ -616,7 +660,7 @@ async def comic_create(request: Request):
     b = await request.json()
     u = me(request)
     idea = (b.get("idea") or "").strip()
-    kind = b.get("kind") if b.get("kind") in ("comic", "film", "us") else "comic"
+    kind = b.get("kind") if b.get("kind") in ("comic", "film", "us", "tale") else "comic"
     style = b.get("style") if b.get("style") in CM.STYLES else None
     if len(idea) < 3:
         raise HTTPException(400, "tell the idea first")
@@ -632,7 +676,7 @@ async def comic_create(request: Request):
             people.append({"path": path, "name": name or f"Hero {len(people) + 1}"})
         if not people:
             raise HTTPException(400, "add at least one photo")
-    n = int(b.get("panels") or (6 if kind == "comic" else 4))
+    n = int(b.get("panels") or (6 if kind in ("comic", "tale") else 4))
     try:
         d = await asyncio.to_thread(CM.plan, idea, style, n, b.get("lang") or "en", kind, people, int(b.get("variant") or 0))
     except llm.NotConfigured as e:
