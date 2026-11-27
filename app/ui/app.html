@@ -91,6 +91,14 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 .upslot .x{position:absolute;right:6px;top:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;font-weight:900;line-height:32px;padding:0;cursor:pointer}
 .upslot .cap{position:absolute;left:0;right:0;bottom:0;padding:6px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:12px;font-weight:800}
 .upslot input{position:absolute;width:1px;height:1px;opacity:0}
+.cline{display:block;width:100%;margin-top:6px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#f8fafc;text-align:left;font:inherit;font-size:15px;font-weight:700;color:#172033;cursor:text;line-height:1.3}
+.cline.cap{background:#fef9c3;border-color:#eab308;font-size:14px;font-weight:800}
+.hpic{flex-shrink:0;width:88px;height:88px;border-radius:14px;overflow:hidden;background:#e2e8f0;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;box-sizing:border-box}
+.hpic img{width:100%;height:100%;object-fit:cover;display:block}
+.ppic{position:relative;aspect-ratio:1/1;border-radius:12px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ppic span{position:relative;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:10px;font-size:13px;font-weight:800;color:#334155}
+.side-acts{display:none;flex-direction:column;gap:10px;padding:14px 16px 0}
+.linkbtn{border:0;background:none;padding:0;font:inherit;font-weight:900;color:var(--acc);cursor:pointer;text-decoration:underline}
 .vgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .vthumb{aspect-ratio:1/1;border-radius:12px;overflow:hidden;border:4px solid transparent;padding:0;background:#cbd5e1;position:relative}
 .vthumb.on{border-color:var(--acc)}
@@ -195,6 +203,7 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 /* ---------- responsive: phone (default) / tablet >=760 / desktop >=1100 ---------- */
 .split>.side,.split>.main{min-width:0}
 @media (min-width:760px){
+  .cg.hg{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))!important}
   #app{max-width:760px}
   .fab{right:max(16px,calc(50vw - 364px))}
   .pad{padding:18px 24px 0}
@@ -213,6 +222,8 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
   .toast{bottom:110px}
 }
 @media (min-width:1100px){
+  .split>.side .side-acts{display:flex}
+  .split>.main .main-acts{display:none}
   #app{max-width:1240px}
   .fab{right:max(16px,calc(50vw - 604px));width:72px;height:72px}
   .top{padding:14px 28px 12px}
@@ -492,10 +503,10 @@ function SECTIONS() {
       line: L('A comic, a short clip or a mini-film from your idea, step by step', 'Комикс, клип или мини-фильм по вашей идее, шаг за шагом', 'Komik, klip atau film mini dari ide Anda, langkah demi langkah'),
       sub: L('Tell your idea or paste a joke, a tale, a family story. We plan the scenes, you check every step.', 'Расскажите идею или вставьте анекдот, сказку, байку. Мы разложим на сцены, вы проверяете каждый шаг.', 'Ceritakan ide atau tempel lelucon, dongeng, kisah keluarga. Kami susun adegannya, Anda cek setiap langkah.'),
       tasks: [
-        { id: 'comic', t: L('Comic', 'Комикс', 'Komik'), tag: L('new', 'новое', 'baru'), line: L('4–8 pictures with lines. You check the story and the heroes before drawing.', '4–8 картинок с репликами. Историю и героев проверяете до рисования.', '4–8 gambar dengan dialog. Cek cerita dan tokoh sebelum digambar.'), ex: [P('', '#1d4ed8')] },
-        { id: 'clip', t: L('Short clip', 'Короткий клип', 'Klip pendek'), line: L('Up to 60 s, with voices and music.', 'До 60 с, с голосами и музыкой.', 'Hingga 60 dtk, dengan suara dan musik.'), ex: [V('village')], soon: true },
-        { id: 'us', t: L('Cartoon about us', 'Мультик про нас', 'Kartun tentang kami'), line: L('Family or friends in an adventure.', 'Семья или друзья в приключении.', 'Keluarga atau teman berpetualang.'), ex: [P('', '#7c3aed')], soon: true },
-        { id: 'film', t: L('Film from a text', 'Фильм по тексту', 'Film dari teks'), line: L('A joke, a tale or a poem, scene by scene.', 'Анекдот, сказка или стих по сценам.', 'Lelucon, dongeng atau puisi per adegan.'), ex: [P(L('“The three bogatyrs”', '«Три богатыря»', '“Tiga ksatria”'), '#7c2d12')], soon: true }
+        { id: 'comic', t: L('Comic', 'Комикс', 'Komik'), tag: L('new', 'новое', 'baru'), line: L('One line — 6 pictures with lines. Redo any hero or picture.', 'Одна фраза — 6 картинок с репликами. Любого героя или картинку можно переделать.', 'Satu kalimat — 6 gambar dengan dialog. Tokoh atau gambar bisa diulang.'), ex: [P('', '#1d4ed8')], r: 'comic' },
+        { id: 'clip', t: L('Short clip', 'Короткий клип', 'Klip pendek'), line: L('One line — 3–4 scenes come alive with voices.', 'Одна фраза — 3–4 сцены оживают с голосами.', 'Satu kalimat — 3–4 adegan hidup bersuara.'), ex: [V('village')], r: 'clip' },
+        { id: 'us', t: L('Cartoon about us', 'Мультик про нас', 'Kartun tentang kami'), line: L('Your photos become cartoon heroes of an adventure, with voices.', 'Ваши фото становятся мультяшными героями приключения, с голосами.', 'Foto Anda jadi tokoh kartun petualangan, bersuara.'), ex: [P('', '#7c3aed')], r: 'us', upload: false },
+        { id: 'film', t: L('Film from a text', 'Фильм по тексту', 'Film dari teks'), line: L('A joke, a tale or a poem, scene by scene.', 'Анекдот, сказка или стих по сценам.', 'Lelucon, dongeng atau puisi per adegan.'), ex: [P(L('“The three bogatyrs”', '«Три богатыря»', '“Tiga ksatria”'), '#7c2d12')], r: 'film' }
       ] },
     { id: 'fun', th: 'th-fun', cover: { ph: '', bg: '#db2777', fun: true }, t: L('Just for fun', 'Повеселиться', 'Seru-seruan'),
       line: L('Memes, “my cat is a king”, a funny card for a friend', 'Мемы, «мой кот — король», смешная открытка другу', 'Meme, “kucingku jadi raja”, kartu lucu'),
@@ -596,7 +607,10 @@ function vHome() {
       <button class="chip" data-act="sec" data-sec="memory">${esc(L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'))}</button>
       <button class="chip" data-act="open" data-sec="fun" data-task="meme">${esc(L('Something funny', 'Что-нибудь смешное', 'Sesuatu yang lucu'))}</button>
     </div></div></div><div class="main">
-  <div class="pad h2" style="padding-top:22px">${esc(t.orPick)}</div>
+  <div class="pad" style="padding-top:18px"><button class="intent story-tile" data-act="open" data-sec="story" data-task="comic"><span class="thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#fde68a,#f59e0b)">${pipEl(64, false, 'happy')}</span>
+    <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:4px 0"><span style="font-size:18px;font-weight:900;line-height:1.15">${esc(L('Make a comic from one line', 'Комикс из одной фразы', 'Komik dari satu kalimat'))}</span>
+    <span style="font-size:14px;line-height:1.35;color:var(--muted)">${esc(L('Tell me the idea — I draw the heroes and the whole story.', 'Скажите идею — я нарисую героев и всю историю.', 'Ceritakan idenya — aku gambar tokoh dan seluruh ceritanya.'))}</span></span>${ICON.chev}</button></div>
+  <div class="pad h2" style="padding-top:18px">${esc(t.orPick)}</div>
   <div class="pad stack secs" style="padding-top:10px;gap:10px">
     ${SECTIONS().map((s) => `<button class="intent" data-act="sec" data-sec="${s.id}"><span class="thumb">${media(s.cover)}</span>
       <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:4px 0"><span style="font-size:18px;font-weight:900;line-height:1.15">${esc(s.t)}</span>
@@ -960,97 +974,169 @@ async function aAct(a, d) {
 
 const SHOW_STUDIO = false;   // the pro studio is hidden at launch; the code stays
 /* ---------------- Tell a story -> Comic: idea -> screenplay -> heroes -> panels -> lines on top ---------------- */
-const CSTY = () => [['comic', L('Comic book', 'Комикс', 'Komik'), '#1d4ed8'], ['manga', L('Manga', 'Манга', 'Manga'), '#334155'], ['toon3d', L('3D cartoon', '3D-мультик', 'Kartun 3D'), '#f59e0b'], ['toon2d', L('2D cartoon', '2D-мультик', 'Kartun 2D'), '#16a34a'], ['storybook', L('Storybook', 'Книжка', 'Buku cerita'), '#db2777']];
-S.c = { id: null, x: null, idea: '', style: 'comic', n: 6, busy: false, err: '', list: null, dirty: false };
+const CSTY = () => [['toon3d', L('3D cartoon', '3D-мультик', 'Kartun 3D')], ['toon2d', L('cartoon', 'мультик', 'kartun')], ['comic', L('comic book', 'комикс', 'komik')], ['storybook', L('storybook', 'книжка', 'buku cerita')], ['manga', L('manga', 'манга', 'manga')]];
+const CKIND = { comic: 'comic', clip: 'film', film: 'film', us: 'us' };
+S.c = { kind: 'comic', task: 'comic', x: null, idea: '', busy: false, err: '', list: null, dirty: false, view: null, editing: null, styleOpen: false, people: [], cupBusy: {}, variant: 0 };
 let cPollT = 0, cGrace = 0;
 function cName(id) { const ch = ((S.c.x && S.c.x.data.characters) || []).find((c) => c.id === id); return ch ? ch.name : ''; }
-function cLinesHtml(p) {
-  const box = 'display:block;background:#fff;color:#111;border:2px solid #111;border-radius:12px;padding:4px 8px;font-size:13px;font-weight:800;line-height:1.25;margin-top:4px;text-align:left';
-  return `${p.caption ? `<span style="display:block;background:#fef08a;color:#111;border:2px solid #111;padding:3px 7px;font-size:12px;font-weight:800;line-height:1.25;text-align:left">${esc(p.caption)}</span>` : ''}
-    ${p.lines.map((l) => `<span style="${box}">${cName(l.who) ? `<b style="color:#1d4ed8">${esc(cName(l.who))}:</b> ` : ''}${esc(l.text)}</span>`).join('')}`;
+const cFilm = (x) => x && x.data.kind !== 'comic';
+const cRoles = (x) => (x.jobs || []).map((j) => j.role);
+const cBusy = (x, pre) => cRoles(x).some((r) => r.startsWith(pre));
+const cJob = (x, role) => (x.jobs || []).find((j) => j.role === role);
+const cFail = (x, role) => (x.failed || []).find((f) => f.role === role) && !cJob(x, role);
+function cStep(x) {
+  if (S.c.view) return S.c.view;
+  const d = x.data, film = cFilm(x);
+  if (film && d.film) return 'final';
+  if (film && (d.panels.some((p) => p.clip) || cBusy(x, 'clip:'))) return 'clips';
+  if (d.panels.some((p) => p.image) || cBusy(x, 'panel:')) return (!film && d.panels.every((p) => p.image) && !cBusy(x, 'panel:')) ? 'final' : 'pics';
+  return 'heroes';
+}
+function cKindText(k) {
+  return {
+    comic: { t: L('Comic', 'Комикс', 'Komik'), hi: L('Hi! What is the comic about? One line is enough — I do the rest.', 'Привет! О чём комикс? Хватит одной фразы — остальное сделаю я.', 'Hai! Komiknya tentang apa? Satu kalimat cukup — sisanya aku.'),
+      ph: L('e.g. Grandma learns video calls', 'Например: бабушка учится видеосвязи', 'mis. Nenek belajar video call'),
+      ex: [L('Grandma learns video calls', 'Бабушка учится видеосвязи', 'Nenek belajar video call'), L('The cat steals sausages and blames the dog', 'Кот ворует сосиски и сваливает на собаку', 'Kucing mencuri sosis dan menyalahkan anjing'), L('Dad assembles a wardrobe without instructions', 'Папа собирает шкаф без инструкции', 'Ayah merakit lemari tanpa petunjuk')] },
+    film: { t: S.c.task === 'film' ? L('Film from a text', 'Фильм по тексту', 'Film dari teks') : L('Short clip', 'Короткий клип', 'Klip pendek'),
+      hi: S.c.task === 'film' ? L('Paste a joke, a tale or a poem — I split it into scenes, draw them and give everyone a voice.', 'Вставьте анекдот, сказку или стих — я разложу на сцены, нарисую и озвучу.', 'Tempel lelucon, dongeng atau puisi — aku bagi jadi adegan, gambar dan beri suara.')
+        : L('What is the clip about? One line — I write the scenes, draw them and they come alive with voices.', 'О чём клип? Одна фраза — я напишу сцены, нарисую, и они оживут с голосами.', 'Klipnya tentang apa? Satu kalimat — aku tulis adegan, gambar, lalu hidup bersuara.'),
+      ph: S.c.task === 'film' ? L('Paste the text here…', 'Вставьте текст сюда…', 'Tempel teksnya di sini…') : L('e.g. A hedgehog wants to fly', 'Например: ёжик мечтает летать', 'mis. Landak ingin terbang'),
+      ex: S.c.task === 'film' ? [] : [L('A hedgehog wants to fly', 'Ёжик мечтает летать', 'Landak ingin terbang'), L('A robot learns to cook borscht', 'Робот учится варить борщ', 'Robot belajar memasak sup'), L('Two snowmen argue about spring', 'Два снеговика спорят о весне', 'Dua manusia salju berdebat soal musim semi')] },
+    us: { t: L('Cartoon about us', 'Мультик про нас', 'Kartun tentang kami'), hi: L('Add photos of the people in the cartoon — up to three. I draw them as heroes, then you tell me the story.', 'Добавьте фото тех, кто будет в мультике — до трёх человек. Я нарисую их героями, а вы скажите, о чём история.', 'Tambah foto orang di kartun — maksimal tiga. Aku gambar jadi tokoh, lalu ceritakan kisahnya.'),
+      ph: L('e.g. Our family goes camping and the tent flies away', 'Например: мы едем в поход, и палатку уносит ветром', 'mis. Keluarga kami berkemah dan tendanya terbang'),
+      ex: [L('Our family goes camping and the tent flies away', 'Мы едем в поход, и палатку уносит ветром', 'Keluarga kami berkemah dan tendanya terbang'), L('We become superheroes for one day', 'Мы на один день становимся супергероями', 'Kami jadi superhero sehari'), L('A trip to the sea in a tiny car', 'Поездка на море в крошечной машине', 'Perjalanan ke laut dengan mobil mungil')] }
+  }[k];
+}
+function cPip(x, step) {
+  const d = x.data, pip = d.pip || {}, film = cFilm(x);
+  if (step === 'heroes') {
+    const ready = d.characters.filter((ch) => ch.portrait && !cJob(x, 'cast:' + ch.id));
+    if (ready.length === d.characters.length && !cBusy(x, 'cast:')) return L('Everyone here? If someone is off, tap “Redo”. If not — onward!', 'Все на месте? Если кто-то не тот — «Переделать». Если всё так — дальше!', 'Semua ada? Jika ada yang salah, ketuk “Ulangi”. Kalau pas — lanjut!');
+    if (!ready.length) return pip.start || L('Great story! Drawing the heroes…', 'Отличная история! Рисую героев…', 'Cerita bagus! Menggambar tokoh…');
+    const last = ready[ready.length - 1];
+    return (pip.heroes || {})[last.id] || L(`${last.name} is ready!`, `${last.name} готов(а)!`, `${last.name} siap!`);
+  }
+  if (step === 'pics') {
+    const k = d.panels.filter((p) => p.image).length, busy = cBusy(x, 'panel:');
+    if (!busy && k === d.panels.length) return film ? L('Pictures are ready. Shall we bring them to life? It takes a few minutes.', 'Картинки готовы. Оживляем? Это займёт несколько минут.', 'Gambar siap. Hidupkan? Butuh beberapa menit.')
+      : L('Done! Tap any line to fix a word.', 'Готово! Нажмите на реплику, чтобы поправить слово.', 'Selesai! Ketuk dialog untuk mengubah kata.');
+    if (!k) return L('Action! Drawing the first picture…', 'Мотор! Рисую первую картинку…', 'Action! Menggambar gambar pertama…');
+    return (pip.panels || [])[k - 1] || L('Drawing the next one…', 'Рисую следующую…', 'Menggambar berikutnya…');
+  }
+  if (step === 'clips') {
+    const k = d.panels.filter((p) => p.clip).length;
+    if (!cBusy(x, 'clip:') && k === d.panels.length) return L('All scenes are alive! Shall I put them into one film?', 'Все сцены ожили! Собрать в один фильм?', 'Semua adegan hidup! Gabung jadi satu film?');
+    return k ? L(`Scene ${k} is talking! The rest are on the way.`, `Сцена ${k} заговорила! Остальные в пути.`, `Adegan ${k} sudah bicara! Sisanya menyusul.`)
+      : L('Bringing the scenes to life with voices. This is the longest part — you can leave and come back.', 'Оживляю сцены с голосами. Это самая долгая часть — можно уйти и вернуться.', 'Menghidupkan adegan bersuara. Ini paling lama — boleh tinggal dulu.');
+  }
+  return pip.final || L('Here it is! Shall we send it?', 'Вот он! Отправим?', 'Ini dia! Kirim?');
+}
+function cPipRow(text, mood) { return `<div class="pad row" style="align-items:flex-end;gap:10px;margin-top:6px">${pipEl(72, false, mood)}<div class="bubble">${esc(text)}</div></div>`; }
+function cDots(step, film) {
+  const steps = film ? ['idea', 'heroes', 'pics', 'clips', 'final'] : ['idea', 'heroes', 'pics', 'final'], si = steps.indexOf(step);
+  return `<div style="display:flex;gap:4px;align-items:center;justify-content:center;margin:8px 0 2px">${steps.map((s2, i) => `<span style="display:block;width:${i === si ? 18 : 7}px;height:7px;border-radius:4px;background:${i <= si ? 'var(--acc)' : '#cbd5e1'}"></span>`).join('')}</div>`;
+}
+function cWait(job, word) {
+  if (job && job.status === 'queued' && job.queue_pos > 1) return L(`in line: ${job.queue_pos - 1} ahead`, `в очереди: ${job.queue_pos - 1} впереди`, `antre: ${job.queue_pos - 1} di depan`);
+  if (job && job.progress && job.progress.stage === 'loading models') return L('warming up…', 'разогреваюсь…', 'pemanasan…');
+  return word;
+}
+function cLinesEdit(p, i) {
+  const ed = S.c.editing;
+  const capB = p.caption || ed === i + '|cap' ? (ed === i + '|cap' ? `<input class="field" data-c="cap|${i}" data-enter="cline" style="font-size:14px;height:42px;margin-top:6px;background:#fef9c3" value="${esc(p.caption)}">`
+    : `<button class="cline cap" data-act="cLine" data-v="${i}|cap">${esc(p.caption)}</button>`) : '';
+  return capB + p.lines.map((l, j) => ed === `${i}|${j}` ? `<div class="row" style="gap:6px;margin-top:6px"><b class="small" style="color:#1d4ed8">${esc(cName(l.who))}:</b><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" data-enter="cline" style="font-size:14px;height:42px" value="${esc(l.text)}"></div>`
+    : `<button class="cline" data-act="cLine" data-v="${i}|${j}">${cName(l.who) ? `<b style="color:#1d4ed8">${esc(cName(l.who))}:</b> ` : ''}${esc(l.text)}</button>`).join('');
+}
+function cMainBtn(label, act, ok, green) { return `<button class="btn" style="${green ? 'background:var(--ok);' : ''}${ok ? '' : 'opacity:.45;'}" data-act="${ok ? act : 'cWaitMsg'}">${esc(label)}</button>`; }
+function vComicIdea() {
+  const c = S.c, T = cKindText(c.kind);
+  let h = `${topBar({ back: true })}<div class="split"><div class="side">${cPipRow(c.busy ? L('Writing the screenplay… one moment.', 'Пишу сценарий… минутку.', 'Menulis skenario… sebentar.') : T.hi, c.busy ? 'think' : '')}${cDots('idea', c.kind !== 'comic')}</div><div class="main"><div class="pad narrow">
+    <h1 style="margin:6px 0 0">${esc(T.t)}</h1>`;
+  if (c.kind === 'us') {
+    h += `<div class="ups">${[0, 1, 2].map((i) => { const u = c.people[i];
+      if (c.cupBusy[i]) return `<div class="upslot">${pipEl(44, false, 'think')}<span>${esc(L('Checking the photo…', 'Проверяю фото…', 'Memeriksa foto…'))}</span></div>`;
+      if (u) return `<div><div class="upslot on"><img src="${thumbUrl(u.path)}" alt=""><button class="x" data-act="cUpDel" data-v="${i}" aria-label="×">×</button></div><input class="field" data-cname="${i}" style="margin-top:6px;height:44px;font-size:15px" placeholder="${esc(L('Name', 'Имя', 'Nama'))}" value="${esc(u.name || '')}"></div>`;
+      if (i > c.people.filter(Boolean).length) return '';
+      return `<label class="upslot">${ICON.up}<span>${esc(i ? L('One more person', 'Ещё человек', 'Satu orang lagi') : L('Photo of a hero', 'Фото героя', 'Foto tokoh'))}</span><input type="file" accept="image/*" data-cup="${i}"></label>`; }).join('')}</div>
+      <div class="small" style="margin-top:8px">${esc(L('Only you see the photos; deleted after 30 days. Use photos of yourself or of people who agree.', 'Фото видите только вы, через 30 дней они удаляются. Используйте свои фото или фото людей, которые не против.', 'Hanya Anda yang melihat foto; dihapus setelah 30 hari.'))}</div>`;
+  }
+  h += `<textarea id="c-idea" class="field" rows="${c.task === 'film' ? 6 : 3}" style="margin-top:14px;font-size:18px" placeholder="${esc(T.ph)}">${esc(c.idea)}</textarea>
+    ${T.ex.length ? `<div class="small" style="margin-top:10px;font-weight:800">${esc(L('or tap one:', 'или нажмите готовую:', 'atau ketuk salah satu:'))}</div><div class="chips" style="margin-top:6px">${T.ex.map((e) => `<button class="chip" data-act="cEx" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>` : ''}
+    ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
+    <div class="stack" style="margin-top:18px"><button class="btn" style="min-height:58px;font-size:19px;${c.busy ? 'opacity:.6' : ''}" data-act="${c.busy ? 'cWaitMsg' : 'cPlan'}">${esc(c.busy ? L('Writing…', 'Пишу…', 'Menulis…') : L('Next', 'Дальше', 'Lanjut'))}</button></div>`;
+  const mine = (c.list || []).filter((k) => (k.kind || 'comic') === c.kind || c.kind === 'film' && k.kind === 'us');
+  if (mine.length) h += `<div class="h2" style="margin-top:26px;font-size:16px">${esc(c.kind === 'comic' ? L('My comics', 'Мои комиксы', 'Komik saya') : L('My cartoons', 'Мои мультики', 'Kartun saya'))}</div><div class="stack" style="margin-top:8px;gap:8px">${mine.slice(0, 8).map((k) => `<button class="btn3" style="width:100%;text-align:left" data-act="cOpen" data-v="${k.id}">${esc(k.title || '…')}</button>`).join('')}</div>`;
+  return h + '</div></div></div>';
 }
 function vComic() {
   const c = S.c, x = c.x;
-  let h = `${topBar({ back: true })}<div class="pad ${x ? '' : 'narrow'}"><h1 style="margin:0">${esc(L('Comic', 'Комикс', 'Komik'))}</h1>`;
-  if (!x) {
-    h += `<div class="sub">${esc(L('Tell the idea, paste a joke or a family story. We write the comic, you check every step.', 'Расскажите идею, вставьте анекдот или семейную байку. Мы напишем комикс, вы проверите каждый шаг.', 'Ceritakan ide, tempel lelucon atau kisah keluarga. Kami tulis komiknya, Anda cek setiap langkah.'))}</div>
-      <textarea id="c-idea" class="field" rows="6" style="margin-top:14px" placeholder="${esc(L('e.g. Our cat steals sausages and blames the dog', 'Например: наш кот ворует сосиски и сваливает на собаку', 'mis. Kucing kami mencuri sosis dan menyalahkan anjing'))}">${esc(c.idea)}</textarea>
-      <div class="h2" style="margin-top:16px">${esc(L('Style', 'Стиль', 'Gaya'))}</div>
-      <div class="chips" style="margin-top:8px">${CSTY().map(([k, n]) => `<button class="chip ${c.style === k ? 'on' : ''}" data-act="cSty" data-v="${k}">${esc(n)}</button>`).join('')}</div>
-      <div class="h2" style="margin-top:16px">${esc(L('Pictures', 'Картинок', 'Gambar'))}</div>
-      <div class="chips" style="margin-top:8px">${[4, 6, 8].map((n) => `<button class="chip ${c.n === n ? 'on' : ''}" data-act="cN" data-v="${n}">${n}</button>`).join('')}</div>
-      ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
-      <div class="stack" style="margin-top:18px"><button class="btn" data-act="cPlan" ${c.busy ? 'disabled style="opacity:.6"' : ''}>${esc(c.busy ? L('Writing the story…', 'Пишем историю…', 'Menulis cerita…') : L('Write the story', 'Написать историю', 'Tulis ceritanya'))}</button></div>`;
-    if ((c.list || []).length) h += `<div class="h2" style="margin-top:22px">${esc(L('My comics', 'Мои комиксы', 'Komik saya'))}</div><div class="stack" style="margin-top:8px;gap:8px">${c.list.map((k) => `<button class="btn3" style="width:100%;text-align:left" data-act="cOpen" data-v="${k.id}">${esc(k.title || '…')}</button>`).join('')}</div>`;
-    return h + '</div>';
-  }
-  const d = x.data, busy = (x.jobs || []).length, needCast = d.characters.some((ch) => !ch.candidates.length), needPick = d.characters.some((ch) => !ch.portrait), drawn = d.panels.some((p) => p.image);
-  const allDrawn = d.panels.length && d.panels.every((p) => p.image);
-  if (allDrawn && !busy && !c.edit) {
-    const sig = cSig();
-    if (c.finalSig !== sig && !cMakeFinal.busy) setTimeout(cMakeFinal, 0);
-    return h + `<div class="sub">${esc(L('Your comic is ready.', 'Ваш комикс готов.', 'Komik Anda sudah jadi.'))}</div>
-      <div class="final-comic" style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираем комикс…', 'Menyusun komik…'))}</span>`}</div>
-      ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
-      <div class="stack final-comic" style="margin-top:14px;gap:10px">
-        <button class="btn" style="background:var(--ok)" data-act="cSave">${esc(L('Send or save', 'Отправить или сохранить', 'Kirim atau simpan'))}</button>
+  if (!x) return vComicIdea();
+  const d = x.data, film = cFilm(x), step = cStep(x), busyAny = (x.jobs || []).length;
+  const mood = step === 'final' ? 'happy' : busyAny ? 'think' : '';
+  const styleName = (CSTY().find((s2) => s2[0] === x.style) || [0, x.style])[1];
+  let side = cPipRow(cPip(x, step), mood) + cDots(step, film);
+  if (step === 'heroes') side += `<div class="pad small" style="text-align:center;margin-top:6px">${esc(L('Style:', 'Стиль:', 'Gaya:'))} <button class="linkbtn" data-act="cStyleOpen">${esc(styleName)}</button></div>
+    ${c.styleOpen ? `<div class="pad chips" style="justify-content:center;margin-top:6px">${CSTY().map(([k, n]) => `<button class="chip ${x.style === k ? 'on' : ''}" data-act="cStyle" data-v="${k}">${esc(n)}</button>`).join('')}</div>` : ''}`;
+  let main = `<div class="pad"><h1 style="margin:6px 0 0">${esc(d.title || cKindText(d.kind === 'us' ? 'us' : film ? 'film' : 'comic').t)}</h1>`;
+  if (step === 'heroes') {
+    main += `<div class="cg hg">${d.characters.map((ch) => { const j = cJob(x, 'cast:' + ch.id), ready = ch.portrait && !j;
+      return `<div class="card row" style="gap:12px;margin-top:10px;align-items:center">
+        <div class="hpic">${ready ? `<img src="${thumbUrl(ch.portrait)}" alt="">` : `<span class="small">${esc(cFail(x, 'cast:' + ch.id) ? L('did not work', 'не вышло', 'gagal') : cWait(j, L('drawing…', 'рисую…', 'menggambar…')))}</span>`}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:900;font-size:18px">${esc(ch.name)}</div><div class="small">${esc(ch.role || '')}</div></div>
+        <button class="btn3" style="min-height:44px;font-size:14px;${ready || cFail(x, 'cast:' + ch.id) ? '' : 'opacity:.4'}" data-act="${ready || cFail(x, 'cast:' + ch.id) ? 'cRecast' : 'cWaitMsg'}" data-v="${ch.id}">${esc(L('Redo', 'Переделать', 'Ulangi'))}</button></div>`; }).join('')}</div>`;
+    const ok = d.characters.every((ch) => ch.portrait) && !cBusy(x, 'cast:');
+    main += `<div class="stack" style="margin-top:16px">${cMainBtn(L('Next — draw the story', 'Дальше — рисуем историю', 'Lanjut — gambar ceritanya'), 'cDraw', ok)}
+      <button class="btn3" style="width:100%" data-act="cAnother">${esc(L('Another story', 'Другой сюжет', 'Cerita lain'))}</button></div>`;
+  } else if (step === 'pics' || step === 'clips') {
+    const clips = step === 'clips';
+    main += `<div class="cg">${d.panels.map((p, i) => { const role = (clips ? 'clip:' : 'panel:') + i, j = cJob(x, role), has = clips ? p.clip : p.image, failed = cFail(x, role);
+      const media2 = clips ? (p.clip && !j ? `<video src="${fileUrl(p.clip)}" poster="${p.image ? fileUrl(p.image) : ''}" controls playsinline preload="none" style="width:100%;display:block;border-radius:12px;background:#000"></video>`
+          : `<div class="ppic" style="aspect-ratio:9/16;${p.image ? `background:url('${thumbUrl(p.image)}') center/cover` : ''}"><span>${esc(failed ? L('did not work — try again', 'не вышло — ещё раз', 'gagal — coba lagi') : cWait(j, L('bringing to life…', 'оживляю…', 'menghidupkan…')))}</span></div>`)
+        : (p.image && !j ? `<img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block;border-radius:12px">` : `<div class="ppic" style="aspect-ratio:${film ? '9/16' : '1/1'}"><span>${esc(failed ? L('did not work — try again', 'не вышло — ещё раз', 'gagal — coba lagi') : cWait(j, L('drawing…', 'рисую…', 'menggambar…')))}</span></div>`);
+      return `<div class="card" style="margin-top:10px">${media2}${cLinesEdit(p, i)}
+        <button class="btn3" style="width:100%;margin-top:8px;min-height:42px;font-size:14px;${(has && !j) || failed ? '' : 'display:none'}" data-act="${clips ? 'cReclip' : 'cRedraw'}" data-v="${i}">${esc(clips ? L('Shoot this scene again', 'Переснять сцену', 'Ambil ulang') : L('Draw this one again', 'Перерисовать', 'Gambar ulang'))}</button></div>`; }).join('')}</div>`;
+    if (clips) {
+      const ok = d.panels.every((p) => p.clip) && !cBusy(x, 'clip:');
+      main += `<div class="stack" style="margin-top:16px">${c.busy ? cMainBtn(L('Putting the film together…', 'Собираю фильм…', 'Menyusun film…'), '', false) : cMainBtn(L('Put the film together', 'Собрать фильм', 'Susun filmnya'), 'cFilm', ok)}</div>`;
+    } else {
+      const ok = d.panels.every((p) => p.image) && !cBusy(x, 'panel:');
+      main += `<div class="stack" style="margin-top:16px">${film ? cMainBtn(L('Next — bring to life', 'Дальше — оживляем', 'Lanjut — hidupkan'), 'cAnimate', ok) : cMainBtn(L('Done', 'Готово', 'Selesai'), 'cDone', ok)}</div>`;
+    }
+  } else {   // final
+    if (film) main += `<div class="final-comic" style="margin-top:12px;border-radius:16px;overflow:hidden;background:#000"><video src="${fileUrl(d.film)}" controls playsinline autoplay style="width:100%;display:block;max-height:78vh"></video></div>`;
+    else {
+      const sig = cSig();
+      if (c.finalSig !== sig && !cMakeFinal.busy) setTimeout(cMakeFinal, 0);
+      main += `<div class="final-comic" style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираю комикс…', 'Menyusun komik…'))}</span>`}</div>`;
+    }
+    const acts = `<button class="btn" style="background:var(--ok)" data-act="cSave">${esc(L('Send', 'Отправить', 'Kirim'))}</button>
         <button class="btn2" data-act="cEdit">${esc(L('Change something', 'Поправить', 'Ubah sesuatu'))}</button>
-        <button class="btn3" style="width:100%" data-act="cNew">${esc(L('New comic', 'Новый комикс', 'Komik baru'))}</button></div></div>`;
+        <button class="btn3" style="width:100%" data-act="cNew">${esc(film ? L('New cartoon', 'Новый мультик', 'Kartun baru') : L('New comic', 'Новый комикс', 'Komik baru'))}</button>`;
+    main += `<div class="stack final-comic main-acts" style="margin-top:14px;gap:10px">${acts}</div>`;
+    side += `<div class="side-acts">${acts}</div>`;
   }
-  if (allDrawn && !busy) h += `<button class="btn2" style="margin-top:10px" data-act="cDone">${esc(L('Show the finished comic', 'Показать готовый комикс', 'Lihat komik jadi'))}</button>`;
-  h += `<input class="field" data-c="title" style="margin-top:10px;font-weight:900" value="${esc(d.title)}">
-    <div class="h2" style="margin-top:16px">1. ${esc(L('Heroes', 'Герои', 'Tokoh'))}</div>
-    <div class="small">${esc(L('Every panel is drawn from these pictures. Not right? Draw again.', 'По этим картинкам рисуются все кадры. Не нравится — перерисуйте.', 'Semua panel digambar dari gambar ini. Kurang pas? Gambar ulang.'))}</div>`;
-  h += '<div class="cg">';
-  d.characters.forEach((ch, i) => {
-    h += `<div class="card" style="margin-top:10px"><div style="font-weight:900">${esc(ch.name)}</div>
-      <textarea class="field" rows="2" data-c="look|${i}" style="margin-top:6px;font-size:14px">${esc(ch.look)}</textarea>
-      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap">${ch.candidates.slice(0, 4).map((k) => `<button data-act="cPick" data-ch="${ch.id}" data-v="${esc(k)}" style="width:84px;height:84px;padding:0;border-radius:12px;overflow:hidden;border:3px solid ${k === ch.portrait ? 'var(--acc)' : 'transparent'};background:#e2e8f0"><img src="${thumbUrl(k)}" alt="" style="width:100%;height:100%;object-fit:cover"></button>`).join('')}
-      ${ch.candidates.length && !busy ? `<button class="btn3" style="min-height:84px;font-size:13px" data-act="cRecast" data-v="${ch.id}">${esc(L('Draw again', 'Переделать', 'Gambar ulang'))}</button>` : ''}</div></div>`;
-  });
-  h += '</div>';
-  if (needCast) h += `<button class="btn" style="margin-top:12px" data-act="cCast" ${busy ? 'disabled style="opacity:.6"' : ''}>${esc(L('Draw the heroes', 'Нарисовать героев', 'Gambar tokohnya'))}</button>`;
-  h += `<div class="h2" style="margin-top:20px">2. ${esc(L('The story', 'История', 'Cerita'))}</div>`;
-  h += '<div class="cg">';
-  d.panels.forEach((p, i) => {
-    h += `<div class="card" style="margin-top:10px">
-      ${p.image ? `<div style="position:relative;border-radius:12px;overflow:hidden"><img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block"><div style="position:absolute;left:8px;right:8px;bottom:8px">${cLinesHtml(p)}</div></div>` : ''}
-      <div class="small" style="margin-top:${p.image ? 8 : 0}px;font-weight:900">${i + 1}</div>
-      <details style="margin-top:4px"><summary class="small" style="cursor:pointer">${esc(L('What to draw (for the artist)', 'Что нарисовать (для художника)', 'Yang digambar (untuk ilustrator)'))}</summary><textarea class="field" rows="3" data-c="scene|${i}" style="font-size:13px;margin-top:4px">${esc(p.scene)}</textarea></details>
-      <input class="field" data-c="cap|${i}" style="font-size:14px;margin-top:6px;height:44px" placeholder="${esc(L('Caption (optional)', 'Подпись (можно пусто)', 'Keterangan (opsional)'))}" value="${esc(p.caption)}">
-      ${[0, 1].map((j) => { const l = p.lines[j] || { who: (p.chars[0] || (d.characters[0] || {}).id || ''), text: '' };
-        return `<div class="row" style="gap:6px;margin-top:6px"><span class="small" style="flex:0 0 70px;font-weight:800">${esc(cName(l.who) || '—')}</span><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" style="font-size:14px;height:44px" value="${esc(l.text)}" placeholder="${esc(L('Line', 'Реплика', 'Dialog'))}"></div>`; }).join('')}
-      ${p.image && !busy ? `<button class="btn3" style="width:100%;margin-top:8px" data-act="cRedraw" data-v="${i}">${esc(L('Draw this picture again', 'Перерисовать эту картинку', 'Gambar ulang'))}</button>` : ''}</div>`;
-  });
-  h += '</div>';
-  if (c.err) h += `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>`;
-  if (busy) h += `<div class="card small" style="margin-top:12px">${esc(L('Drawing…', 'Рисуем…', 'Menggambar…'))} ${busy} ${esc(L('left', 'осталось', 'lagi'))}</div>`;
-  else if (!needPick) h += `<button class="btn" style="margin-top:14px" data-act="cDraw">${esc(drawn ? L('Draw the whole comic again', 'Перерисовать весь комикс', 'Gambar ulang semua') : L('Draw the comic', 'Нарисовать комикс', 'Gambar komiknya'))}</button>`;
-  if (drawn && !busy) h += `<button class="btn" style="margin-top:10px;background:var(--ok)" data-act="cSave">${esc(L('Save as a picture', 'Сохранить картинкой', 'Simpan sebagai gambar'))}</button>`;
-  h += `<button class="btn3" style="width:100%;margin-top:10px" data-act="cNew">${esc(L('New comic', 'Новый комикс', 'Komik baru'))}</button></div>`;
-  return h;
+  if (c.err) main += `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>`;
+  return `${topBar({ back: true })}<div class="split"><div class="side">${side}</div><div class="main">${main}</div></div></div>`;
 }
 function cRead() {   // pull the edited fields into S.c.x.data
   const x = S.c.x; if (!x) return; const d = x.data;
   document.querySelectorAll('[data-c]').forEach((el) => {
     const [k, i, j, who] = el.dataset.c.split('|'), v = el.value;
-    if (k === 'title') d.title = v;
-    else if (k === 'look') d.characters[+i].look = v;
-    else if (k === 'scene') d.panels[+i].scene = v;
-    else if (k === 'cap') d.panels[+i].caption = v;
+    if (k === 'cap') d.panels[+i].caption = v;
     else if (k === 'line') { const p = d.panels[+i]; const arr = [0, 1].map((n) => p.lines[n] || null); arr[+j] = v.trim() ? { who, text: v } : null; p.lines = arr.filter(Boolean); }
   });
 }
-async function cSaveEdits() { if (!S.c.dirty || !S.c.x) return; S.c.x = await api('/api/comics/' + S.c.x.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(S.c.x.data) }); S.c.dirty = false; }
+async function cSaveEdits() { if (!S.c.dirty || !S.c.x) return; S.c.x = await api('/api/comics/' + S.c.x.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: S.c.x.data.title, panels: S.c.x.data.panels }) }); S.c.dirty = false; }
 async function cLoad(id) { try { S.c.x = await api('/api/comics/' + id); S.c.dirty = false; } catch (e) { toast(e.message); } render.keep = true; render(); cPoll(); }
 function cPoll() {
   clearTimeout(cPollT);
   if (S.screen !== 'comic' || !S.c.x) return;
-  if ((S.c.x.jobs || []).length) cGrace = 1; else if (cGrace > 0) cGrace--; else return;
+  if ((S.c.x.jobs || []).length) cGrace = 2; else if (cGrace > 0) cGrace--; else return;
   cPollT = setTimeout(async () => {
     if (S.screen !== 'comic' || !S.c.x) return;
-    if (S.c.dirty) { cPoll(); return; }   // do not overwrite what the person is typing
-    try { const nx = await api('/api/comics/' + S.c.x.id); const sig = (o) => JSON.stringify([o.jobs.length, o.data.characters.map((c) => c.candidates.length), o.data.panels.map((p) => p.image)]);
+    if (S.c.dirty || S.c.editing) { cPoll(); return; }   // do not overwrite what the person is typing
+    try { const nx = await api('/api/comics/' + S.c.x.id); const sig = (o) => JSON.stringify([o.jobs.map((j) => [j.role, j.status, j.queue_pos, (j.progress || {}).stage]), o.data.characters.map((c2) => c2.portrait), o.data.panels.map((p) => [p.image, p.clip]), o.data.film, (o.failed || []).length]);
       const changed = sig(nx) !== sig(S.c.x); S.c.x = nx; if (changed) { render.keep = true; render(); } } catch (e) {}
     cPoll();
   }, 3000);
@@ -1105,30 +1191,57 @@ async function cAct(a, d) {
   const re = () => { render.keep = true; render(); };
   if (S.c.x) { const before = JSON.stringify(S.c.x.data); cRead(); if (JSON.stringify(S.c.x.data) !== before) S.c.dirty = true; }
   const idea = $('#c-idea'); if (idea) S.c.idea = idea.value;
+  document.querySelectorAll('[data-cname]').forEach((el) => { const u = S.c.people[+el.dataset.cname]; if (u) u.name = el.value; });
   S.c.err = '';
+  const id = () => S.c.x.id;
   try {
     switch (a) {
-      case 'cSty': S.c.style = d.v; re(); break;
-      case 'cN': S.c.n = +d.v; re(); break;
-      case 'cPlan': if (S.c.idea.trim().length < 3) { S.c.err = L('Tell the idea first.', 'Сначала расскажите идею.', 'Ceritakan idenya dulu.'); re(); break; }
+      case 'cWaitMsg': toast(L('One moment — still working on it.', 'Секунду — ещё работаю.', 'Sebentar — masih dikerjakan.')); break;
+      case 'cEx': S.c.idea = d.v; re(); break;
+      case 'cUpDel': S.c.people.splice(+d.v, 1); re(); break;
+      case 'cPlan': {
+        if (S.c.idea.trim().length < 3) { S.c.err = L('Tell the idea first — one line is enough.', 'Сначала расскажите идею — хватит одной фразы.', 'Ceritakan idenya dulu — satu kalimat cukup.'); re(); break; }
+        const people = S.c.people.filter(Boolean);
+        if (S.c.kind === 'us' && !people.length) { S.c.err = L('Add at least one photo.', 'Добавьте хотя бы одно фото.', 'Tambah minimal satu foto.'); re(); break; }
+        if (Object.keys(S.c.cupBusy).length) { toast(L('Wait a second — the photo is still loading.', 'Секунду — фото ещё загружается.', 'Sebentar — foto masih dimuat.')); break; }
         S.c.busy = true; re();
-        try { S.c.x = await api('/api/comics', { idea: S.c.idea, style: S.c.style, panels: S.c.n, lang: S.lang }); S.c.idea = ''; history.replaceState({ s: 'comic', sec: S.sec }, ''); } finally { S.c.busy = false; }
-        re(); break;
-      case 'cOpen': S.c.edit = false; await cLoad(d.v); break;
-      case 'cPick': await cSaveEdits(); S.c.x = await api(`/api/comics/${S.c.x.id}/pick`, { char: d.ch, path: d.v }); re(); break;
-      case 'cCast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, {}); await cLoad(S.c.x.id); break;
-      case 'cRecast': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/cast`, { char: d.v }); await cLoad(S.c.x.id); break;
-      case 'cDraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, {}); S.c.edit = false; await cLoad(S.c.x.id); break;
-      case 'cRedraw': await cSaveEdits(); await api(`/api/comics/${S.c.x.id}/draw`, { panel: +d.v }); await cLoad(S.c.x.id); break;
-      case 'cEdit': S.c.edit = true; re(); break;
-      case 'cDone': await cSaveEdits(); S.c.edit = false; re(); window.scrollTo(0, 0); break;
-      case 'cSave': { await cSaveEdits(); const b = (S.c.finalBlob && S.c.finalSig === cSig()) ? S.c.finalBlob : await cCompose(), f = new File([b], (S.c.x.data.title || 'comic').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 40) + '.png', { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); break; } catch (e) {} }
+        try { S.c.x = await api('/api/comics', { idea: S.c.idea, kind: S.c.kind, panels: S.c.task === 'film' ? 6 : S.c.kind === 'comic' ? 6 : 4, lang: S.lang, people: people.map((u) => ({ path: u.path, name: u.name })), variant: S.c.variant });
+          S.c.view = null; history.replaceState({ s: 'comic', sec: S.sec, task: S.task }, ''); } finally { S.c.busy = false; }
+        re(); window.scrollTo(0, 0); cPoll(); break; }
+      case 'cAnother': { const old = S.c.x; S.c.idea = old.data.idea || S.c.idea; S.c.variant = (S.c.variant || 0) + 1; S.c.x = null;
+        if (S.c.kind === 'us') S.c.people = old.data.characters.filter((ch) => ch.photo).map((ch) => ({ path: ch.photo, name: ch.name }));
+        try { await api('/api/comics/' + old.id, { method: 'DELETE' }); } catch (e) {}
+        await cAct('cPlan', {}); break; }
+      case 'cOpen': S.c.view = null; S.c.editing = null; await cLoad(d.v); break;
+      case 'cStyleOpen': S.c.styleOpen = !S.c.styleOpen; re(); break;
+      case 'cStyle': S.c.styleOpen = false; S.c.x = await api(`/api/comics/${id()}/style`, { style: d.v }); re(); cPoll(); break;
+      case 'cRecast': await api(`/api/comics/${id()}/cast`, { char: d.v }); await cLoad(id()); break;
+      case 'cDraw': await api(`/api/comics/${id()}/draw`, {}); S.c.view = cFilm(S.c.x) ? null : 'pics'; await cLoad(id()); window.scrollTo(0, 0); break;
+      case 'cRedraw': await cSaveEdits(); await api(`/api/comics/${id()}/draw`, { panel: +d.v }); await cLoad(id()); break;
+      case 'cAnimate': await cSaveEdits(); await api(`/api/comics/${id()}/animate`, {}); S.c.view = null; await cLoad(id()); window.scrollTo(0, 0); break;
+      case 'cReclip': await api(`/api/comics/${id()}/animate`, { panel: +d.v }); await cLoad(id()); break;
+      case 'cFilm': S.c.busy = true; re(); try { S.c.x = await api(`/api/comics/${id()}/film`, {}); S.c.view = null; } finally { S.c.busy = false; } re(); window.scrollTo(0, 0); break;
+      case 'cLine': if (S.c.editing) await cSaveEdits(); S.c.editing = d.v; re(); setTimeout(() => { const el = document.querySelector('[data-c]'); if (el) { el.focus(); el.setSelectionRange && el.setSelectionRange(el.value.length, el.value.length); } }, 30); break;
+      case 'cLineDone': S.c.editing = null; await cSaveEdits(); re(); break;
+      case 'cDone': await cSaveEdits(); S.c.view = null; re(); window.scrollTo(0, 0); break;
+      case 'cEdit': S.c.view = 'pics'; re(); break;
+      case 'cSave': {
+        await cSaveEdits(); let f;
+        if (cFilm(S.c.x)) { const b = await (await fetch(fileUrl(S.c.x.data.film))).blob(); f = new File([b], (S.c.x.data.title || 'film').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 40) + '.mp4', { type: 'video/mp4' }); }
+        else { const b = (S.c.finalBlob && S.c.finalSig === cSig()) ? S.c.finalBlob : await cCompose(); f = new File([b], (S.c.x.data.title || 'comic').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 40) + '.png', { type: 'image/png' }); }
+        if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); break; } catch (e) { if (e.name === 'AbortError') break; } }
         dl(f); break; }
-      case 'cNew': await cSaveEdits(); S.c.x = null; S.c.edit = false; try { S.c.list = await api('/api/comics'); } catch (e) {} re(); break;
+      case 'cNew': await cSaveEdits(); S.c.x = null; S.c.view = null; S.c.idea = ''; S.c.variant = 0; S.c.people = []; try { S.c.list = await api('/api/comics'); } catch (e) {} re(); break;
     }
   } catch (e) { S.c.err = e.message; re(); }
 }
+document.addEventListener('change', async (e) => {
+  const el = e.target; if (!el.dataset || el.dataset.cup == null || !el.files || !el.files.length) return;
+  const i = +el.dataset.cup; S.c.cupBusy[i] = true; render.keep = true; render();
+  try { const u = await uploadPhoto(el.files[0]); S.c.people[i] = { ...u, name: '' }; } catch (x) { toast(x.message); }
+  delete S.c.cupBusy[i]; render.keep = true; render();
+});
+document.addEventListener('focusout', (e) => { const el = e.target; if (el.dataset && el.dataset.c && S.screen === 'comic' && S.c.editing) setTimeout(() => { if (S.c.editing && !document.activeElement.dataset.c) cAct('cLineDone', {}); }, 120); });
 
 /* ---------------- Studio for pros: every model and option of the admin, in a friendlier shape ---------------- */
 const SFAM_INPUTS = { qwen_image21: [0, 10], flux3_klein: [0, 10], qwen_aio: [1, 1], wan22_i2v: [1, 1], h3_fl2va: [1, 2], h3_ref2va: [1, 9] };
@@ -1474,6 +1587,8 @@ function dl(file) { const a = document.createElement('a'); a.href = URL.createOb
 /* ---------------- Pip: simple intent router (placeholder for the agent) ---------------- */
 function pipRoute(text) {
   const s = text.toLowerCase(), m = (re) => re.test(s);
+  if (m(/(комикс|comic|komik)/)) return [L('A comic — my favourite! One line and I draw the whole story.', 'Комикс — моё любимое! Одна фраза, и я нарисую всю историю.', 'Komik — favoritku! Satu kalimat, aku gambar semuanya.'), ['story', 'comic'], L('Make a comic', 'Сделать комикс', 'Buat komik')];
+  if (m(/(мульт|cartoon|kartun|клип|clip|фильм|film|анекдот|сказк)/)) return [L('Let’s make a cartoon with voices!', 'Сделаем мультик с голосами!', 'Ayo bikin kartun bersuara!'), ['story', m(/(анекдот|сказк|стих|poem|joke|tale)/) ? 'film' : 'clip'], L('Make a cartoon', 'Сделать мультик', 'Buat kartun')];
   if (m(/(восстанов|реставр|restore|colori|раскрас.*фото|perbaiki)/)) return [L('Show me the old photo — I clean it up and add colors.', 'Покажите старое фото — я его почищу и раскрашу.', 'Tunjukkan foto lamanya — aku perbaiki.'), ['memory', 'restore'], L('Restore a photo', 'Восстановить фото', 'Perbaiki foto')];
   if (m(/(оживи|оживить|bring.*life|hidupkan|animate)/)) return [L('Let’s bring the photo to life!', 'Оживим фото!', 'Ayo hidupkan fotonya!'), ['memory', 'oldlive'], L('Bring a photo to life', 'Оживить фото', 'Hidupkan foto')];
   if (m(/(фото|photo|foto|старое|old|вместе|together|память|memory|kenang)/)) return [L('Photos and memories are here — add a photo and I do the rest.', 'Фото и память — здесь. Добавьте фото, остальное сделаю я.', 'Foto dan kenangan ada di sini — tambah foto, sisanya aku.'), ['memory'], L('Open “Memories”', 'Открыть «Память»', 'Buka “Kenangan”')];
@@ -1497,8 +1612,8 @@ function openTask(sec, task) {
   if (!task) { go('section', { sec }); return; }
   const k = taskById(sec, task);
   if (!k) { go('section', { sec }); return; }
-  if (task === 'comic') { S.c.x = null; go('comic', { sec }); api('/api/comics').then((l) => { S.c.list = l; if (S.screen === 'comic') { render.keep = true; render(); } }).catch(() => {}); return; }
-  if (k.soon || !k.r || !R[k.r]) { toast(TT().soonMsg); go('section', { sec }); return; }
+  if (CKIND[task]) { Object.assign(S.c, { x: null, kind: CKIND[task], task, view: null, idea: '', err: '', variant: 0, people: [], editing: null }); go('comic', { sec, task }); api('/api/comics').then((l) => { S.c.list = l; if (S.screen === 'comic') { render.keep = true; render(); } }).catch(() => {}); return; }
+  if (k.soon || !k.r || !R[k.r]) { toast(TT().soonMsg); go('section', { sec }); return; }   // (story tasks are routed above)
   S.ans = {}; S.jobs = []; S.layer = null; S.ups = []; S.upBusy = {}; S.montaged = false;
   if (k.upload) { go('flow', { sec, task, step: 'questions' }); return; }
   go('flow', { sec, task, step: 'preview' });
@@ -1580,6 +1695,8 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('input', (e) => {
   const el = e.target;
   if (el.dataset.q) { S.ans[el.dataset.q] = el.value; return; }
+  if (el.dataset.cname != null) { const u = S.c.people[+el.dataset.cname]; if (u) u.name = el.value; return; }
+  if (el.id === 'c-idea') { S.c.idea = el.value; return; }
   if (el.dataset.lay && S.layer) { S.layer.text = el.value; const st = $('.stage'); if (st) { st.querySelectorAll('.layer').forEach((x) => x.remove()); st.insertAdjacentHTML('beforeend', layerCss(S.layer)); } return; }
   if (el.dataset.st) { const st = S.studio, { fam } = sFam(), k = el.dataset.st;
     if (k === 'prompt' || k === 'neg') st[k][fam] = el.value;
@@ -1622,6 +1739,7 @@ document.addEventListener('keydown', (e) => {
   const el = e.target; if (!el.dataset || !el.dataset.enter) return;
   e.preventDefault();
   if (el.dataset.enter === 'ask') { if (el.value.trim()) chatSend(el.value); }
+  if (el.dataset.enter === 'cline') cAct('cLineDone', {});
   if (el.dataset.enter === 'chatSend') chatSend(el.value);
 });
 history.replaceState({ s: 'home' }, '');
