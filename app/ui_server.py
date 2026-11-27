@@ -253,8 +253,9 @@ def _comic_after(job):
     m = job["input"].get("_comic")
     if not m or job["status"] != "done":
         return
+    want = "video" if m["role"].startswith("clip:") else "image"
     for o in (job.get("result") or {}).get("outputs", []):
-        if o.get("type") == "image":
+        if o.get("type") == want and (want == "image" or o["path"].lower().endswith(".mp4")):
             ST.add_comic_file(o["path"], m["id"], m["role"])
 
 
@@ -488,20 +489,48 @@ def _probe_secs(p):
         return 5.0
 
 
-def _montage(paths, out, landscape):
-    """clips one after another with a soft fade between them (memory video). No GPU."""
+def _has_audio(p):
+    import subprocess
+    try:
+        return bool(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", p],
+                                   capture_output=True, text=True, timeout=30).stdout.strip())
+    except Exception:
+        return False
+
+
+def _montage(paths, out, landscape, audio=False):
+    """clips one after another with a soft fade between them (memory video, story film). No GPU.
+    audio=True keeps each clip's sound (silence for a clip without any)."""
     import subprocess
     W, H = (1280, 720) if landscape else (720, 1280)
-    args, chains = ["ffmpeg", "-y", "-loglevel", "error"], []
+    fd = 0.25 if audio else 0.5
+    args, chains, n_in = ["ffmpeg", "-y", "-loglevel", "error"], [], 0
+    vs, as_ = [], []
     for i, p in enumerate(paths):
         args += ["-i", p]
+        vi, n_in = n_in, n_in + 1
         d = _probe_secs(p)
-        chains.append(f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,"
-                      f"setsar=1,fps=24,format=yuv420p,fade=t=in:st=0:d=0.5,fade=t=out:st={max(0.1, d - 0.5):.2f}:d=0.5[v{i}]")
-    graph = ";".join(chains) + ";" + "".join(f"[v{i}]" for i in range(len(paths))) + f"concat=n={len(paths)}:v=1:a=0[out]"
+        chains.append(f"[{vi}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,"
+                      f"setsar=1,fps=24,format=yuv420p,fade=t=in:st=0:d={fd},fade=t=out:st={max(0.1, d - fd):.2f}:d={fd}[v{i}]")
+        vs.append(f"[v{i}]")
+        if audio:
+            if _has_audio(p):
+                ai = vi
+            else:
+                args += ["-f", "lavfi", "-t", f"{d:.2f}", "-i", "anullsrc=r=48000:cl=stereo"]
+                ai, n_in = n_in, n_in + 1
+            chains.append(f"[{ai}:a]aresample=48000,aformat=channel_layouts=stereo,apad,atrim=0:{d:.2f},"
+                          f"afade=t=in:st=0:d=0.08,afade=t=out:st={max(0.1, d - 0.12):.2f}:d=0.12[a{i}]")
+            as_.append(f"[a{i}]")
+    if audio:
+        graph = ";".join(chains) + ";" + "".join(v + a for v, a in zip(vs, as_)) + f"concat=n={len(paths)}:v=1:a=1[out][aout]"
+        maps = ["-map", "[out]", "-map", "[aout]", "-c:a", "aac", "-b:a", "160k"]
+    else:
+        graph = ";".join(chains) + ";" + "".join(vs) + f"concat=n={len(paths)}:v=1:a=0[out]"
+        maps = ["-map", "[out]"]
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    subprocess.run(args + ["-filter_complex", graph, "-map", "[out]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                           "-movflags", "+faststart", out], check=True, timeout=600)
+    subprocess.run(args + ["-filter_complex", graph] + maps + ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                           "-movflags", "+faststart", out], check=True, timeout=900)
 
 
 @app.post("/api/montage")
@@ -525,7 +554,7 @@ async def montage(request: Request):
     return {"path": key, "type": "video"}
 
 
-# ------------------------------------------------------------------ Tell a story -> Comic
+# ------------------------------------------------------------------ Tell a story -> Comic / Film / Cartoon about us
 def _comic_or_404(request, cid):
     c = ST.comic(cid)
     if not c or (c["user_id"] != me(request)["id"] and not is_admin(request)):
@@ -535,6 +564,8 @@ def _comic_or_404(request, cid):
 
 def _comic_out(c):
     files, d = ST.comic_files(c["id"]), c["data"]
+    d.setdefault("kind", "comic")
+    d.setdefault("pip", {})
     for ch in d["characters"]:
         ch["candidates"] = files.get("cast:" + ch["id"], [])
         if ch["candidates"] and ch.get("portrait") not in ch["candidates"]:
@@ -542,15 +573,36 @@ def _comic_out(c):
     for i, p in enumerate(d["panels"]):
         p["takes"] = files.get(f"panel:{i}", [])
         p["image"] = p["takes"][0] if p["takes"] else None
-    jobs = [k for k in ORDER if JOBS[k]["status"] in ("queued", "running")
-            and (JOBS[k]["input"].get("_comic") or {}).get("id") == c["id"]]
-    return {"id": c["id"], "style": c["style"], "data": d, "jobs": jobs}
+        p["clips"] = files.get(f"clip:{i}", [])
+        p["clip"] = p["clips"][0] if p["clips"] else None
+    d["film"] = (files.get("film") or [None])[0]
+    jobs = [{"id": k, "role": JOBS[k]["input"]["_comic"]["role"], "status": JOBS[k]["status"],
+             "progress": JOBS[k].get("progress"), "queue_pos": _qpos(k)}
+            for k in ORDER if JOBS[k]["status"] in ("queued", "running") and (JOBS[k]["input"].get("_comic") or {}).get("id") == c["id"]]
+    failed = [{"role": JOBS[k]["input"]["_comic"]["role"], "error": JOBS[k].get("error") or JOBS[k].get("note")}
+              for k in ORDER[-60:] if (JOBS[k]["input"].get("_comic") or {}).get("id") == c["id"]
+              and (JOBS[k]["status"] == "error" or (JOBS[k]["status"] == "done" and not (JOBS[k].get("result") or {}).get("outputs")))
+              and (JOBS[k].get("finished") or 0) > time.time() - 900]
+    return {"id": c["id"], "style": c["style"], "data": d, "jobs": jobs, "failed": failed}
+
+
+def _qpos(jid):
+    if JOBS[jid]["status"] != "queued":
+        return None
+    return next((n + 1 for n, k in enumerate(k for k in ORDER if JOBS[k]["status"] == "queued") if k == jid), None)
 
 
 def _comic_check_text(request, d):
-    if H.prompt_violation(CM.all_text(d), True):          # comics are drawn by Qwen-Image (no nudity)
+    t = CM.all_text(d)
+    if H.prompt_violation(t, True) or (d.get("kind") in ("film", "us") and H._SEXUAL.search(t)):
         ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
-        raise HTTPException(400, "Refused: content involving minors is not allowed")
+        raise HTTPException(400, "Refused: this story can't be made here")
+
+
+def _cast(cid, c, chars, u):
+    _limit_ok(u, len(chars))
+    return [enqueue(dict(inp, _comic={"id": cid, "role": "cast:" + ch["id"]}), u["id"])
+            for ch in chars for inp in CM.cast_inputs(c["style"], ch)]
 
 
 @app.get("/api/comics")
@@ -560,23 +612,43 @@ def comics_list(request: Request):
 
 @app.post("/api/comics")
 async def comic_create(request: Request):
+    """idea -> screenplay; the heroes start drawing at once (one picture each)"""
     b = await request.json()
-    idea, style = (b.get("idea") or "").strip(), b.get("style") if b.get("style") in CM.STYLES else "comic"
+    u = me(request)
+    idea = (b.get("idea") or "").strip()
+    kind = b.get("kind") if b.get("kind") in ("comic", "film", "us") else "comic"
+    style = b.get("style") if b.get("style") in CM.STYLES else None
     if len(idea) < 3:
         raise HTTPException(400, "tell the idea first")
-    if H.prompt_violation(idea, True):
-        ST.event("prompt_refused", me(request)["id"], {"where": "comic"})
-        raise HTTPException(400, "Refused: content involving minors is not allowed")
+    if H.prompt_violation(idea, True) or (kind != "comic" and H._SEXUAL.search(idea)):
+        ST.event("prompt_refused", u["id"], {"where": "comic"})
+        raise HTTPException(400, "Refused: this story can't be made here")
+    people = []
+    if kind == "us":
+        for p in (b.get("people") or [])[:3]:
+            path, name = (p or {}).get("path") or "", ((p or {}).get("name") or "").strip()[:30]
+            if not path or not can_file(request, path) or not ST.is_upload(path):
+                raise HTTPException(403, "use photos you uploaded")
+            people.append({"path": path, "name": name or f"Hero {len(people) + 1}"})
+        if not people:
+            raise HTTPException(400, "add at least one photo")
+    n = int(b.get("panels") or (6 if kind == "comic" else 4))
     try:
-        d = await asyncio.to_thread(CM.plan, idea, style, b.get("panels") or 6, b.get("lang") or "en")
+        d = await asyncio.to_thread(CM.plan, idea, style, n, b.get("lang") or "en", kind, people, int(b.get("variant") or 0))
     except llm.NotConfigured as e:
         raise HTTPException(503, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not write the story: {str(e)[:200]}")
     d["idea"] = idea[:3000]
+    d["lang"] = b.get("lang") or "en"
     _comic_check_text(request, d)
-    cid = ST.add_comic(me(request)["id"], style, d)
-    ST.event("comic_new", me(request)["id"], {"id": cid, "panels": len(d["panels"])})
+    cid = ST.add_comic(u["id"], style or d.get("style") or "toon2d", d)
+    c = ST.comic(cid)
+    ST.event("comic_new", u["id"], {"id": cid, "panels": len(d["panels"]), "kind": kind})
+    try:
+        _cast(cid, c, d["characters"], u)
+    except HTTPException:
+        pass                                   # over the daily limit: the page shows the heroes without pictures
     return _comic_out(ST.comic(cid))
 
 
@@ -587,35 +659,57 @@ def comic_one(cid: str, request: Request):
 
 @app.patch("/api/comics/{cid}")
 async def comic_edit(cid: str, request: Request):
+    """lines, captions and the title (a tap on a line in the app); heroes keep their photos and pictures"""
     c = _comic_or_404(request, cid)
     b = await request.json()
-    d = CM.normalize({"title": b.get("title", c["data"]["title"]), "characters": b.get("characters", c["data"]["characters"]),
-                      "panels": b.get("panels", c["data"]["panels"])})
-    # a changed look means the old portrait no longer fits; the user picks again
-    old = {ch["id"]: ch for ch in c["data"]["characters"]}
+    old = c["data"]
+    d = CM.normalize({"title": b.get("title", old["title"]), "characters": b.get("characters", old["characters"]),
+                      "panels": b.get("panels", old["panels"]), "kind": old.get("kind"), "pip": old.get("pip"), "style": old.get("style")})
+    byid = {ch["id"]: ch for ch in old["characters"]}
     for ch in d["characters"]:
-        o = old.get(ch["id"])
-        ch["portrait"] = o["portrait"] if o and o.get("look") == ch["look"] else None
+        o = byid.get(ch["id"]) or {}
+        ch["photo"] = o.get("photo")                       # never from the client
+        ch["portrait"] = o.get("portrait") if o.get("look") == ch["look"] else None
         if o and o.get("look") != ch["look"]:
-            ST.drop_comic_role(cid, "cast:" + ch["id"])   # old pictures no longer match the new look
-    d["idea"] = c["data"].get("idea", "")
+            ST.drop_comic_role(cid, "cast:" + ch["id"])
+    for k in ("idea", "lang"):
+        d[k] = old.get(k, "")
     _comic_check_text(request, d)
     ST.save_comic(cid, d)
+    if [(p["caption"], p["lines"]) for p in d["panels"]] != [(p.get("caption"), p.get("lines")) for p in old["panels"]]:
+        for i, (p, q) in enumerate(zip(d["panels"], old["panels"])):     # new words -> that clip has to be voiced again
+            if (p["caption"], p["lines"]) != (q.get("caption"), q.get("lines")):
+                ST.drop_comic_role(cid, f"clip:{i}")
+        ST.drop_comic_role(cid, "film")
     return _comic_out(ST.comic(cid))
 
 
 @app.post("/api/comics/{cid}/cast")
 async def comic_cast(cid: str, request: Request):
-    """one picture for every hero that has none yet (or a new take of one hero: {"char": id})"""
+    """one picture for every hero that has none yet, or a new take of one hero ({"char": id})"""
     c = _comic_or_404(request, cid)
     b = await request.json()
     files = ST.comic_files(cid)
     chars = [ch for ch in c["data"]["characters"] if (ch["id"] == b.get("char")) or (not b.get("char") and not files.get("cast:" + ch["id"]))]
-    u = me(request)
-    _limit_ok(u, len(chars))
-    jobs = [enqueue(dict(inp, _comic={"id": cid, "role": "cast:" + ch["id"]}), u["id"])
-            for ch in chars for inp in CM.cast_inputs(c["style"], ch)]
-    return {"jobs": jobs}
+    return {"jobs": _cast(cid, c, chars, me(request))}
+
+
+@app.post("/api/comics/{cid}/style")
+async def comic_style(cid: str, request: Request):
+    """another drawing style: the heroes are drawn again, pictures and clips start over"""
+    c = _comic_or_404(request, cid)
+    st = (await request.json()).get("style")
+    if st not in CM.STYLES:
+        raise HTTPException(400, "unknown style")
+    ST.set_comic_style(cid, st)
+    for pre in ("cast:", "panel:", "clip:", "film"):
+        ST.drop_comic_prefix(cid, pre)
+    for ch in c["data"]["characters"]:
+        ch["portrait"] = None
+    ST.save_comic(cid, c["data"])
+    c = ST.comic(cid)
+    _cast(cid, c, c["data"]["characters"], me(request))
+    return _comic_out(ST.comic(cid))
 
 
 @app.post("/api/comics/{cid}/pick")
@@ -634,10 +728,9 @@ async def comic_pick(cid: str, request: Request):
 
 @app.post("/api/comics/{cid}/draw")
 async def comic_draw(cid: str, request: Request):
-    """draw all panels, or one panel again ({"panel": i})"""
+    """draw all pictures, or one again ({"panel": i}); a new picture needs a new clip"""
     c = _comic_or_404(request, cid)
     b = await request.json()
-    d = c["data"]
     d = _comic_out(c)["data"]
     if any(not ch.get("portrait") for ch in d["characters"]):
         raise HTTPException(400, "draw the heroes first")
@@ -645,7 +738,46 @@ async def comic_draw(cid: str, request: Request):
     idx = [i for i in idx if 0 <= i < len(d["panels"])]
     u = me(request)
     _limit_ok(u, len(idx))
+    for i in idx:
+        ST.drop_comic_role(cid, f"clip:{i}")
+    ST.drop_comic_role(cid, "film")
     return {"jobs": [enqueue(dict(CM.panel_input(c["style"], d, i), _comic={"id": cid, "role": f"panel:{i}"}), u["id"]) for i in idx]}
+
+
+@app.post("/api/comics/{cid}/animate")
+async def comic_animate(cid: str, request: Request):
+    """film: every picture comes alive with voices (or one again: {"panel": i})"""
+    c = _comic_or_404(request, cid)
+    b = await request.json()
+    d = _comic_out(c)["data"]
+    idx = [int(b["panel"])] if b.get("panel") is not None else [i for i, p in enumerate(d["panels"]) if not p["clip"]]
+    idx = [i for i in idx if 0 <= i < len(d["panels"]) and d["panels"][i]["image"]]
+    if not idx:
+        raise HTTPException(400, "draw the pictures first")
+    u = me(request)
+    _limit_ok(u, len(idx))
+    ST.drop_comic_role(cid, "film")
+    return {"jobs": [enqueue(dict(CM.clip_input(c["style"], d, i, d.get("lang") or "en"), _comic={"id": cid, "role": f"clip:{i}"}), u["id"])
+                     for i in idx]}
+
+
+@app.post("/api/comics/{cid}/film")
+async def comic_film(cid: str, request: Request):
+    """join the clips (with their sound) into one film"""
+    c = _comic_or_404(request, cid)
+    d = _comic_out(c)["data"]
+    clips = [p["clip"] for p in d["panels"]]
+    if not clips or not all(clips):
+        raise HTTPException(400, "some scenes are not ready yet")
+    key = f"video/film/{cid}_{int(time.time())}.mp4"
+    try:
+        await asyncio.to_thread(_montage, [_media(k) for k in clips], os.path.join(OUT, key), False, True)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(500, f"could not join the clips: {e.__class__.__name__}")
+    ST.add_file(key, c["user_id"], None, "video")
+    ST.add_comic_file(key, cid, "film")
+    return _comic_out(ST.comic(cid))
 
 
 @app.delete("/api/comics/{cid}")
@@ -817,7 +949,7 @@ def enqueue(inp, uid):
 @app.post("/api/generate")
 async def generate(request: Request):
     inp = await request.json()
-    for k in ("out_prefix", "_project", "_hero", "_then", "_adult", "_comic", "_real"):   # internal keys, set only by the server
+    for k in ("out_prefix", "_project", "_hero", "_then", "_adult", "_comic", "_real", "_story"):   # internal keys, set only by the server
         inp.pop(k, None)
     if inp.get("family") not in H.models_info()["families"]:
         raise HTTPException(400, "unknown family")

@@ -58,7 +58,8 @@ _AGE = re.compile(r"\b(\d{1,2})\s*(?:yo|y/o|years?[- ]old|year[- ]old|yrs?|ле�
 # Everyday section on models that cannot make nudity: children are fine (fairy tales, kids' cards),
 # only together with sexual words they are refused. Everywhere else (18+, NSFW-capable models): strict.
 SFW_FAMILIES = {"qwen_image21", "flux3_klein", "gif"}
-REAL_FAMILIES = {"qwen_image21", "flux3_klein", "wan22_i2v"}      # what an uploaded (real) photo may be used with
+REAL_FAMILIES = {"qwen_image21", "flux3_klein", "wan22_i2v"}
+STORY_FAMILIES = {"h3_fl2va", "wan22_i2v"}      # what an uploaded (real) photo may be used with
 REAL_RISKY = float(os.environ.get("ZC_REAL_RISKY", "0.3"))         # tagger questionable+explicit above this -> deleted
 _SEXUAL = re.compile(
     r"\b(nude|naked|nsfw|sex|sexy|sexual|erotic\w*|lingerie|topless|bottomless|breasts?|nipples?|genitals?|porn\w*|"
@@ -168,7 +169,16 @@ def generate(inp, job_id, progress=None, cancel=None):
     f = R.family(fam)
     if f.get("template") is None:
         raise ValueError(f"unknown family {fam}")
-    sfw = fam in SFW_FAMILIES and not inp.get("_adult")
+    # "_story" (set only by the UI server): a 'Tell a story' clip whose prompt the server built from a checked screenplay.
+    # It runs without LoRAs and never with sexual words, so the everyday rule applies (kids in a family story are fine).
+    story = bool(inp.get("_story"))
+    if story:
+        if fam not in STORY_FAMILIES or inp.get("_adult"):
+            raise ValueError("story clips use the everyday video models only")
+        if _SEXUAL.search(inp.get("prompt") or ""):
+            raise ValueError("prompt refused for a story clip")
+        inp["loras"] = {}
+    sfw = (fam in SFW_FAMILIES or story) and not inp.get("_adult")
     v = prompt_violation(inp.get("prompt"), sfw)
     if v:
         zc.safety_log({"source": "handler_prompt", "job": job_id, "family": fam, "action": "refused", "match": v})

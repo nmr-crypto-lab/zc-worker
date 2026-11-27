@@ -1,8 +1,14 @@
-"""'Tell a story' -> Comic: idea -> screenplay (Claude) -> heroes (pick a portrait) -> panels -> lines on top.
+"""'Tell a story': idea -> screenplay (Claude) -> heroes (one portrait each) -> pictures -> [film: clips with voices] -> result.
 
-Panels are drawn by Qwen-Image 2.1 with the chosen hero portraits as references (the same recipe that keeps
-18+ heroines consistent). The pictures carry no text: lines and captions are our own text layer, so they are
-always exactly as written and in any language.
+Kinds:
+  comic  pictures with lines; the lines are our own text layer under the pictures (exact, any language)
+  film   the same pictures, then every picture comes alive with voices (MiniMax H3 first-frame -> video+audio),
+         then the clips are joined into one film
+  us     a film whose heroes come from people's own photos: the photo is turned into a drawn character first,
+         and only that drawing is used further on (the real photo never goes to a video model)
+
+Pictures are drawn by Qwen-Image 2.1 with the hero portraits as references (the recipe that keeps heroes consistent).
+The screenplay also carries Pip's comments (written by the same call) so the helper reacts to THIS story.
 """
 import random, re
 
@@ -17,27 +23,61 @@ STYLES = {
 }
 NO_TEXT = "No text, no letters, no speech bubbles, no captions, no logos."
 LANGS = {"en": "English", "ru": "Russian", "id": "Indonesian"}
+FILM_W, FILM_H = 768, 1344          # vertical: films are watched and sent on phones
 
-SYSTEM = """You are a comic screenwriter for a casual app. Turn the user's idea, joke, tale or family story into a short comic.
+SYSTEM = """You are a comic and cartoon screenwriter for a casual app, and also the voice of Pip, the app's cheerful little helper.
+Turn the user's idea, joke, tale, poem or family story into a short KIND.
 Return ONLY JSON:
 {"title": "...",
- "characters": [{"id": "c1", "name": "...", "look": "..."}],
- "panels": [{"scene": "...", "chars": ["c1"], "caption": "...", "lines": [{"who": "c1", "text": "..."}]}]}
+ "style": "comic|manga|toon3d|toon2d|storybook",
+ "characters": [{"id": "c1", "name": "...", "role": "...", "look": "..."}],
+ "panels": [{"scene": "...", "motion": "...", "chars": ["c1"], "caption": "...", "lines": [{"who": "c1", "text": "..."}]}],
+ "pip": {"start": "...", "heroes": {"c1": "..."}, "panels": ["...", "..."], "final": "..."}}
 Rules:
-- title, name, caption and line texts are in LANG. "look" and "scene" are in English (they go to an image model).
-- 1 to 3 characters. "look" = what stays the same in every panel, in one line: species, "man/woman/boy/girl, about N years old",
-  hair, clothes, one or two striking details (no beauty marks, freckles or piercings - they drift between pictures).
-- Each panel: "scene" = one concrete picture (who does what, where, camera: close-up / wide shot). Mention characters by name.
+- title, name, role, caption, line texts and everything in "pip" are in LANG. "look", "scene" and "motion" are in English (they go to image and video models).
+- "style": the drawing style that suits this story best (cute family stories: toon3d or storybook, action and jokes: comic or toon2d, drama: manga).
+- 1 to 3 characters. "role" = 2-4 words about the hero (e.g. "the star of the show"). "look" = what stays the same in every picture, one line:
+  species, "man/woman/boy/girl, about N years old", hair, clothes, one or two striking details (no beauty marks, freckles or piercings - they drift).
+- Each panel: "scene" = one concrete picture (who does what, where, camera: close-up / medium / wide). Mention characters by name.
 - At most 2 lines per panel, each under 90 characters; "caption" is optional narration under 80 characters (use "" if none).
-- Keep the punchline or the point of the story. Family-friendly. No real people, no brands.
-"""
+- Keep the punchline or the point of the story. Family-friendly. No real famous people, no brands.
+- "pip": short playful comments (each under 70 characters) from a friendly helper who is making this KIND right now and enjoys the story:
+  "start" when the story is ready and the heroes are being drawn; "heroes" one remark per hero when its picture appears;
+  "panels" one remark per panel when it appears (same count as panels); "final" when everything is ready, inviting to send it.
+  Warm humour, no emojis, never mean.
+EXTRA"""
+
+FILM_EXTRA = """- This is an animated film: every panel is one shot of 5-8 seconds that will come alive with sound.
+  "motion" = what moves in the shot and how (gestures, facial expressions, camera move), in English, one sentence.
+  Lines are spoken aloud: natural, short, easy to say; at most 2 lines per shot. Captions are read by a narrator."""
+US_EXTRA = """- The heroes are real people from the user's photos. Use EXACTLY these characters (ids and names), add none:
+PEOPLE
+  For them "look" = only clothes and outfit for this story (the face, hair and age come from their photo)."""
 
 
-def plan(idea, style, n, lang):
+def plan(idea, style, n, lang, kind="comic", people=None, variant=0):
     n = max(3, min(8, int(n or 6)))
-    user = f"LANG: {LANGS.get(lang, 'English')}\nPANELS: exactly {n}\nSTYLE: {style}\nIDEA:\n{idea.strip()[:3000]}"
-    d = llm.ask_json(SYSTEM.replace("LANG", LANGS.get(lang, "English")), user)
-    return normalize(d, n)
+    lang_name = LANGS.get(lang, "English")
+    extra = ""
+    if kind in ("film", "us"):
+        extra += FILM_EXTRA
+    if kind == "us" and people:
+        extra += "\n" + US_EXTRA.replace("PEOPLE", "\n".join(f'  {{"id": "c{i + 1}", "name": "{p["name"]}"}}' for i, p in enumerate(people)))
+    system = SYSTEM.replace("LANG", lang_name).replace("KIND", "animated film" if kind in ("film", "us") else "comic").replace("EXTRA", extra)
+    user = f"LANG: {lang_name}\nPANELS: exactly {n}\n" + (f"STYLE: {style}\n" if style in STYLES else "") + \
+           (f"VARIANT: {variant} (write a clearly different take than an obvious first version)\n" if variant else "") + \
+           f"IDEA:\n{idea.strip()[:3000]}"
+    d = llm.ask_json(system, user, max_tokens=4000)
+    d["kind"] = kind
+    d = normalize(d, n)
+    if kind == "us" and people:                       # attach the photos; the model was told to keep ids/names
+        for i, p in enumerate(people[:3]):
+            ch = next((c for c in d["characters"] if c["name"].strip().lower() == p["name"].strip().lower()), None)
+            if ch is None and i < len(d["characters"]):
+                ch = d["characters"][i]
+            if ch is not None:
+                ch["photo"] = p["path"]
+    return d
 
 
 def _s(v, n):
@@ -51,29 +91,44 @@ def normalize(d, n=8):
         if cid in ids:
             cid = f"c{i + 1}"
         ids.add(cid)
-        chars.append({"id": cid, "name": _s(c.get("name"), 30) or cid, "look": _s(c.get("look"), 300),
-                      "portrait": c.get("portrait") if isinstance(c.get("portrait"), str) else None})
+        chars.append({"id": cid, "name": _s(c.get("name"), 30) or cid, "role": _s(c.get("role"), 40), "look": _s(c.get("look"), 300),
+                      "portrait": c.get("portrait") if isinstance(c.get("portrait"), str) else None,
+                      "photo": c.get("photo") if isinstance(c.get("photo"), str) else None})
     panels = []
     for p in (d.get("panels") or [])[:max(n, 1)]:
         lines = [{"who": _s(l.get("who"), 8), "text": _s(l.get("text"), 120)}
                  for l in (p.get("lines") or [])[:2] if _s(l.get("text"), 120)]
-        panels.append({"scene": _s(p.get("scene"), 400), "chars": [c for c in (p.get("chars") or []) if c in ids][:3],
+        panels.append({"scene": _s(p.get("scene"), 400), "motion": _s(p.get("motion"), 300),
+                       "chars": [c for c in (p.get("chars") or []) if c in ids][:3],
                        "caption": _s(p.get("caption"), 100), "lines": lines,
                        "image": p.get("image") if isinstance(p.get("image"), str) else None})
-    return {"title": _s(d.get("title"), 80), "characters": chars, "panels": panels}
+    pip = d.get("pip") if isinstance(d.get("pip"), dict) else {}
+    pip = {"start": _s(pip.get("start"), 120), "final": _s(pip.get("final"), 120),
+           "heroes": {k: _s(v, 120) for k, v in (pip.get("heroes") or {}).items() if k in ids} if isinstance(pip.get("heroes"), dict) else {},
+           "panels": [_s(x, 120) for x in (pip.get("panels") or [])][:len(panels)] if isinstance(pip.get("panels"), list) else []}
+    style = d.get("style") if d.get("style") in STYLES else None
+    return {"title": _s(d.get("title"), 80), "kind": d.get("kind") if d.get("kind") in ("comic", "film", "us") else "comic",
+            "style": style, "characters": chars, "panels": panels, "pip": pip}
 
 
 def all_text(d):
-    """everything a user can type, for the minors filter"""
+    """everything a user can type or the writer wrote, for the minors filter"""
     parts = [d.get("title", "")]
-    parts += [c["name"] + " " + c["look"] for c in d["characters"]]
+    parts += [c["name"] + " " + c.get("role", "") + " " + c["look"] for c in d["characters"]]
     for p in d["panels"]:
-        parts += [p["scene"], p["caption"]] + [l["text"] for l in p["lines"]]
+        parts += [p["scene"], p.get("motion", ""), p["caption"]] + [l["text"] for l in p["lines"]]
     return "\n".join(parts)
 
 
 def cast_inputs(style, ch, n=1):
-    p = (f"{STYLES.get(style, STYLES['comic'])}. Character design of {ch['name']}: {ch['look']}. "
+    st = STYLES.get(style, STYLES["comic"])
+    if ch.get("photo"):      # a real person -> a drawn character that keeps them recognizable (the photo stays here)
+        p = (f"{st}. Character design: the person from reference image 1 drawn as a character in this style. "
+             f"Keep them recognizable: the same face shape, hair, age and expression. Outfit: {ch['look'] or 'their everyday clothes'}. "
+             f"Full body, front view, standing, plain white background. {NO_TEXT}")
+        return [{"family": "qwen_image21", "prompt": p, "seed": s, "width": 1024, "height": 1024,
+                 "images": [{"path": ch["photo"]}], "_real": True} for s in random.sample(range(1, 10 ** 6), n)]
+    p = (f"{st}. Character design of {ch['name']}: {ch['look']}. "
          f"Full body, front view, standing, plain white background. {NO_TEXT}")
     return [{"family": "qwen_image21", "prompt": p, "seed": s, "width": 1024, "height": 1024}
             for s in random.sample(range(1, 10 ** 6), n)]
@@ -86,10 +141,36 @@ def panel_input(style, d, i):
     refs = [c for c in present if c.get("portrait")]
     who = " ".join(f"{c['name']} is the character from reference image {refs.index(c) + 1} ({c['look']})." if c in refs
                    else f"{c['name']}: {c['look']}." for c in present)
-    prompt = (f"{STYLES.get(style, STYLES['comic'])}. Comic panel. {p['scene']} {who} "
+    film = d.get("kind") in ("film", "us")
+    prompt = (f"{STYLES.get(style, STYLES['comic'])}. {'Animation film still, vertical frame' if film else 'Comic panel'}. {p['scene']} {who} "
               f"Keep every character exactly as in their reference image, but NOT their plain white background: "
               f"show the full scene with a detailed background that fits the place. {NO_TEXT}")
-    inp = {"family": "qwen_image21", "prompt": prompt, "width": 1024, "height": 1024}
+    inp = {"family": "qwen_image21", "prompt": prompt, "width": FILM_W if film else 1024, "height": FILM_H if film else 1024}
     if refs:
         inp["images"] = [{"path": c["portrait"]} for c in refs]
     return inp
+
+
+def clip_seconds(p):
+    n = len(p["caption"]) + sum(len(l["text"]) for l in p["lines"])
+    return int(max(4, min(8, round(2.5 + n / 13))))
+
+
+def clip_input(style, d, i, lang):
+    """the panel picture comes alive with voices: MiniMax H3, first frame = the picture"""
+    p = d["panels"][i]
+    by = {c["id"]: c for c in d["characters"]}
+    lang_name = LANGS.get(lang, "English")
+    speech = []
+    if p["caption"]:
+        speech.append(f'A warm narrator voice says in {lang_name}: "{p["caption"]}"')
+    for l in p["lines"]:
+        c = by.get(l["who"])
+        who = f"{c['name']} ({' '.join(c['look'].split()[:8])})" if c else "A character"
+        speech.append(f'{who} says in {lang_name}: "{l["text"]}"')
+    kind = {"toon3d": "3D cartoon", "manga": "anime", "storybook": "storybook"}.get(style, "cartoon")
+    prompt = (f"{kind} animation. {p.get('motion') or p['scene']} " + " ".join(speech) +
+              " Keep the characters and the picture style exactly as in the image. Lively expressive voices, matching lip movement, "
+              "soft ambient sound, no music, no subtitles, no text.")
+    return {"family": "h3_fl2va", "prompt": prompt, "images": [{"path": p["image"]}], "seconds": clip_seconds(p),
+            "megapixels": 0.6, "_story": True}

@@ -370,7 +370,8 @@ def comics_of(uid, limit=30):
     rows = _q("select id, style, data, updated from comics where user_id=? and deleted is null order by updated desc limit ?",
               (uid, int(limit)))
     for r in rows:
-        r["title"] = (_json.loads(r.pop("data")) or {}).get("title", "")
+        dd = _json.loads(r.pop("data")) or {}
+        r["title"], r["kind"] = dd.get("title", ""), dd.get("kind", "comic")
     return rows
 
 
@@ -384,6 +385,14 @@ def add_comic_file(key, cid, role):
 
 def drop_comic_role(cid, role):
     _x("delete from comic_files where comic_id=? and role=?", (cid, role))
+
+
+def set_comic_style(cid, style):
+    _x("update comics set style=?, updated=? where id=?", (style, time.time(), cid))
+
+
+def drop_comic_prefix(cid, prefix):
+    _x("delete from comic_files where comic_id=? and role like ?", (cid, prefix + "%"))
 
 
 def comic_files(cid):
