@@ -780,6 +780,31 @@ async def comic_film(cid: str, request: Request):
     return _comic_out(ST.comic(cid))
 
 
+@app.post("/api/comics/{cid}/final")
+async def comic_final(cid: str, request: Request):
+    """the finished comic as one picture (put together in the app) is kept as a work of its own"""
+    from io import BytesIO
+    from PIL import Image
+    c = _comic_or_404(request, cid)
+    data = await request.body()
+    if not data or len(data) > 30 * 1024 * 1024:
+        raise HTTPException(400, "no picture")
+    try:
+        im = Image.open(BytesIO(data))
+        im.load()
+    except Exception:
+        raise HTTPException(400, "not a picture")
+    key = f"image/comic/{cid}_{int(time.time())}.png"
+    os.makedirs(os.path.join(OUT, "image/comic"), exist_ok=True)
+    im.convert("RGB").save(os.path.join(OUT, key), "PNG", optimize=True)
+    for old in ST.comic_files(cid).get("final", []):
+        ST.delete_file(old)
+    ST.drop_comic_role(cid, "final")
+    ST.add_file(key, c["user_id"], None, "image")
+    ST.add_comic_file(key, cid, "final")
+    return {"path": key}
+
+
 @app.delete("/api/comics/{cid}")
 def comic_delete(cid: str, request: Request):
     _comic_or_404(request, cid)
