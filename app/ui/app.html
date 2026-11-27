@@ -1036,8 +1036,9 @@ function cDots(step, film) {
   const steps = film ? ['idea', 'heroes', 'pics', 'clips', 'final'] : ['idea', 'heroes', 'pics', 'final'], si = steps.indexOf(step);
   return `<div style="display:flex;gap:4px;align-items:center;justify-content:center;margin:8px 0 2px">${steps.map((s2, i) => `<span style="display:block;width:${i === si ? 18 : 7}px;height:7px;border-radius:4px;background:${i <= si ? 'var(--acc)' : '#cbd5e1'}"></span>`).join('')}</div>`;
 }
-function cWait(job, word) {
-  if (job && job.status === 'queued' && job.queue_pos > 1) return L(`in line: ${job.queue_pos - 1} ahead`, `в очереди: ${job.queue_pos - 1} впереди`, `antre: ${job.queue_pos - 1} di depan`);
+function cWait(job, word, clip) {
+  if (job && job.status === 'queued' && job.queue_pos > 1) return clip ? L(`comes alive after ${job.queue_pos - 1} more`, `оживёт после ещё ${job.queue_pos - 1}`, `hidup setelah ${job.queue_pos - 1} lagi`)
+    : L(`in line: ${job.queue_pos - 1} ahead`, `в очереди: ${job.queue_pos - 1} впереди`, `antre: ${job.queue_pos - 1} di depan`);
   if (job && job.progress && job.progress.stage === 'loading models') return L('warming up…', 'разогреваюсь…', 'pemanasan…');
   return word;
 }
@@ -1092,7 +1093,7 @@ function vComic() {
     const clips = step === 'clips';
     main += `<div class="cg">${d.panels.map((p, i) => { const role = (clips ? 'clip:' : 'panel:') + i, j = cJob(x, role), has = clips ? p.clip : p.image, failed = cFail(x, role);
       const media2 = clips ? (p.clip && !j ? `<video src="${fileUrl(p.clip)}" poster="${p.image ? fileUrl(p.image) : ''}" controls playsinline preload="none" style="width:100%;display:block;border-radius:12px;background:#000"></video>`
-          : `<div class="ppic" style="aspect-ratio:9/16;${p.image ? `background:url('${thumbUrl(p.image)}') center/cover` : ''}"><span>${esc(failed ? L('did not work — try again', 'не вышло — ещё раз', 'gagal — coba lagi') : cWait(j, L('bringing to life…', 'оживляю…', 'menghidupkan…')))}</span></div>`)
+          : `<div class="ppic" style="aspect-ratio:9/16;align-items:flex-end;padding-bottom:10px;${p.image ? `background:url('${thumbUrl(p.image)}') center/cover` : ''}"><span>${esc(failed ? L('did not work — try again', 'не вышло — ещё раз', 'gagal — coba lagi') : cWait(j, L('bringing to life…', 'оживляю…', 'menghidupkan…'), true))}</span></div>`)
         : (p.image && !j ? `<img src="${fileUrl(p.image)}" alt="" style="width:100%;display:block;border-radius:12px">` : `<div class="ppic" style="aspect-ratio:${film ? '9/16' : '1/1'}"><span>${esc(failed ? L('did not work — try again', 'не вышло — ещё раз', 'gagal — coba lagi') : cWait(j, L('drawing…', 'рисую…', 'menggambar…')))}</span></div>`);
       return `<div class="card" style="margin-top:10px">${media2}${cLinesEdit(p, i)}
         <button class="btn3" style="width:100%;margin-top:8px;min-height:42px;font-size:14px;${(has && !j) || failed ? '' : 'display:none'}" data-act="${clips ? 'cReclip' : 'cRedraw'}" data-v="${i}">${esc(clips ? L('Shoot this scene again', 'Переснять сцену', 'Ambil ulang') : L('Draw this one again', 'Перерисовать', 'Gambar ulang'))}</button></div>`; }).join('')}</div>`;
@@ -1145,7 +1146,8 @@ function cSig() { const d = S.c.x.data; return JSON.stringify([d.title, d.panels
 async function cMakeFinal() {
   if (!S.c.x) return; cMakeFinal.busy = true;
   try { const sig = cSig(), b = await cCompose(); if (S.c.finalUrl) URL.revokeObjectURL(S.c.finalUrl);
-    S.c.finalUrl = URL.createObjectURL(b); S.c.finalBlob = b; S.c.finalSig = sig; }
+    S.c.finalUrl = URL.createObjectURL(b); S.c.finalBlob = b; S.c.finalSig = sig;
+    const key = S.c.x.id + sig; if (S.c.savedSig !== key) { S.c.savedSig = key; fetch(`/api/comics/${S.c.x.id}/final`, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: b }).catch(() => {}); } }
   catch (e) { S.c.err = L('Could not put the comic together.', 'Не получилось собрать комикс.', 'Gagal menyusun komik.'); S.c.finalSig = cSig(); }
   finally { cMakeFinal.busy = false; }
   if (S.screen === 'comic') { render.keep = true; render(); }
