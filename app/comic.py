@@ -123,8 +123,10 @@ def all_text(d):
 def cast_inputs(style, ch, n=1):
     st = STYLES.get(style, STYLES["comic"])
     if ch.get("photo"):      # a real person -> a drawn character that keeps them recognizable (the photo stays here)
-        p = (f"{st}. Character design: the person from reference image 1 drawn as a character in this style. "
-             f"Keep them recognizable: the same face shape, hair, age and expression. Outfit: {ch['look'] or 'their everyday clothes'}. "
+        p = (f"{st}. Character design: turn the person from reference image 1 into a cartoon character in this style. "
+             f"Everything is drawn in this style, the face too: stylized cartoon features, big expressive eyes, simplified shapes, "
+             f"NOT a photo and no photographic skin. Keep them recognizable: the same hairstyle and hair color, face shape, "
+             f"glasses, beard or moustache if any, age. Outfit: {ch['look'] or 'their everyday clothes'}. "
              f"Full body, front view, standing, plain white background. {NO_TEXT}")
         return [{"family": "qwen_image21", "prompt": p, "seed": s, "width": 1024, "height": 1024,
                  "images": [{"path": ch["photo"]}], "_real": True} for s in random.sample(range(1, 10 ** 6), n)]
@@ -144,7 +146,7 @@ def panel_input(style, d, i):
     film = d.get("kind") in ("film", "us")
     prompt = (f"{STYLES.get(style, STYLES['comic'])}. {'Animation film still, vertical frame' if film else 'Comic panel'}. {p['scene']} {who} "
               f"Keep every character exactly as in their reference image, but NOT their plain white background: "
-              f"show the full scene with a detailed background that fits the place. {NO_TEXT}")
+              f"show the full scene with a detailed background that fits the place (never a plain white or empty background). {NO_TEXT}")
     inp = {"family": "qwen_image21", "prompt": prompt, "width": FILM_W if film else 1024, "height": FILM_H if film else 1024}
     if refs:
         inp["images"] = [{"path": c["portrait"]} for c in refs]
