@@ -1147,7 +1147,7 @@ async function cMakeFinal() {
   if (!S.c.x) return; cMakeFinal.busy = true;
   try { const sig = cSig(), b = await cCompose(); if (S.c.finalUrl) URL.revokeObjectURL(S.c.finalUrl);
     S.c.finalUrl = URL.createObjectURL(b); S.c.finalBlob = b; S.c.finalSig = sig;
-    const key = S.c.x.id + sig; if (S.c.savedSig !== key) { S.c.savedSig = key; fetch(`/api/comics/${S.c.x.id}/final`, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: b }).catch(() => {}); } }
+    const key = S.c.x.id + sig; if (S.c.savedSig !== key) { S.c.savedSig = key; fetch(`/api/comics/${S.c.x.id}/final`, { method: 'POST' }).catch(() => {}); } }
   catch (e) { S.c.err = L('Could not put the comic together.', 'Не получилось собрать комикс.', 'Gagal menyusun komik.'); S.c.finalSig = cSig(); }
   finally { cMakeFinal.busy = false; }
   if (S.screen === 'comic') { render.keep = true; render(); }
