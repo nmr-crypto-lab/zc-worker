@@ -23,6 +23,8 @@ import store as ST
 import adult as AD
 import comic as CM
 import llm
+import pipchat as PIP
+import album as AL
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.realpath(f"{P.ROOT}/output")
@@ -45,7 +47,7 @@ def _password(env="ZC_UI_PASSWORD", name="ui_password.txt"):
 
 ADMIN_PASSWORD = _password("ZC_ADMIN_PASSWORD", "admin_password.txt")
 ADMIN_ONLY = ("/admin", "/api/admin/")     # owner only: testers get the user app and the studio
-PUBLIC = ("/i/", "/ui/ex/", "/favicon")
+PUBLIC = ("/i/", "/ui/ex/", "/favicon", "/a/")
 SESSION_DAYS = 120
 
 
@@ -245,6 +247,7 @@ def worker():
             _hero_after(job)
             _comic_after(job)
             _chain_after(job)
+            _album_after(job)
         except Exception:
             traceback.print_exc()
         Q.task_done()
@@ -258,6 +261,40 @@ def _comic_after(job):
     for o in (job.get("result") or {}).get("outputs", []):
         if o.get("type") == want and (want == "image" or o["path"].lower().endswith(".mp4")):
             ST.add_comic_file(o["path"], m["id"], m["role"])
+
+
+def _album_after(job):
+    m = job["input"].get("_album")
+    if not m:
+        return
+    outs = (job.get("result") or {}).get("outputs", []) if job["status"] == "done" else []
+    uid = job.get("user") or ST.owner()["id"]
+    nxt = []
+
+    def f(a):
+        p = a["photos"][m["idx"]]
+        if m["step"] == "restore":
+            img = next((o["path"] for o in outs if o.get("type") == "image"), None)
+            if img:
+                p["path"], p["restored"] = img, True
+            else:
+                p["restored"] = False          # keep the original photo
+            nxt.append(AL.alive_input(a, m["idx"], _safe_motion))
+        else:
+            mp4 = next((o["path"] for o in outs if o.get("type") == "video" and o["path"].lower().endswith(".mp4")), None)
+            if mp4:
+                p["video"] = mp4
+            else:
+                p["failed"] = True             # stays a still photo with a slow zoom
+        if all(x.get("video") or x.get("failed") for x in a["photos"]):
+            a["status"], a["stage"] = "ready", "done"
+    AL.update(m["id"], f)
+    for inp in nxt:
+        enqueue(inp, uid)
+
+
+def _safe_motion(t):
+    return not H.prompt_violation(t, True) and not H._SEXUAL.search(t)
 
 
 def _chain_after(job):
@@ -652,6 +689,139 @@ def _cast(cid, c, chars, u):
 @app.get("/api/comics")
 def comics_list(request: Request):
     return ST.comics_of(me(request)["id"])
+
+
+@app.post("/api/pip")
+async def pip_chat(request: Request):
+    """Pip, the home-screen chat helper (Claude): a short reply + a UI action. 503 = not switched on, the page falls back to its own simple replies."""
+    b = await request.json()
+    u = me(request)
+    msgs = [m for m in (b.get("messages") or []) if isinstance(m, dict)][-14:]
+    last = next((str(m.get("t") or "") for m in reversed(msgs) if m.get("me")), "")
+    if not last.strip():
+        raise HTTPException(400, "say something first")
+    if H.prompt_violation(last, True):
+        ST.event("prompt_refused", u["id"], {"where": "pip"})
+        return {"t": {"ru": "С этим я не помогу. Давайте лучше сделаем открытку или мультик?", "id": "Itu tidak bisa. Bagaimana kalau kartu atau kartun?"}.get(b.get("lang"), "I can't help with that. How about a card or a cartoon instead?")}
+    if not PIP.allow(u["id"]):
+        raise HTTPException(429, "Pip needs a rest — try again tomorrow")
+    hist = [PIP.BY_ID[tuple(x.split("/", 1))]["title"] for x in (b.get("hist") or [])[:5] if isinstance(x, str) and tuple(x.split("/", 1)) in PIP.BY_ID]
+    ctx = time.strftime("today is %A %d %B %Y") + (f"; earlier they made: {', '.join(hist)}" if hist else "; first time here")
+    try:
+        r = await asyncio.to_thread(PIP.chat, msgs, b.get("lang") or "en", ctx)
+    except llm.NotConfigured as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"pip: {str(e)[:200]}")
+    ST.event("pip", u["id"], {"offer": (r.get("offer") or {}).get("task")})
+    return r
+
+
+# ------------------------------------------------------------------ family album
+def _album_or_404(request, aid):
+    a = AL.load(aid)
+    if not a or (a["user"] != me(request)["id"] and not is_admin(request)):
+        raise HTTPException(404, "album not found")
+    return a
+
+
+def _album_start(aid, files):
+    a = AL.load(aid)
+    try:
+        AL.plan(a, files)
+    except Exception:
+        traceback.print_exc()
+    a["stage"] = "alive"
+    AL.save(a)
+    for i, p in enumerate(a["photos"]):
+        enqueue(AL.restore_input(a, i) if p.get("old") else AL.alive_input(a, i, _safe_motion), a["user"])
+
+
+@app.get("/api/albums")
+def albums_list(request: Request):
+    return [{"id": a["id"], "title": a["title"], "status": a["status"]} for a in AL.mine(me(request)["id"])]
+
+
+@app.post("/api/albums")
+async def album_create(request: Request):
+    b = await request.json()
+    u = me(request)
+    paths = [p for p in (b.get("photos") or []) if isinstance(p, str)][:30]
+    if len(paths) < 4:
+        raise HTTPException(400, "add at least 4 photos")
+    photos = []
+    from PIL import Image
+    for p in paths:
+        if not can_file(request, p) or not ST.is_upload(p):
+            raise HTTPException(403, "use photos you uploaded")
+        f = _media(p)
+        try:
+            w, h = Image.open(f).size
+        except Exception:
+            raise HTTPException(400, "a photo could not be read")
+        photos.append({"path": p, "file": f, "w": w, "h": h})
+    _limit_ok(u, len(photos))
+    a = AL.create(u["id"], b.get("title"), photos, b.get("lang") or "en")
+    ST.event("album_new", u["id"], {"id": a["id"], "photos": len(photos)})
+    threading.Thread(target=_album_start, args=(a["id"], [p["file"] for p in photos]), daemon=True).start()
+    return AL.out(a)
+
+
+@app.get("/api/albums/{aid}")
+def album_one(aid: str, request: Request):
+    return AL.out(_album_or_404(request, aid))
+
+
+@app.post("/api/albums/{aid}/video")
+async def album_video(aid: str, request: Request):
+    a = _album_or_404(request, aid)
+    if a["status"] != "ready":
+        raise HTTPException(409, "the album is not ready yet")
+    if a.get("video") and os.path.exists(os.path.join(OUT, a["video"])):
+        return {"path": a["video"]}
+    key = f"video/montage/album_{a['id']}_{uuid.uuid4().hex[:6]}.mp4"     # joined from gated clips only
+    try:
+        await asyncio.to_thread(AL.make_video, a, _media, _montage, os.path.join(OUT, key))
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(500, f"could not make the video: {e.__class__.__name__}")
+    ST.add_file(key, a["user"], None, "video")
+    AL.update(a["id"], lambda x: x.__setitem__("video", key))
+    return {"path": key}
+
+
+@app.get("/a/{code}", response_class=HTMLResponse)
+def album_public(code: str):
+    """the shared album: anyone with the link can leaf through it, nothing else is reachable"""
+    a = AL.by_share(code)
+    if not a or a["status"] != "ready":
+        return HTMLResponse("<h3 style='font-family:sans-serif;text-align:center;margin-top:20vh'>Album not found</h3>", status_code=404)
+    return HTMLResponse(open(os.path.join(P.CODE, "ui", "album_view.html")).read())
+
+
+@app.get("/a/{code}/data")
+def album_public_data(code: str):
+    a = AL.by_share(code)
+    if not a or a["status"] != "ready":
+        raise HTTPException(404, "not found")
+    keys = {p["path"] for p in a["photos"]} | {p["video"] for p in a["photos"] if p.get("video")}
+    idx = {k: i for i, k in enumerate(sorted(keys))}
+    o = AL.out(a, url=lambda k: f"/a/{code}/m/{idx[k]}{os.path.splitext(k)[1]}")
+    for k in ("id", "share", "video", "status"):
+        o.pop(k, None)
+    return o
+
+
+@app.get("/a/{code}/m/{name}")
+def album_public_media(code: str, name: str):
+    a = AL.by_share(code)
+    if not a or a["status"] != "ready":
+        raise HTTPException(404, "not found")
+    keys = sorted({p["path"] for p in a["photos"]} | {p["video"] for p in a["photos"] if p.get("video")})
+    m = re.match(r"^(\d+)\.\w+$", name)
+    if not m or int(m.group(1)) >= len(keys):
+        raise HTTPException(404, "not found")
+    return FileResponse(_media(keys[int(m.group(1))]), headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.post("/api/comics")

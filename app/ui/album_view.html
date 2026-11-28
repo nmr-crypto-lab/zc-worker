@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Family album</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Caveat:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe7d6;--ink:#3b2f22;--muted:#6b5a45}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
+.book{position:relative;max-width:min(520px,calc((100vh - 290px) * .75));min-width:260px;margin:0 auto;perspective:1800px;display:flex}
+.book.wide{max-width:min(1000px,calc((100vh - 250px) * 1.5))}
+.pg{flex:1;aspect-ratio:3/4;box-sizing:border-box;padding:8% 9%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:4px 14px 14px 4px;
+  background:radial-gradient(ellipse at 30% 20%,#fffdf7,#f5ecd9 70%,#ecdfc4);box-shadow:inset 18px 0 24px -18px rgba(90,60,20,.35),0 8px 28px rgba(40,30,10,.22);color:#3b2f22;transform-origin:left center}
+.book.wide .pg:first-child:not(:last-child){border-radius:14px 4px 4px 14px;box-shadow:inset -18px 0 24px -18px rgba(90,60,20,.35),0 8px 28px rgba(40,30,10,.22)}
+.pg .ph{width:88%;background:#fff;padding:4% 4% 5%;box-shadow:0 3px 10px rgba(40,30,10,.25)}
+.pg .ph video,.pg .ph img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#ddd}
+.pg .cap{font-family:Caveat,cursive;font-size:27px;line-height:1.1;text-align:center;color:#4a3826}
+.pg .chap{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;text-align:center;letter-spacing:.3px;color:#6b4a2b}
+.pg.cover{background:linear-gradient(150deg,#2f4a3a,#1e3328 60%,#16261d);color:#f3e6c4;box-shadow:inset 14px 0 18px -10px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.35)}
+.pg .ctitle{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;text-align:center;line-height:1.15;color:#e9cf8f;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.pg .cph{width:64%;padding:3%;border:2px solid #c9a96266;border-radius:4px}.pg .cph video,.pg .cph img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.pg .cyear{font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#c9a962}
+.alive{animation:kb 9s ease-in-out infinite alternate}@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08) translate(-1.5%,-1%)}}
+.turnL,.turnR{position:absolute;top:0;bottom:0;width:30%;border:0;background:none;cursor:pointer;z-index:2}.turnL{left:0}.turnR{right:0}
+.book.go-next .pg:last-of-type{transition:transform .26s ease-in,opacity .26s;transform:rotateY(-75deg);opacity:.4}
+.book.go-prev .pg:first-of-type{transition:transform .26s ease-in,opacity .26s;transform-origin:right center;transform:rotateY(75deg);opacity:.4}
+.book.in-next .pg{animation:pin .4s ease-out}.book.in-prev .pg{animation:pin2 .4s ease-out}
+@keyframes pin{from{transform:rotateY(60deg);transform-origin:left center;opacity:.5}}@keyframes pin2{from{transform:rotateY(-60deg);transform-origin:right center;opacity:.5}}
+
+.nav{display:flex;align-items:center;gap:16px;margin-top:12px}.nav button{width:46px;height:46px;border-radius:50%;border:0;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);font-size:22px;cursor:pointer}
+.nav button:disabled{opacity:.35}.cnt{font-weight:800;min-width:80px;text-align:center}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.made{margin-top:18px;font-size:13px;color:var(--muted)}.made a{color:inherit;font-weight:800}
+#wrap{width:100%}
+</style></head><body>
+<div id="wrap"><div class="book" id="book"></div></div>
+<div class="nav"><button id="prev" aria-label="Back">‹</button><span class="cnt" id="cnt"></span><button id="next" aria-label="Next">›</button></div>
+<div class="hint" id="hint"></div>
+<div class="made">Wishly</div>
+<script>
+const code = location.pathname.split('/')[2];
+const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ru = /^ru/.test(navigator.language), id = /^id/.test(navigator.language);
+const L = (en, r, i) => (ru ? r : id ? i : en);
+let A = null, pages = [], pg = 0;
+const media = (p) => p.video ? `<video src="${p.video}" poster="${p.path}" autoplay muted loop playsinline></video>` : `<img class="alive" src="${p.path}" alt="">`;
+function page(p) {
+  if (p.cover) { const c = (A.chapters[0] || { pages: [] }).pages[0]; return `<div class="pg cover"><div class="ctitle">${esc(A.title)}</div>${c ? `<div class="cph">${media(c)}</div>` : ''}<div class="cyear">${esc(A.sub)}</div></div>`; }
+  if (p.end) return `<div class="pg"><div class="cap" style="font-size:30px">${L('To be continued…', 'Продолжение следует…', 'Bersambung…')}</div></div>`;
+  return `<div class="pg">${p.chapter ? `<div class="chap">${esc(p.chapter)}</div>` : ''}<div class="ph" style="transform:rotate(${p.tilt || 0}deg)">${media(p)}</div>${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}</div>`;
+}
+function draw() {
+  const wide = innerWidth >= 900, b = document.getElementById('book'); b.classList.toggle('wide', wide);
+  const show = wide && pg > 0 ? [pg % 2 ? pg : pg - 1, (pg % 2 ? pg : pg - 1) + 1].filter((n) => n < pages.length) : [pg];
+  b.innerHTML = show.map((n) => page(pages[n])).join('') + '<button class="turnL" onclick="turn(-1)"></button><button class="turnR" onclick="turn(1)"></button>';
+  document.getElementById('cnt').textContent = pg ? `${pg} / ${pages.length - 2}` : L('Cover', 'Обложка', 'Sampul');
+  document.getElementById('prev').disabled = !pg; document.getElementById('next').disabled = pg >= pages.length - 1;
+  b.querySelectorAll('video').forEach((v) => { v.muted = true; const p = v.play(); if (p && p.catch) p.catch(() => {}); });
+}
+function turn(d) {
+  const wide = innerWidth >= 900; let n = pg + d * (wide && pg > 0 ? 2 : 1); if (wide && d > 0 && pg === 0) n = 1;
+  if (n < 0 || n > pages.length - 1) return;
+  const b = document.getElementById('book'); b.classList.add(d > 0 ? 'go-next' : 'go-prev');
+  setTimeout(() => { b.classList.remove('go-next', 'go-prev'); pg = Math.max(0, n); draw(); b.classList.add(d > 0 ? 'in-next' : 'in-prev'); setTimeout(() => b.classList.remove('in-next', 'in-prev'), 420); }, 260);
+}
+document.getElementById('prev').onclick = () => turn(-1); document.getElementById('next').onclick = () => turn(1);
+let tx = null; document.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', (e) => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; tx = null; if (Math.abs(dx) > 40) turn(dx < 0 ? 1 : -1); }, { passive: true });
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') turn(1); if (e.key === 'ArrowLeft') turn(-1); });
+addEventListener('resize', draw);
+fetch('/a/' + code + '/data').then((r) => r.json()).then((a) => {
+  A = a; document.title = a.title || document.title; pages = [{ cover: true }];
+  a.chapters.forEach((ch) => ch.pages.forEach((p, i) => pages.push({ ...p, chapter: i ? '' : ch.title }))); pages.push({ end: true });
+  document.getElementById('hint').textContent = L('Swipe or tap the page edge to turn', 'Листайте пальцем или нажмите на край страницы', 'Geser atau ketuk tepi halaman'); draw();
+});
+</script></body></html>

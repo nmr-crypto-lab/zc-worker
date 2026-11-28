@@ -7,13 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@700&family=Playfair+Display:wght@700&family=Oswald:wght@700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#4a5568;--line:#e3e8f0;--chip:#cfd8e6;--acc:#c2410c;--acc-bg:#fde7d9;--ok:#15803d;--blue:#1d4ed8}
+:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#4a5568;--line:#e3e8f0;--chip:#cfd8e6;--acc:#c2410c;--acc-bg:#fde7d9;--cta:#c2410c;--ok:#15803d;--blue:#1d4ed8}
 .th-memory{--bg:#f4f2ee;--acc:#5b21b6;--acc-bg:#ede9fe;--line:#e6e2da}
 .th-kids{--bg:#f5f3ff;--acc:#7c3aed;--acc-bg:#ede9fe}
 .th-fun{--bg:#fdf2f8;--acc:#db2777;--acc-bg:#fce7f3}
 .th-biz{--bg:#fff7ed;--acc:#ea580c;--acc-bg:#ffedd5}
 .th-story{--bg:#f1f4f9;--acc:#1d4ed8;--acc-bg:#dbeafe}
-.th-adult{--bg:#0f0d14;--card:#1a1622;--ink:#f4f1f8;--muted:#b9b1c6;--line:#2f2839;--chip:#3a3146;--acc:#db2777;--acc-bg:#3a1630}
+.th-adult{--cta:#db2777;--bg:#0f0d14;--card:#1a1622;--ink:#f4f1f8;--muted:#b9b1c6;--line:#2f2839;--chip:#3a3146;--acc:#db2777;--acc-bg:#3a1630}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;-webkit-text-size-adjust:100%}
 body.th-adult{background:#0f0d14}
@@ -39,7 +39,7 @@ h1{margin:0;font-size:26px;line-height:1.15;font-weight:900;letter-spacing:-.4px
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{min-height:44px;padding:0 14px;border-radius:999px;border:2px solid var(--chip);background:var(--card);font-size:15px;font-weight:800}
 .chip.on{border-color:var(--acc);background:var(--acc-bg)}
-.btn{width:100%;min-height:52px;border:0;border-radius:14px;background:var(--acc);color:#fff;font-size:17px;font-weight:900;padding:0 14px}
+.btn{width:100%;min-height:52px;border:0;border-radius:14px;background:var(--cta);color:#fff;font-size:17px;font-weight:900;padding:0 14px}
 .btn2{width:100%;min-height:48px;border:2px solid var(--acc);border-radius:14px;background:var(--card);color:var(--acc);font-size:16px;font-weight:900;padding:0 12px}
 .btn3{min-height:46px;border:2px solid var(--chip);border-radius:14px;background:var(--card);font-size:15px;font-weight:800;padding:0 12px}
 .btn:disabled,.btn2:disabled{opacity:.45;cursor:not-allowed}
@@ -73,6 +73,67 @@ textarea.field{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .bob{animation:bob 3s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.pip *,.bob{animation:none!important}}
+.cta-bar{position:sticky;bottom:0;z-index:15;margin-top:18px;padding:14px 0 calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 78%,transparent)}
+svg.pip{cursor:pointer}
+#pillbox:empty{display:none}
+.top .brand{overflow:hidden}
+.busy{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:0;border-radius:18px;background:var(--acc-bg);color:var(--ink);font-size:13px;font-weight:900;white-space:nowrap}
+.busy i{width:10px;height:10px;border-radius:50%;background:var(--cta);animation:bz 1s ease-in-out infinite alternate}
+.busy.done{background:#dcfce7}.busy.done i{background:#15803d;animation:none}
+@keyframes bz{from{opacity:.3}to{opacity:1}}
+.hex{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;width:92px;border:0;background:none;padding:0;text-align:left;font-size:12px;font-weight:800;color:var(--ink);line-height:1.2}
+.typing{display:flex;gap:5px;padding:14px 16px!important}.typing i{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:ty 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes ty{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+#hchat .nw{animation:mi .25s ease-out}@keyframes mi{from{opacity:0;transform:translateY(6px)}}
+.hcard{position:relative;width:min(280px,100%);aspect-ratio:1/1;border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(23,32,51,.18);background:var(--chip)}
+.hcard video,.hcard img{width:100%;height:100%;object-fit:cover;display:block}
+.hcap{position:absolute;left:6%;right:6%;bottom:7%;text-align:center;font-family:Caveat,cursive;font-weight:700;font-size:clamp(26px,9vw,40px);line-height:1.05;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.55),0 0 2px rgba(0,0,0,.6)}
+.hcap.top{bottom:auto;top:7%}
+.hoffer{display:flex;gap:10px;align-items:center;max-width:100%;background:var(--card);border-radius:16px;padding:8px;box-shadow:0 1px 3px rgba(23,32,51,.08)}
+.lnk{border:0;background:none;padding:0;color:var(--cta);font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+.hsec{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hsec button{display:flex;align-items:center;gap:8px;min-height:52px;padding:6px;border:0;border-radius:14px;background:var(--card);box-shadow:0 1px 2px rgba(23,32,51,.08);text-align:left;font-size:14px;font-weight:800;line-height:1.15;color:var(--ink)}
+.hsec .thumb{flex:0 0 40px;width:40px;height:40px;border-radius:10px}
+#hchat .chip{min-height:38px;padding:0 14px;font-size:15px}
+.algrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.algrid .upslot{aspect-ratio:1/1;border-radius:14px}
+.dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}.dot.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.book{position:relative;max-width:min(520px,calc((100vh - 290px) * .75));min-width:260px;margin:0 auto;perspective:1800px;display:flex}
+.book.wide{max-width:min(1000px,calc((100vh - 250px) * 1.5))}
+.pg{flex:1;aspect-ratio:3/4;box-sizing:border-box;padding:8% 9%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:4px 14px 14px 4px;
+  background:radial-gradient(ellipse at 30% 20%,#fffdf7,#f5ecd9 70%,#ecdfc4);box-shadow:inset 18px 0 24px -18px rgba(90,60,20,.35),0 8px 28px rgba(40,30,10,.22);color:#3b2f22;transform-origin:left center}
+.book.wide .pg:first-child:not(:last-child){border-radius:14px 4px 4px 14px;box-shadow:inset -18px 0 24px -18px rgba(90,60,20,.35),0 8px 28px rgba(40,30,10,.22)}
+.pg .ph{width:88%;background:#fff;padding:4% 4% 5%;box-shadow:0 3px 10px rgba(40,30,10,.25)}
+.pg .ph video,.pg .ph img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#ddd}
+.pg .cap{font-family:Caveat,cursive;font-size:27px;line-height:1.1;text-align:center;color:#4a3826}
+.pg .chap{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;text-align:center;letter-spacing:.3px;color:#6b4a2b}
+.pg.cover{background:linear-gradient(150deg,#2f4a3a,#1e3328 60%,#16261d);color:#f3e6c4;box-shadow:inset 14px 0 18px -10px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.35)}
+.pg .ctitle{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;text-align:center;line-height:1.15;color:#e9cf8f;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.pg .cph{width:64%;padding:3%;border:2px solid #c9a96266;border-radius:4px}.pg .cph video,.pg .cph img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.pg .cyear{font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#c9a962}
+.alive{animation:kb 9s ease-in-out infinite alternate}@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08) translate(-1.5%,-1%)}}
+.turnL,.turnR{position:absolute;top:0;bottom:0;width:30%;border:0;background:none;cursor:pointer;z-index:2}.turnL{left:0}.turnR{right:0}
+.book.go-next .pg:last-of-type{transition:transform .26s ease-in,opacity .26s;transform:rotateY(-75deg);opacity:.4}
+.book.go-prev .pg:first-of-type{transition:transform .26s ease-in,opacity .26s;transform-origin:right center;transform:rotateY(75deg);opacity:.4}
+.book.in-next .pg{animation:pin .4s ease-out}.book.in-prev .pg{animation:pin2 .4s ease-out}
+@keyframes pin{from{transform:rotateY(60deg);transform-origin:left center;opacity:.5}}@keyframes pin2{from{transform:rotateY(-60deg);transform-origin:right center;opacity:.5}}
+.pbook{flex:0 0 110px;width:110px;padding:8px;border-radius:4px 10px 10px 4px;background:linear-gradient(150deg,#2f4a3a,#16261d);display:flex;flex-direction:column;gap:6px;align-items:center;color:#e9cf8f;font-size:11px;text-align:center}
+.pbook video,.pbook img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.intent.core{padding:10px;min-height:120px}.intent.core .thumb{flex-basis:100px;width:100px;height:100px}
+.hstagew{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:6px}
+.pfloat{position:relative;animation:pfl 3.2s ease-in-out infinite}@keyframes pfl{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.hpop{position:absolute;left:86%;top:4%;transform:scale(.6);transform-origin:0 100%;opacity:0;width:max-content;max-width:min(150px,calc(50vw - 40px));text-align:left;z-index:3;background:var(--ink);color:#fff;font-size:14px;font-weight:800;padding:6px 12px;border-radius:14px;pointer-events:none}
+.hpop.on{animation:pop 2.2s ease-out}@keyframes pop{0%{opacity:0;transform:scale(.6)}12%,75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-10px) scale(1)}}
+#hstage{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:4px}
+.hbub{position:relative;background:var(--card);border-radius:20px;padding:13px 18px;font-size:18px;font-weight:700;line-height:1.35;box-shadow:0 2px 10px rgba(23,32,51,.1);max-width:100%;min-height:24px}
+.hbub::before{content:"";position:absolute;left:50%;top:-8px;margin-left:-9px;border:9px solid transparent;border-top:0;border-bottom-color:var(--card)}
+.hme{align-self:flex-end;background:var(--acc-bg);border-radius:16px 16px 4px 16px;padding:7px 12px;font-size:15px;font-weight:700;max-width:85%;order:-1;margin-bottom:-2px}
+.hx{display:flex;flex-direction:column;gap:10px;width:100%;align-items:center;transition:opacity .35s,transform .35s}.hx.later{opacity:0;transform:translateY(8px);pointer-events:none}
+.pl .eh{display:none}.pl.happy .eo{display:none}.pl.happy .eh{display:block}
+.pl .glow{opacity:0;transition:opacity .4s}.pl.happy .glow{opacity:1}
+.pl.talk .body{animation:ptalk .34s ease-in-out infinite alternate}@keyframes ptalk{from{transform:scale(1,1)}to{transform:scale(1.03,.96)}}
+.pl .lean{transform-box:fill-box;transform-origin:50% 100%;transition:transform .35s}
+.pl.listen .lean{transform:translateY(3px) rotate(-5deg)}.pl.listen .eyes{animation:none;transform:translate(-2px,5px)}
+.pl.sway .lean{animation:psway 1.5s ease-in-out}@keyframes psway{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.pl.hop .body{animation:hop .9s ease-in-out 1}
 .fab{position:fixed;right:max(16px,calc(50vw - 224px));bottom:18px;z-index:20;width:64px;height:64px;border-radius:50%;border:0;background:var(--card);box-shadow:0 6px 18px rgba(23,32,51,.28);padding:4px;display:flex;align-items:center;justify-content:center}
 .sheet{position:fixed;inset:0;z-index:30;background:rgba(23,32,51,.45);display:flex;flex-direction:column;justify-content:flex-end}
 .sheet>div{max-width:480px;width:100%;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;padding:16px;max-height:85vh;display:flex;flex-direction:column}
@@ -524,6 +585,7 @@ function SECTIONS() {
       sub: L('Bring back the people you love: in old photos, together again, or in a card to remember them.', 'Верните близких: на старых фото, снова вместе или в открытке на память.', 'Hadirkan lagi orang tercinta: di foto lama, bersama lagi, atau di kartu kenangan.'),
       note: L('Your photos are private. Only you see them. They are deleted after 30 days unless you save the result.', 'Ваши фото приватны, их видите только вы. Через 30 дней они удаляются, если вы не сохранили результат.', 'Foto Anda pribadi, hanya Anda yang melihat. Dihapus setelah 30 hari kecuali hasilnya disimpan.'),
       tasks: [
+        { id: 'album', t: L('Family album', 'Семейный альбом', 'Album keluarga'), tag: L('new', 'новое', 'baru'), line: L('Lots of photos become a book you leaf through — and every photo is alive. Share a link, make a video or order it printed.', 'Много фото превращаются в книгу, которую листаешь, — и каждое фото живое. Ссылка для родни, видео или печатная книга.', 'Banyak foto jadi buku yang bisa dibalik — setiap foto hidup.'), ex: [V('village'), V('lake'), V('porch')], album: true },
         { id: 'together', t: L('Together again', 'Снова вместе', 'Bersama lagi'), tag: L('most loved', 'самое ценное', 'paling disukai'), line: L('People from different photos in one picture — grandpa holding the grandson he never met.', 'Люди с разных фото на одной картинке — дедушка с внуком, которого не застал.', 'Orang dari foto berbeda dalam satu gambar — kakek dengan cucu yang belum pernah ia temui.'), ex: [P(L('Grandpa, 1975', 'Дедушка, 1975', 'Kakek, 1975'), '#8b7d6b'), P(L('Grandson, 2025', 'Внук, 2025', 'Cucu, 2025'), '#a78b6f'), P(L('Together in the garden', 'Вместе в саду', 'Bersama di taman'), '#5b21b6')], upload: true, r: 'together' },
         { id: 'oldlive', t: L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'), line: L('A gentle smile, a blink, a turn of the head.', 'Лёгкая улыбка, взгляд, поворот головы.', 'Senyum lembut, kedipan, menoleh.'), ex: [P(L('Grandma smiles', 'Бабушка улыбается', 'Nenek tersenyum'), '#6b6257')], upload: true, r: 'oldlive' },
         { id: 'restore', t: L('Restore and colorize', 'Восстановить и раскрасить', 'Perbaiki & warnai'), line: L('Remove scratches and folds, make it sharp, add natural colors.', 'Убрать царапины и заломы, сделать резче, добавить цвета.', 'Hilangkan goresan, pertajam, beri warna alami.'), ex: [P(L('Before → after', 'До → после', 'Sebelum → sesudah'), '#9a9187')], upload: true, r: 'restore' },
@@ -589,6 +651,7 @@ const taskById = (sec, id) => (secById(sec) || { tasks: [] }).tasks.find((t) => 
 /* ---------------- common pieces ---------------- */
 const TT = () => ({
   brand: 'Wishly', back: L('Back', 'Назад', 'Kembali'),
+  hi2: (() => { const h = new Date().getHours(); return h < 11 ? L('Good morning! What shall we make today?', 'Доброе утро! Что сегодня сделаем?', 'Selamat pagi! Mau bikin apa hari ini?') : h < 18 ? L('Hi! What shall we make today?', 'Привет! Что сегодня сделаем?', 'Hai! Mau bikin apa hari ini?') : L('Good evening! What shall we make today?', 'Добрый вечер! Что сегодня сделаем?', 'Selamat malam! Mau bikin apa hari ini?'); })(),
   hi: (() => { const h = new Date().getHours(); return h < 11 ? L('Good morning! Who shall we make happy today?', 'Доброе утро! Кого сегодня порадуем?', 'Selamat pagi! Siapa yang mau kita senangkan hari ini?') : h < 18 ? L('Hello! Who shall we make happy today?', 'Привет! Кого сегодня порадуем?', 'Halo! Siapa yang mau kita senangkan hari ini?') : L('Good evening! Who shall we make happy today?', 'Добрый вечер! Кого сегодня порадуем?', 'Selamat malam! Siapa yang mau kita senangkan hari ini?'); })(),
   tell: L('Tell me in your own words…', 'Скажите своими словами…', 'Ceritakan dengan kata-kata Anda…'),
   speak: L('Speak', 'Сказать голосом', 'Bicara'), orPick: L('Or pick what you need', 'Или выберите, что нужно', 'Atau pilih yang Anda perlukan'),
@@ -625,12 +688,35 @@ function pipEl(size, adult, mood) {
     <ellipse cx="50" cy="96" rx="26" ry="3" fill="#000" opacity="${adult ? .35 : .1}"/>
     <g class="body" style="animation-delay:${d}s">${body}<g class="eyes" style="animation-delay:${d}s">${eyes}</g></g></svg>`;
 }
+/* work in progress, visible from any screen: tap to go back to it */
+function bgSet() { const a = S.jobs.filter((j) => j.id !== '-'); return a.length ? { jobs: S.jobs, sec: S.sec, task: S.task, ans: S.ans, layer: S.layer, ups: S.ups, picked: S.picked, montaged: S.montaged } : null; }
+function busyPill() {
+  const b = S.bg || (S.screen === 'flow' && (S.step === 'gen' || S.step === 'result') ? null : bgSet());
+  if (!b || A18.includes(S.screen)) return '';
+  const js = b.jobs, open = js.filter((j) => !['done', 'error', 'cancelled'].includes(j.status)).length, ok = js.filter((j) => j.status === 'done').length;
+  if (!open && !ok) return '';
+  return open ? `<button class="busy" data-act="toBg" aria-label="${esc(L('Making…', 'Готовлю…', 'Membuat…'))}"><i></i>${ok}/${js.length}</button>`
+    : `<button class="busy done" data-act="toBg"><i></i>${esc(L('Ready', 'Готово', 'Siap'))}</button>`;
+}
+function pillUpd() { const p = $('#pillbox'); if (p) p.innerHTML = busyPill(); }
+async function bgPoll() {
+  clearTimeout(bgPoll.t); const b = S.bg; if (!b) return;
+  for (const j of b.jobs.filter((x) => x.id !== '-' && !['done', 'error', 'cancelled'].includes(x.status))) {
+    try { Object.assign(j, await api('/api/job/' + j.id)); } catch (e) {}
+    if (j.status === 'done' && j.next) Object.assign(j, { id: j.next, next: null, status: 'queued', outputs: null, step2: true });
+    if (j.status === 'done' && j.outputs) j.outputs.forEach((o) => { if (!S.works.find((w) => w.path === o.path) && !/\.gif$/i.test(o.path)) S.works.unshift({ path: o.path, t: Date.now() }); });
+  }
+  const was = bgPoll.open, open = b.jobs.some((x) => x.id !== '-' && !['done', 'error', 'cancelled'].includes(x.status)); bgPoll.open = open;
+  if (was && !open) toast(L('Your work is ready!', 'Готово! Нажмите «смотреть» сверху.', 'Sudah siap!'));
+  pillUpd(); if (open) bgPoll.t = setTimeout(bgPoll, 2500);
+}
 function topBar(opts = {}) {
   const t = TT();
   return `<div class="top">${opts.back ? `<button class="iconbtn" data-act="back" aria-label="${esc(t.back)}">${ICON.back}</button>` : ''}
     <div class="brand">Wishly${opts.adult ? '<span class="tag18">18+</span>' : ''}${opts.studio ? `<span class="tag18" style="background:#172033">${esc(L('Studio', 'Студия', 'Studio'))}</span>` : ''}</div>
     ${!opts.adult ? `<button class="iconbtn" data-act="works" aria-label="${esc(t.works)}" title="${esc(t.works)}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>` : ''}
-    <div class="langs">${[['en', 'EN'], ['ru', 'RU'], ['id', 'ID']].map(([k, n]) => `<button data-act="lang" data-v="${k}" class="${S.lang === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
+    <span id="pillbox">${busyPill()}</span>
+    <div class="langs"><button data-act="lang" data-v="${{ en: 'ru', ru: 'id', id: 'en' }[S.lang] || 'en'}" class="on" aria-label="Language">${S.lang.toUpperCase()}</button></div></div>`;
 }
 function footer(adult) {
   const t = TT();
@@ -646,32 +732,202 @@ function media(m, cls) {
 }
 
 /* ---------------- screens ---------------- */
+/* ---------------- home: Pip writes first, like a chat ----------------
+   S.hm: messages [{ me, t, ex:[[sec,task]], offer:{sec,task,more,pre}, opts:[[label, node]] }]; Pip lines appear one by one with "typing…".
+   LS 'hist': tasks the user started (newest first) — Pip greets returning users with what they made last. */
+function hTasks(sec) { return (secById(sec) || { tasks: [] }).tasks.filter((k) => !k.soon && (k.r || CKIND[k.id])); }
+function hRemember(sec, task) { const h = LS.get('hist', []).filter((x) => !(x.sec === sec && x.task === task)); h.unshift({ sec, task, at: Date.now() }); LS.set('hist', h.slice(0, 20)); }
+const hQ = [];   // queued Pip lines
+function hPip(msgs) {   // queue one or more Pip messages
+  for (const m of [].concat(msgs)) hQ.push(m);
+  if (!hPip.busy) hNext();
+}
+function hNext() {
+  const m = hQ.shift();
+  if (!m) { hPip.busy = false; return; }
+  hPip.busy = true; S.hTyping = true; hDraw();
+  setTimeout(() => { S.hTyping = false; S.hm.push(m); hDraw(); setTimeout(hNext, 250); }, Math.min(1400, 450 + (m.t || '').length * 12));
+}
+/* ---------------- Pip on the home screen: big, in the centre, alive ----------------
+   moods (class on #hpip): idle · talk (mouth moves while the text types) · think (waiting) · listen (typing to him) · happy · wave · hop */
+function pipLive(size) {   // the same Pip as everywhere (a soft blob with eyes), only bigger and with moods
+  const d = (-(performance.now() / 1000)).toFixed(2);
+  const A = 'M50 8 C75 8 93 25 93 50 C93 76 75 92 50 92 C25 92 7 77 7 50 C7 24 25 8 50 8Z', B = 'M51 9 C77 10 94 28 92 52 C90 77 72 93 48 91 C24 89 8 73 9 48 C10 24 27 8 51 9Z', C = 'M49 7 C73 6 92 23 93 49 C94 75 77 93 51 93 C26 93 8 79 7 52 C6 26 24 8 49 7Z';
+  return `<svg id="hpip" class="pip pl idle" width="${size}" height="${size}" viewBox="-6 -6 112 112" role="img" aria-label="Pip" style="--d:${d}s">
+  <defs><radialGradient id="plg" cx="36%" cy="30%" r="75%"><stop offset="0" stop-color="#ffe2cf"/><stop offset=".55" stop-color="#ff9a6b"/><stop offset="1" stop-color="#f0643f"/></radialGradient>
+    <radialGradient id="plw" cx="50%" cy="50%" r="50%"><stop offset=".55" stop-color="#ffb08a" stop-opacity=".55"/><stop offset="1" stop-color="#ffb08a" stop-opacity="0"/></radialGradient></defs>
+  <circle class="glow" cx="50" cy="50" r="56" fill="url(#plw)"/>
+  <ellipse class="shadow" cx="50" cy="100" rx="26" ry="3" fill="#000" opacity=".1"/>
+  <g class="lean"><g class="body" style="animation-delay:${d}s">
+    <path fill="url(#plg)" d="${A}"><animate attributeName="d" dur="7s" repeatCount="indefinite" values="${A};${B};${C};${A}" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/></path>
+    <ellipse cx="34" cy="26" rx="11" ry="6" fill="#fff" opacity=".35" transform="rotate(-24 34 26)"/>
+    <g class="eyes" style="animation-delay:${d}s"><g class="eo"><ellipse class="eye" cx="39" cy="48" rx="4.6" ry="7.4" fill="#23182b" style="animation-delay:${d}s"/><ellipse class="eye" cx="61" cy="48" rx="4.6" ry="7.4" fill="#23182b" style="animation-delay:${d}s"/></g>
+      <path class="eh" d="M33 50 q6 -8 12 0 M55 50 q6 -8 12 0" fill="none" stroke="#23182b" stroke-width="4.5" stroke-linecap="round"/></g>
+  </g></g></svg>`;
+}
+let pipMoodT = null, pipEyeT = null;
+function pipMood(m, ms) {
+  const p = $('#hpip'); if (!p) return;
+  p.classList.remove('idle', 'talk', 'think', 'listen', 'happy', 'wave', 'hop', 'sway');
+  p.classList.add(m);
+  clearTimeout(pipMoodT);
+  if (ms) pipMoodT = setTimeout(() => pipMood(document.activeElement && document.activeElement.id === 'ask' ? 'listen' : 'idle'), ms);
+}
+function pipNow() { const p = $('#hpip'); return p ? ['talk', 'think', 'listen', 'happy', 'wave', 'hop', 'sway'].find((c) => p.classList.contains(c)) || 'idle' : null; }
+const POKE = () => [L('Hee-hee, that tickles!', 'Хи-хи, щекотно!', 'Hihi, geli!'), L('I’m here! What shall we make?', 'Я тут! Что сделаем?', 'Aku di sini! Mau bikin apa?'), L('Boop!', 'Буп!', 'Bup!'), L('Let’s make someone smile today.', 'Давайте кого-нибудь сегодня порадуем.', 'Ayo buat seseorang tersenyum hari ini.')];
+function pipPoke() {
+  pipMood(Math.random() < 0.5 ? 'hop' : 'sway', 1300);
+  const pop = $('#hpop'); if (!pop) return;
+  const ph = POKE(); pop.textContent = ph[Math.floor(Math.random() * ph.length)]; pop.classList.remove('on'); void pop.offsetWidth; pop.classList.add('on');
+}
+/* eyes follow the finger / mouse */
+document.addEventListener('pointermove', (e) => {
+  const p = $('#hpip'); if (!p || pipNow() === 'think' || pipNow() === 'happy') return;
+  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.45;
+  const dx = e.clientX - cx, dy = e.clientY - cy, k = Math.min(1, Math.hypot(dx, dy) / 300), a = Math.atan2(dy, dx);
+  const ey = p.querySelector('.eyes'); ey.style.animation = 'none'; ey.style.transform = `translate(${(Math.cos(a) * 5 * k).toFixed(1)}px,${(Math.sin(a) * 4 * k).toFixed(1)}px)`;
+  clearTimeout(pipEyeT); pipEyeT = setTimeout(() => { ey.style.animation = ''; ey.style.transform = ''; }, 2500);
+}, { passive: true });
+/* every few seconds, when nothing happens, Pip does something small */
+setInterval(() => {
+  if (S.screen !== 'home' || pipNow() !== 'idle' || document.hidden) return;
+  const r = Math.random();
+  if (r < 0.3) pipMood('sway', 1600); else if (r < 0.5) pipMood('hop', 1000);
+}, 7000);
+document.addEventListener('focusin', (e) => { if (e.target.id === 'ask' && pipNow() === 'idle') pipMood('listen'); });
+document.addEventListener('focusout', (e) => { if (e.target.id === 'ask' && pipNow() === 'listen') pipMood('idle'); });
+document.addEventListener('input', (e) => { if (e.target.id === 'ask' && pipNow() !== 'think') pipMood('listen'); });
+/* the stage: your last words, Pip's last message (typed out while he talks), and what he offers */
+function hStage() {
+  const hm = S.hm || [], li = hm.map((m) => !m.me).lastIndexOf(true), m = hm[li] || { t: '' }, me = hm.length && hm[hm.length - 1].me ? hm[hm.length - 1] : (li > 0 && hm[li - 1].me ? hm[li - 1] : null);
+  const typing = li > (S.hShown == null ? -1 : S.hShown);
+  let x = '';
+  if (m.ex) x += `<div class="hscroll" style="margin:0 -16px;padding:2px 16px">${m.ex.map(([s, t]) => { const k = taskById(s, t); if (!k) return ''; const e = (k.ex || [])[0];
+    return `<button class="hex" data-act="hGo" data-sec="${s}" data-task="${t}"><span class="ex" style="width:104px;height:104px">${e ? media(e) : ''}</span><span>${esc(k.t)}</span></button>`; }).join('')}</div>`;
+  if (m.offer) { const o = m.offer, k = taskById(o.sec, o.task), e = (k.ex || [])[0], pre = esc(JSON.stringify(o.pre || null));
+    const oc = o.task === 'gifcard' && o.pre && o.pre.occ != null ? OCC()[o.pre.occ] : null;
+    if (oc) x += `<div class="hcard">${media(V('clean_' + oc.id))}<span class="hcap ${oc.pos === 'top' ? 'top' : ''}">${esc(o.cap || oc.cap)}</span></div>`;
+    x += `<div class="hoffer"><span class="ex" style="width:64px;height:64px;flex-shrink:0;border-radius:10px">${e ? media(e) : ''}</span>
+      <div style="min-width:0;flex-grow:1;text-align:left"><div style="font-size:16px;font-weight:900;line-height:1.15">${esc(k.t)}</div>${o.cap ? `<div style="font-family:Caveat,cursive;font-size:22px;line-height:1.05;color:var(--cta)">${esc(o.cap)}</div>` : ''}
+      ${(o.more || []).length ? `<div class="small" style="margin-top:2px">${esc(L('or ', 'или ', 'atau '))}${o.more.map(([s2, t2, l2]) => `<button class="lnk" data-act="hGo" data-sec="${s2}" data-task="${t2}" data-pre="${pre}">${esc(l2)}</button>`).join(', ')}</div>` : ''}</div>
+      <button class="btn" style="width:auto;min-height:44px;padding:0 18px;font-size:16px;flex-shrink:0" data-act="hGo" data-sec="${o.sec}" data-task="${o.task}" data-pre="${pre}">${esc(L('Make', 'Делаем', 'Buat'))}</button></div>`; }
+  if (m.opts && li === hm.length - 1) x += `<div class="chips" style="justify-content:center">${m.opts.map((o) => typeof o === 'string' ? [o, 'say:' + o] : o).map(([l, n]) => `<button class="chip" data-act="hNode" data-v="${esc(n)}" data-l="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+  return `${me ? `<div class="hme">${esc(me.t)}</div>` : ''}
+    <div class="hbub">${S.hTyping ? '<span class="typing" style="display:inline-flex;padding:4px 0!important;box-shadow:none;background:none"><i></i><i></i><i></i></span>' : `<span id="htext" data-full="${esc(m.t || '')}">${typing ? '' : esc(m.t || '')}</span>`}</div>
+    ${!S.hTyping && x ? `<div class="hx ${typing ? 'later' : ''}" id="hx">${x}</div>` : ''}`;
+}
+function hDraw() {
+  if (S.screen !== 'home') return; const box = $('#hstage'); if (!box) return;
+  box.innerHTML = hStage();
+  if (S.hTyping) { pipMood('think'); return; }
+  const hm = S.hm || [], li = hm.map((m) => !m.me).lastIndexOf(true);
+  if (li > (S.hShown == null ? -1 : S.hShown)) {
+    S.hShown = li;
+    const el = $('#htext'), full = el ? el.dataset.full : '', m = hm[li];
+    pipMood('talk'); let i = 0; clearInterval(hDraw.t);
+    hDraw.t = setInterval(() => {
+      const e2 = $('#htext'); if (!e2) { clearInterval(hDraw.t); return; }
+      i = Math.min(full.length, i + 2); e2.textContent = full.slice(0, i);
+      if (i >= full.length) { clearInterval(hDraw.t); const hx = $('#hx'); if (hx) hx.classList.remove('later'); pipMood(m.offer ? 'happy' : 'idle', m.offer ? 2200 : 0); }
+    }, 28);
+  }
+}
+function hMe(t) { S.hm.forEach((m) => { m.opts = null; }); S.hm.push({ me: true, t }); hDraw(); }
+function hStart() {
+  if (S.hm) return;
+  S.hm = [];
+  const hist = LS.get('hist', []), last = hist[0] && taskById(hist[0].sec, hist[0].task), d = new Date(), wd = d.getDay(), hr = d.getHours();
+  const hi = hr < 11 ? L('Good morning!', 'Доброе утро!', 'Selamat pagi!') : hr < 18 ? L('Hi!', 'Привет!', 'Hai!') : L('Good evening!', 'Добрый вечер!', 'Selamat malam!');
+  const hint = wd === 5 || wd === 6 ? [L('“Happy weekend” to the family', '«Хороших выходных» семье', '“Selamat akhir pekan” ke keluarga'), 'quick:1:6'] : hr < 11 ? [L('“Good morning” to mom', '«Доброе утро» маме', '“Selamat pagi” ke ibu'), 'quick:0:0'] : null;
+  const opts = last ? [[L('Another ', 'Ещё ', 'Lagi ') + last.t.toLowerCase(), 'again']] : [];
+  if (hint) opts.push(hint);
+  hPip({ t: last ? `${hi} ${L('What shall we make today? Tap below or just write to me.', 'Что сегодня сделаем? Нажмите ниже или просто напишите мне.', 'Mau bikin apa hari ini? Ketuk di bawah atau tulis saja.')}`
+    : `${hi} ${L('I’m Pip. What shall we make? Tap below or just write to me.', 'Я Пип. Что сделаем? Нажмите ниже или просто напишите мне.', 'Aku Pip. Mau bikin apa? Ketuk di bawah atau tulis saja.')}`, opts });
+}
+function hNode(n, label) {
+  if (label) hMe(label);
+  const sec = n.startsWith('sec:') ? n.slice(4) : null;
+  if (n === 'again') { const h = LS.get('hist', [])[0]; if (h) openTask(h.sec, h.task); return; }
+  if (n === 'works') { $('[data-act=works]') && $('[data-act=works]').click(); return; }
+  if (n === 'examples') return hPip({ t: L('Tap any to make your own:', 'Нажмите любой — сделаем свой:', 'Ketuk untuk membuat punya Anda:'),
+    ex: [['greet', 'gifcard'], ['memory', 'restore'], ['story', 'comic'], ['story', 'us'], ['fun', 'petking'], ['kids', 'coloring'], ['greet', 'voice'], ['memory', 'oldlive']] });
+  if (n === 'skills') return hPip({ t: L('Here is everything I can do. Pick a topic:', 'Вот всё, что я умею. Выберите тему:', 'Ini semua yang bisa aku lakukan. Pilih topik:'), opts: SECTIONS().map((s) => [s.t, 'sec:' + s.id]) });
+  if (n === 'card') return hPip({ t: L('With pleasure! Who is it for?', 'С удовольствием! Кому?', 'Dengan senang hati! Untuk siapa?'), opts: WHO().map((w, i) => [w, 'who:' + i]) });
+  if (n.startsWith('who:')) { S.hPre = { who: +n.slice(4) }; return hPip({ t: L('And the occasion?', 'А какой повод?', 'Acaranya apa?'), opts: OCC().map((o, i) => [o.n, 'occ:' + i]) }); }
+  if (n.startsWith('occ:')) {
+    const occ = +n.slice(4), id = OCC()[occ].id, pre = Object.assign({}, S.hPre, { occ }), more = [['greet', 'photocard', L('with your photo', 'с вашим фото', 'dengan foto Anda')]];
+    if (['bday', 'newyear', 'thanks', 'miss'].includes(id)) more.unshift(['greet', 'voice', L('a cat sings it', 'кот поёт голосом', 'kucing bernyanyi')]);
+    S.hPre = pre; S.hMore = more; S.hWant = 'name';
+    return hPip({ t: L('What is their name? I will put it on the card.', 'Как зовут? Напишу имя на открытке.', 'Siapa namanya? Aku tulis di kartu.'), opts: [[L('No name', 'Без имени', 'Tanpa nama'), 'noname']] });
+  }
+  if (n === 'noname' || n.startsWith('name:')) {
+    const pre = S.hPre || {}, cap = OCC()[pre.occ || 0].cap, nm = n.startsWith('name:') ? n.slice(5) : '';
+    if (nm) pre.textOwn = cap.replace(/!$/, '') + ', ' + nm + '!';
+    S.hWant = '';
+    return hPip({ t: L('Here it is:', 'Вот такая:', 'Seperti ini:'), offer: { sec: 'greet', task: 'gifcard', more: S.hMore || [], pre, cap: pre.textOwn || cap } });
+  }
+  if (n.startsWith('say:')) return hAsk(n.slice(4), true);
+  if (n.startsWith('quick:')) { const [, w, o] = n.split(':'); S.hPre = { who: +w }; return hNode('occ:' + o); }
+  if (sec) return hPip({ t: secById(sec).sub, ex: hTasks(sec).map((k) => [sec, k.id]) });
+}
+async function hAsk(v, shown) {
+  if (!shown) hMe(v); else S.hm.forEach((m) => { m.opts = null; });
+  if (S.hWant === 'name') return hNode('name:' + v.trim().slice(0, 30).replace(/^./, (c) => c.toUpperCase()));
+  S.hTyping = true; hDraw();
+  try {
+    const r = await api('/api/pip', { messages: S.hm.filter((m) => m.t).map((m) => ({ me: !!m.me, t: m.t })), lang: S.lang, hist: LS.get('hist', []).slice(0, 5).map((x) => x.sec + '/' + x.task) });
+    S.hTyping = false;
+    if (r.offer && r.offer.pre && r.offer.pre.textOwn) r.offer.cap = r.offer.pre.textOwn;
+    if (r.offer && r.offer.more) r.offer.more = r.offer.more.map(([s2, t2]) => [s2, t2, ((taskById(s2, t2) || {}).t || '').toLowerCase()]);
+    S.hm.push(r); hDraw(); return;
+  } catch (e) { S.hTyping = false; }
+  const [reply, to] = pipRoute(v);
+  if (to && to[1]) hPip({ t: reply, offer: { sec: to[0], task: to[1], pre: { idea: v } } });
+  else if (to) hPip({ t: reply, ex: hTasks(to[0]).map((k) => [to[0], k.id]) });
+  else hPip({ t: reply, opts: [[L('Show examples', 'Покажи примеры', 'Tunjukkan contoh'), 'examples'], [L('What else can you do?', 'Что ещё умеешь?', 'Bisa apa lagi?'), 'skills']] });
+}
+function hMsgs() {
+  const bot = 'background:var(--card);box-shadow:0 1px 3px rgba(23,32,51,.08);font-size:16px;font-weight:600;max-width:88%;padding:9px 13px';
+  let h = '';
+  S.hm.forEach((m, i) => {
+    const nw = i === S.hm.length - 1 ? ' nw' : '';
+    if (m.me) { h += `<div class="m me${nw}" style="font-size:15px;font-weight:700;padding:8px 13px">${esc(m.t)}</div>`; return; }
+    if (m.t) h += `<div class="m bot${nw}" style="${bot}">${esc(m.t)}</div>`;
+    if (m.ex) h += `<div class="hscroll" style="margin:2px -16px 0;padding:0 16px">${m.ex.map(([s, t]) => { const k = taskById(s, t); if (!k) return ''; const e = (k.ex || [])[0];
+      return `<button class="hex" data-act="hGo" data-sec="${s}" data-task="${t}"><span class="ex" style="width:92px;height:92px">${e ? media(e) : ''}</span><span>${esc(k.t)}</span></button>`; }).join('')}</div>`;
+    if (m.offer) { const o = m.offer, k = taskById(o.sec, o.task), e = (k.ex || [])[0], pre = esc(JSON.stringify(o.pre || null));
+      h += `<div class="hoffer"><span class="ex" style="width:60px;height:60px;flex-shrink:0;border-radius:10px">${e ? media(e) : ''}</span>
+        <div style="min-width:0;flex-grow:1"><div style="font-size:15px;font-weight:900;line-height:1.15">${esc(k.t)}</div>${o.cap ? `<div style="font-family:Caveat,cursive;font-size:21px;line-height:1.05;color:var(--cta)">${esc(o.cap)}</div>` : ''}
+        ${(o.more || []).length ? `<div class="small" style="margin-top:2px">${esc(L('or ', 'или ', 'atau '))}${o.more.map(([s2, t2, l2]) => `<button class="lnk" data-act="hGo" data-sec="${s2}" data-task="${t2}" data-pre="${pre}">${esc(l2)}</button>`).join(', ')}</div>` : ''}</div>
+        <button class="btn" style="width:auto;min-height:40px;padding:0 16px;font-size:15px;flex-shrink:0" data-act="hGo" data-sec="${o.sec}" data-task="${o.task}" data-pre="${pre}">${esc(L('Make', 'Делаем', 'Buat'))}</button></div>`; }
+    if (m.opts && i === S.hm.length - 1 && !S.hTyping) h += `<div class="chips" style="margin-top:2px">${m.opts.map((o) => typeof o === 'string' ? [o, 'say:' + o] : o).map(([l, n]) => `<button class="chip" data-act="hNode" data-v="${esc(n)}" data-l="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+  });
+  if (S.hTyping) h += `<div class="m bot typing" style="${bot}"><i></i><i></i><i></i></div>`;
+  return h;
+}
+/* the four things the home screen offers; everything else is one tap further */
+const CORE = () => [
+  ['greet', 'gifcard', L('Moving card', 'Открытка', 'Kartu'), L('Moving, with the name — for WhatsApp', 'Живая, с именем — для WhatsApp', 'Bergerak, dengan nama — untuk WhatsApp'), V('cake')],
+  ['greet', 'voice', L('Video with a voice', 'Видео с голосом', 'Video bersuara'), L('A cat or a teddy sings the greeting', 'Кот или мишка поёт поздравление', 'Kucing atau beruang menyanyikan ucapan'), V('kitten')],
+  ['memory', 'album', L('Family album', 'Семейный альбом', 'Album keluarga'), L('A book of living photos — to share or print', 'Книга из живых фото — показать родне или напечатать', 'Buku foto hidup — untuk dibagikan atau dicetak'), V('village')],
+  ['story', '', L('Cartoon or comic', 'Мультик или комикс', 'Kartun atau komik'), L('About your family, or a bedtime story', 'Про вашу семью или сказка для внуков', 'Tentang keluarga Anda, atau dongeng'), V('balloon')]];
 function vHome() {
-  const t = TT();
+  const t = TT(); hStart();
   return `${topBar()}<div class="split"><div class="side">
-  <div class="pad row" style="align-items:flex-end;gap:10px">${pipEl(80)}<div class="bubble">${esc(t.hi)}</div></div>
-  <div class="pad" style="padding-top:12px">
-    <div class="row"><label class="sr" for="ask">${esc(t.tell)}</label><input id="ask" class="field" style="border-color:#fb7c4f" placeholder="${esc(t.tell)}" data-enter="ask">
-    <button class="iconbtn" style="width:54px;height:54px;background:var(--acc);color:#fff;border-radius:16px" data-act="ask" aria-label="${esc(L('Send', 'Отправить', 'Kirim'))}">${ICON.go}</button></div>
-    <div class="chips" style="margin-top:10px">
-      <button class="chip" data-act="open" data-sec="greet" data-task="gifcard">${esc(L('A card for mom', 'Открытка маме', 'Kartu untuk ibu'))}</button>
-      <button class="chip" data-act="sec" data-sec="memory">${esc(L('Bring an old photo to life', 'Оживить старое фото', 'Hidupkan foto lama'))}</button>
-      <button class="chip" data-act="open" data-sec="fun" data-task="meme">${esc(L('Something funny', 'Что-нибудь смешное', 'Sesuatu yang lucu'))}</button>
-    </div></div></div><div class="main">
-  <div class="pad" style="padding-top:18px"><button class="intent story-tile" data-act="open" data-sec="story" data-task="comic"><span class="thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#fde68a,#f59e0b)">${pipEl(64, false, 'happy')}</span>
-    <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:4px 0"><span style="font-size:18px;font-weight:900;line-height:1.15">${esc(L('Make a comic from one line', 'Комикс из одной фразы', 'Komik dari satu kalimat'))}</span>
-    <span style="font-size:14px;line-height:1.35;color:var(--muted)">${esc(L('Tell me the idea — I draw the heroes and the whole story.', 'Скажите идею — я нарисую героев и всю историю.', 'Ceritakan idenya — aku gambar tokoh dan seluruh ceritanya.'))}</span></span>${ICON.chev}</button></div>
-  <div class="pad h2" style="padding-top:18px">${esc(t.orPick)}</div>
-  <div class="pad stack secs" style="padding-top:10px;gap:10px">
-    ${SECTIONS().map((s) => `<button class="intent" data-act="sec" data-sec="${s.id}"><span class="thumb">${media(s.cover)}</span>
-      <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:4px 0"><span style="font-size:18px;font-weight:900;line-height:1.15">${esc(s.t)}</span>
-      <span style="font-size:14px;line-height:1.35;color:var(--muted)">${esc(s.line)}</span></span>${ICON.chev}</button>`).join('')}
-  </div>${footer()}</div></div>`;
+  <div class="pad hstagew"><div class="pfloat">${pipLive(innerWidth >= 900 ? 190 : 150)}<div class="hpop" id="hpop"></div></div><div id="hstage">${hStage()}</div></div>
+  <div class="pad" style="padding-top:12px"><div class="row"><label class="sr" for="ask">${esc(t.tell)}</label><input id="ask" class="field" style="height:48px;font-size:16px" placeholder="${esc(L('Write to Pip…', 'Напишите Пипу…', 'Tulis ke Pip…'))}" data-enter="ask">
+    <button class="iconbtn" style="width:48px;height:48px;background:var(--cta);color:#fff;border-radius:14px;flex-shrink:0" data-act="ask" aria-label="${esc(L('Send', 'Отправить', 'Kirim'))}">${ICON.go}</button></div>
+  </div></div><div class="main">
+  <div class="pad stack" style="padding-top:18px;gap:10px">${CORE().map(([sec, task, tt, line, ex]) => `<button class="intent core" data-act="${task ? 'open' : 'sec'}" data-sec="${sec}" data-task="${task || ''}"><span class="thumb">${media(ex)}</span>
+      <span style="flex-grow:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px"><span style="font-size:20px;font-weight:900;line-height:1.15">${esc(tt)}</span><span style="font-size:15px;line-height:1.3;color:var(--muted)">${esc(line)}</span></span>${ICON.chev}</button>`).join('')}</div>
+  <div class="pad" style="padding-top:12px"><button class="btn3" style="width:100%" data-act="hAll">${esc(S.hAll ? L('Hide', 'Скрыть', 'Sembunyikan') : L('Everything else I can do', 'Всё остальное, что я умею', 'Semua yang lain'))}</button></div>
+  ${S.hAll ? `<div class="pad stack" style="padding-top:10px;gap:10px">${SECTIONS().map((s) => `<button class="intent" data-act="sec" data-sec="${s.id}"><span class="thumb" style="flex-basis:72px;width:72px;height:72px">${media(s.cover)}</span><span style="flex-grow:1;align-self:center;font-size:18px;font-weight:900">${esc(s.t)}</span>${ICON.chev}</button>`).join('')}</div>` : ''}
+  ${footer()}</div></div>`;
 }
 function vSection() {
   const s = secById(S.sec), t = TT();
   return `${topBar({ back: true })}
-  <div class="pad"><h1>${esc(s.t)}</h1><p class="sub">${esc(s.sub)}</p></div>
+  <div class="pad"><h1>${esc(s.t)}</h1><div class="row" style="gap:10px;align-items:flex-end;margin-top:8px">${pipEl(52)}<div class="bubble" style="font-size:16px">${esc(s.sub)}</div></div></div>
   ${s.note ? `<div class="pad"><div class="card small" style="font-size:14px">${esc(s.note)}</div></div>` : ''}
   <div class="pad stack tasks">${s.tasks.map((k) => `<div class="card">
       <div class="row" style="flex-wrap:wrap;gap:6px"><span style="font-size:19px;font-weight:900;line-height:1.2">${esc(k.t)}</span>
@@ -735,16 +991,22 @@ function upBlock(r) {
   }
   return h + `<div class="small" style="margin-top:8px">${esc(L('Only you see your photos. They are deleted after 30 days. Use photos of yourself or of people who agree.', 'Фото видите только вы, через 30 дней они удаляются. Используйте свои фото или фото людей, которые не против.', 'Hanya Anda yang melihat foto Anda; dihapus setelah 30 hari. Gunakan foto sendiri atau orang yang setuju.'))}</div>`;
 }
+function preLine(r) {
+  const pre = (S.pre || []).filter((q) => r.qs.includes(q));
+  if (!pre.length || S.preOpen) return '';
+  const txt = r.qs.filter((q) => pre.includes(q)).map((q) => Q[q].opts()[S.ans[q] || 0]).join(' · ');
+  return `<button class="chip on" style="margin-top:14px" data-act="preOpen">${esc(txt)} ✎</button>`;
+}
 function vQuestions(k, r) {
   const hasUp = !!(r.ups || r.upsOpt || r.multi);
   return `${topBar({ back: true })}<div class="pad narrow"><h1>${esc(k.t)}</h1>
-    ${r.pip ? `<div class="row" style="gap:10px;align-items:flex-end;margin-top:10px">${pipEl(56)}<div class="bubble" style="font-size:16px">${esc(r.pip())}</div></div>` :
-      `<p class="sub">${esc(L('Answer a couple of quick questions. You can change everything later.', 'Ответьте на пару вопросов. Всё можно поменять потом.', 'Jawab beberapa pertanyaan. Semua bisa diubah nanti.'))}</p>`}
+    <div class="row" style="gap:10px;align-items:flex-end;margin-top:10px">${pipEl(56)}<div class="bubble" style="font-size:16px">${esc(S.pipSay || (r.pip ? r.pip() : L('A couple of quick questions — and I make 3 versions.', 'Пара быстрых вопросов — и я сделаю 3 варианта.', 'Beberapa pertanyaan cepat — lalu aku buat 3 versi.')))}</div></div>
     ${hasUp ? upBlock(r) : ''}
-    ${r.qs.map(qBlock).join('')}
-    <div class="stack" style="margin-top:24px"><button class="btn" style="min-height:58px;font-size:19px" data-act="make">${esc(L('Make it', 'Сделать', 'Buat'))}</button>
-    <div class="small" style="text-align:center">${esc(r.eta ? r.eta() : r.kind === 'gif' ? L('3 versions, about 1–3 minutes', '3 варианта, примерно 1–3 минуты', '3 versi, sekitar 1–3 menit') : L('3 versions in under a minute', '3 варианта меньше чем за минуту', '3 versi dalam semenit'))}</div></div></div>`;
+    ${preLine(r)}${r.qs.filter((q) => S.preOpen || !(S.pre || []).includes(q)).map(qBlock).join('')}
+    <div class="stack cta-bar"><button class="btn" style="min-height:58px;font-size:19px" data-act="make">${esc(L('Make it', 'Сделать', 'Buat'))}</button>
+    <div class="small" style="text-align:center">${esc(etaText(r))}</div></div></div>`;
 }
+const etaText = (r) => r.eta ? r.eta() : r.kind === 'gif' ? L('3 versions, about 1–3 minutes', '3 варианта, примерно 1–3 минуты', '3 versi, sekitar 1–3 menit') : L('3 versions in under a minute', '3 варианта меньше чем за минуту', '3 versi dalam semenit');
 function jobsProgress() {
   const n = S.jobs.length, done = S.jobs.filter((j) => j.status === 'done').length;
   const run = S.jobs.find((j) => j.status === 'running'), q = S.jobs.find((j) => j.status === 'queued');
@@ -757,11 +1019,13 @@ function jobsProgress() {
   return { frac: Math.min(1, frac), msg, done, n };
 }
 function vGen(k) {
-  const p = jobsProgress(), errs = S.jobs.filter((j) => j.status === 'error');
+  const p = jobsProgress(), errs = S.jobs.filter((j) => j.status === 'error'), r = R[k.r];
   return `${topBar({ back: true })}<div class="gate narrow">
     <div style="display:flex;justify-content:center">${pipEl(110, false, 'think')}</div>
     <div style="font-size:24px;font-weight:900;margin-top:20px">${esc(p.msg)}</div>
-    <div class="sub">${esc(L('You can leave this screen — your works are kept in “My works”.', 'Можно уйти с этого экрана — результаты сохранятся в «Моих работах».', 'Boleh tinggalkan layar ini — hasil tersimpan di “Karya saya”.'))}</div>
+    <div class="sub" style="font-weight:800">${esc(L('Usually: ', 'Обычно: ', 'Biasanya: ') + etaText(r).replace(/^./, (c) => c.toLowerCase()))}</div>
+    <div class="sub">${esc(L('No need to wait here — do something else. A “Making…” badge stays at the top and turns green when it is ready.', 'Ждать здесь не нужно — можно заняться другим. Сверху будет значок «Готовлю…», он станет зелёным, когда всё готово.', 'Tidak perlu menunggu di sini. Lencana “Membuat…” di atas jadi hijau saat siap.'))}</div>
+    <button class="btn2" style="margin-top:16px" data-act="home">${esc(L('Meanwhile, go to the start', 'Пока на главную', 'Sementara ke awal'))}</button>
     <div class="bar" style="margin-top:24px"><i style="width:${Math.round(6 + p.frac * 94)}%"></i></div>
     ${errs.length ? `<div class="card small" style="margin-top:16px;text-align:left">${esc(L('Some versions failed: ', 'Часть вариантов не получилась: ', 'Beberapa versi gagal: '))}${esc((errs[0].error || '').slice(0, 160))}</div>` : ''}
     ${p.done ? `<button class="btn2" style="margin-top:16px" data-act="seeNow">${esc(L('See the ready ones', 'Посмотреть готовые', 'Lihat yang sudah jadi'))} (${p.done})</button>` : ''}
@@ -807,7 +1071,7 @@ function vResult(k, r) {
     </div><div>
     ${lay ? vEditor(lay, isGif) : ''}
     <div class="stack" style="margin-top:16px">
-      <button class="btn" style="background:var(--ok)" data-act="share">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
+      <button class="btn" data-act="share">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
       <div class="row"><button class="btn3" style="flex:1" data-act="download">${esc(L('Save to phone', 'Сохранить', 'Simpan'))}</button>
       <button class="btn3" style="flex:1" data-act="again">${esc(r.kind === 'video' ? L('Make again', 'Сделать ещё', 'Buat lagi') : L('3 more versions', 'Ещё 3 варианта', '3 versi lagi'))}</button></div>
       ${isPrint ? `<button class="btn2" data-act="orderSoon">${esc(L('Order printed', 'Заказать с печатью', 'Pesan cetak'))}</button>` : ''}
@@ -1103,7 +1367,7 @@ function cLinesEdit(p, i) {
   return capB + p.lines.map((l, j) => ed === `${i}|${j}` ? `<div class="row" style="gap:6px;margin-top:6px"><b class="small" style="color:#1d4ed8">${esc(cName(l.who))}:</b><input class="field" data-c="line|${i}|${j}|${esc(l.who)}" data-enter="cline" style="font-size:14px;height:42px" value="${esc(l.text)}"></div>`
     : `<button class="cline" data-act="cLine" data-v="${i}|${j}">${cName(l.who) ? `<b style="color:#1d4ed8">${esc(cName(l.who))}:</b> ` : ''}${esc(l.text)}</button>`).join('');
 }
-function cMainBtn(label, act, ok, green) { return `<button class="btn" style="${green ? 'background:var(--ok);' : ''}${ok ? '' : 'opacity:.45;'}" data-act="${ok ? act : 'cWaitMsg'}">${esc(label)}</button>`; }
+function cMainBtn(label, act, ok, green) { return `<button class="btn" style="${ok ? '' : 'opacity:.45;'}" data-act="${ok ? act : 'cWaitMsg'}">${esc(label)}</button>`; }
 function vComicIdea() {
   const c = S.c, T = cKindText(c.kind);
   let h = `${topBar({ back: true })}<div class="split"><div class="side">${cPipRow(c.busy ? L('Writing the screenplay… one moment.', 'Пишу сценарий… минутку.', 'Menulis skenario… sebentar.') : T.hi, c.busy ? 'think' : '')}${cDots('idea', c.kind !== 'comic')}</div><div class="main"><div class="pad narrow">
@@ -1119,7 +1383,7 @@ function vComicIdea() {
   h += `<textarea id="c-idea" class="field" rows="${c.task === 'film' ? 6 : 3}" style="margin-top:14px;font-size:18px" placeholder="${esc(T.ph)}">${esc(c.idea)}</textarea>
     ${T.ex.length ? `<div class="small" style="margin-top:10px;font-weight:800">${esc(L('or tap one:', 'или нажмите готовую:', 'atau ketuk salah satu:'))}</div><div class="chips" style="margin-top:6px">${T.ex.map((e) => `<button class="chip" data-act="cEx" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>` : ''}
     ${c.err ? `<div class="small" style="margin-top:12px;color:#b91c1c">${esc(c.err)}</div>` : ''}
-    <div class="stack" style="margin-top:18px"><button class="btn" style="min-height:58px;font-size:19px;${c.busy ? 'opacity:.6' : ''}" data-act="${c.busy ? 'cWaitMsg' : 'cPlan'}">${esc(c.busy ? L('Writing…', 'Пишу…', 'Menulis…') : L('Next', 'Дальше', 'Lanjut'))}</button></div>`;
+    <div class="stack cta-bar"><button class="btn" style="min-height:58px;font-size:19px;${c.busy ? 'opacity:.6' : ''}" data-act="${c.busy ? 'cWaitMsg' : 'cPlan'}">${esc(c.busy ? L('Writing…', 'Пишу…', 'Menulis…') : L('Next', 'Дальше', 'Lanjut'))}</button></div>`;
   const mine = (c.list || []).filter((k) => (k.kind || 'comic') === c.kind || c.kind === 'film' && k.kind === 'us');
   const mineT = c.kind === 'tale' ? L('My stories', 'Мои сказки', 'Dongeng saya') : c.kind === 'comic' ? L('My comics', 'Мои комиксы', 'Komik saya') : L('My cartoons', 'Мои мультики', 'Kartun saya');
   if (mine.length) h += `<div class="h2" style="margin-top:26px;font-size:16px">${esc(mineT)}</div><div class="stack" style="margin-top:8px;gap:8px">${mine.slice(0, 8).map((k) => `<button class="btn3" style="width:100%;text-align:left" data-act="cOpen" data-v="${k.id}">${esc(k.title || '…')}</button>`).join('')}</div>`;
@@ -1166,7 +1430,7 @@ function vComic() {
       if (c.finalSig !== sig && !cMakeFinal.busy) setTimeout(cMakeFinal, 0);
       main += `<div class="final-comic" style="margin-top:12px;border-radius:14px;overflow:hidden;background:#e2e8f0;min-height:320px;display:flex;align-items:center;justify-content:center">${c.finalUrl && c.finalSig === sig ? `<img src="${c.finalUrl}" alt="${esc(d.title)}" style="width:100%;display:block">` : `<span class="small">${esc(L('Putting it together…', 'Собираю комикс…', 'Menyusun komik…'))}</span>`}</div>`;
     }
-    const acts = `<button class="btn" style="background:var(--ok)" data-act="cSave">${esc(L('Send', 'Отправить', 'Kirim'))}</button>
+    const acts = `<button class="btn" data-act="cSave">${esc(L('Send', 'Отправить', 'Kirim'))}</button>
         <button class="btn2" data-act="cEdit">${esc(L('Change something', 'Поправить', 'Ubah sesuatu'))}</button>
         <button class="btn3" style="width:100%" data-act="cNew">${esc(film ? L('New cartoon', 'Новый мультик', 'Kartun baru') : d.kind === 'tale' ? L('New story', 'Новая сказка', 'Dongeng baru') : L('New comic', 'Новый комикс', 'Komik baru'))}</button>`;
     main += `<div class="stack final-comic main-acts" style="margin-top:14px;gap:10px">${acts}</div>`;
@@ -1256,7 +1520,7 @@ async function cAct(a, d) {
       case 'cWaitMsg': toast(L('One moment — still working on it.', 'Секунду — ещё работаю.', 'Sebentar — masih dikerjakan.')); break;
       case 'cEx': S.c.idea = d.v; re(); break;
       case 'cUpDel': S.c.people.splice(+d.v, 1); re(); break;
-      case 'cPlan': {
+      case 'cPlan': { hRemember(S.sec, S.task);
         if (S.c.idea.trim().length < 3) { S.c.err = L('Tell the idea first — one line is enough.', 'Сначала расскажите идею — хватит одной фразы.', 'Ceritakan idenya dulu — satu kalimat cukup.'); re(); break; }
         const people = S.c.people.filter(Boolean);
         if (S.c.kind === 'us' && !people.length) { S.c.err = L('Add at least one photo.', 'Добавьте хотя бы одно фото.', 'Tambah minimal satu foto.'); re(); break; }
@@ -1299,6 +1563,137 @@ document.addEventListener('change', async (e) => {
   delete S.c.cupBusy[i]; render.keep = true; render();
 });
 document.addEventListener('focusout', (e) => { const el = e.target; if (el.dataset && el.dataset.c && S.screen === 'comic' && S.c.editing) setTimeout(() => { if (S.c.editing && !document.activeElement.dataset.c) cAct('cLineDone', {}); }, 120); });
+
+/* ---------------- family album: many photos -> chapters with captions, every photo alive (short clip), leafed like a book ----------------
+   S.al: { view: 'start'|'making'|'book', title, photos:[{path,w,h}], busy:{}, x: album from the server, pg: page index } */
+function alNew() { S.al = { view: 'start', title: '', photos: [], busy: {}, x: null, pg: 0, list: S.al && S.al.list }; }
+function alPages(x) {   // flat list of pages: cover, then photo pages (a chapter title sits on its first page), then the end
+  const out = [{ cover: true }];
+  (x.chapters || []).forEach((ch) => ch.pages.forEach((p, i) => out.push({ ...p, chapter: i === 0 ? ch.title : '' })));
+  out.push({ end: true });
+  return out;
+}
+function alMedia(p, cls) {
+  if (p.video) return `<video class="${cls || ''}" src="${fileUrl(p.video)}" poster="${fileUrl(p.path)}" autoplay muted loop playsinline></video>`;
+  return `<img class="${cls || ''} alive" src="${fileUrl(p.path)}" alt="">`;
+}
+function alPage(x, p) {
+  if (p.cover) { const c = (x.chapters[0] || { pages: [] }).pages[0];
+    return `<div class="pg cover"><div class="ctitle">${esc(x.title || L('Our family', 'Наша семья', 'Keluarga kami'))}</div>${c ? `<div class="cph">${alMedia(c)}</div>` : ''}<div class="cyear">${esc(x.sub || '')}</div></div>`; }
+  if (p.end) return `<div class="pg"><div class="cap" style="font-size:30px;text-align:center">${esc(L('To be continued…', 'Продолжение следует…', 'Bersambung…'))}</div><div class="small" style="margin-top:14px;text-align:center">${esc(L('Made with love in Wishly', 'Сделано с любовью в Wishly', 'Dibuat dengan cinta di Wishly'))}</div></div>`;
+  return `<div class="pg">${p.chapter ? `<div class="chap">${esc(p.chapter)}</div>` : ''}<div class="ph" style="transform:rotate(${p.tilt || 0}deg)">${alMedia(p)}</div>${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}</div>`;
+}
+function vAlbum() {
+  const a = S.al, t = TT();
+  if (a.view === 'book' && a.x) {
+    const pages = alPages(a.x), wide = innerWidth >= 900, i = Math.min(a.pg, pages.length - 1);
+    const show = wide && i > 0 ? [i % 2 ? i : i - 1, (i % 2 ? i : i - 1) + 1].filter((n) => n < pages.length) : [i];
+    return `${topBar({ back: true })}<div class="pad" style="padding-top:12px">
+      <div class="book ${wide ? 'wide' : ''}" id="book">${show.map((n) => alPage(a.x, pages[n])).join('')}
+        <button class="turnL" data-act="alPrev" aria-label="${esc(L('Back', 'Назад', 'Kembali'))}"></button><button class="turnR" data-act="alNext" aria-label="${esc(L('Next', 'Дальше', 'Lanjut'))}"></button></div>
+      <div class="row" style="justify-content:center;gap:14px;margin-top:10px"><button class="iconbtn" data-act="alPrev" ${i ? '' : 'disabled'}>${ICON.back}</button>
+        <span class="small" style="font-weight:800;min-width:70px;text-align:center">${i ? `${i} / ${pages.length - 2}` : esc(L('Cover', 'Обложка', 'Sampul'))}</span>
+        <button class="iconbtn" data-act="alNext" style="transform:scaleX(-1)" ${i < pages.length - 1 ? '' : 'disabled'}>${ICON.back}</button></div>
+      <div class="small" style="text-align:center;margin-top:4px">${esc(L('Swipe or tap the page edge to turn', 'Листайте пальцем или нажмите на край страницы', 'Geser atau ketuk tepi halaman'))}</div>
+      <div class="stack" style="margin-top:16px;gap:8px;max-width:520px;margin-left:auto;margin-right:auto">
+        <button class="btn" data-act="alShare">${esc(L('Share a link with the family', 'Поделиться ссылкой с роднёй', 'Bagikan tautan ke keluarga'))}</button>
+        <div class="row" style="gap:8px"><button class="btn2" style="flex:1" data-act="alVideo">${esc(a.vbusy ? L('Making the video…', 'Делаю видео…', 'Membuat video…') : L('Video for WhatsApp', 'Видео для WhatsApp', 'Video untuk WhatsApp'))}</button>
+        <button class="btn2" style="flex:1" data-act="alPrint">${esc(L('Printed book', 'Печатная книга', 'Buku cetak'))}</button></div>
+      </div></div>${a.sheet ? alSheet() : ''}`;
+  }
+  if (a.view === 'making' && a.x) {
+    const p = a.x.progress || {}, st = [[L('Sorting into chapters and writing captions', 'Раскладываю по главам и пишу подписи', 'Menyusun bab dan menulis keterangan'), p.sorted],
+      [L('Cleaning up old photos', 'Чищу старые фото', 'Membersihkan foto lama'), p.restored],
+      [L(`Bringing photos to life: ${p.alive || 0} of ${p.total || a.photos.length}`, `Оживляю фото: ${p.alive || 0} из ${p.total || a.photos.length}`, `Menghidupkan foto: ${p.alive || 0} dari ${p.total || a.photos.length}`), p.total && p.alive >= p.total]];
+    return `${topBar({ back: true })}<div class="gate narrow"><div style="display:flex;justify-content:center">${pipEl(100, false, 'think')}</div>
+      <div style="font-size:23px;font-weight:900;margin-top:16px">${esc(L('Making your album…', 'Делаю ваш альбом…', 'Membuat album Anda…'))}</div>
+      <div class="stack" style="margin-top:18px;gap:10px;text-align:left">${st.map(([l, ok]) => `<div class="row" style="gap:10px;font-size:16px;font-weight:800"><span class="dot ${ok ? 'ok' : ''}">${ok ? '✓' : ''}</span>${esc(l)}</div>`).join('')}</div>
+      <div class="bar" style="margin-top:20px"><i style="width:${Math.round(6 + (p.frac || 0) * 94)}%"></i></div>
+      <div class="sub">${esc(L(`Usually 1 minute per photo. No need to wait here — the album will be in “My works”.`, `Обычно минута на каждое фото. Ждать здесь не нужно — альбом появится в «Моих работах».`, 'Biasanya 1 menit per foto. Album akan ada di “Karya saya”.'))}</div>
+      <button class="btn2" style="margin-top:14px" data-act="home">${esc(L('Meanwhile, go to the start', 'Пока на главную', 'Sementara ke awal'))}</button></div>`;
+  }
+  const n = a.photos.length, busy = Object.keys(a.busy).length, MIN = 4, MAX = 30;
+  return `${topBar({ back: true })}<div class="pad narrow"><h1>${esc(L('Family album', 'Семейный альбом', 'Album keluarga'))}</h1>
+    <div class="row" style="gap:10px;align-items:flex-end;margin-top:8px">${pipEl(52)}<div class="bubble" style="font-size:16px">${esc(L('Add your photos — old ones too. I sort them into chapters, clean them up and bring every photo to life. You leaf through it like a real book.', 'Добавьте фото — можно и старые. Я разложу их по главам, почищу и оживлю каждое. Листается как настоящая книга.', 'Tambahkan foto — yang lama juga. Aku susun per bab, bersihkan dan hidupkan setiap foto. Dibuka seperti buku sungguhan.'))}</div></div>
+    <label class="small" for="al-title" style="display:block;font-weight:800;margin-top:18px">${esc(L('Album title', 'Название альбома', 'Judul album'))}</label>
+    <input id="al-title" class="field" style="margin-top:6px" value="${esc(a.title)}" placeholder="${esc(L('For example: The Smith family', 'Например: Семья Ивановых', 'Misalnya: Keluarga Santoso'))}">
+    <div style="font-size:17px;font-weight:900;margin-top:18px">${esc(L(`Photos: ${n} (${MIN}–${MAX})`, `Фото: ${n} (от ${MIN} до ${MAX})`, `Foto: ${n} (${MIN}–${MAX})`))}</div>
+    <div class="algrid">${a.photos.map((u, i) => `<div class="upslot on"><img src="${thumbUrl(u.path)}" alt=""><button class="x" data-act="alDel" data-v="${i}" aria-label="×">×</button></div>`).join('')}
+      ${Object.keys(a.busy).map(() => `<div class="upslot">${pipEl(36, false, 'think')}</div>`).join('')}
+      ${n + busy < MAX ? `<label class="upslot">${ICON.up}<span>${esc(n ? L('More', 'Ещё', 'Lagi') : L('Add photos', 'Добавить фото', 'Tambah foto'))}</span><input type="file" accept="image/*" multiple data-alup="1"></label>` : ''}</div>
+    <div class="small" style="margin-top:8px">${esc(L('Only you and the people you share the link with see the album. Use photos of your family who agree.', 'Альбом видите только вы и те, кому вы дадите ссылку. Используйте фото своей семьи, кто не против.', 'Album hanya terlihat oleh Anda dan yang Anda beri tautan.'))}</div>
+    ${a.err ? `<div class="small" style="margin-top:10px;color:#b91c1c">${esc(a.err)}</div>` : ''}
+    <div class="stack cta-bar"><button class="btn" style="min-height:58px;font-size:19px;${n >= MIN && !busy ? '' : 'opacity:.5'}" data-act="alMake">${esc(L('Make the album', 'Сделать альбом', 'Buat album'))}</button>
+      <div class="small" style="text-align:center">${esc(L(`About ${Math.max(1, n)} min — 1 minute per photo`, `Примерно ${Math.max(1, n)} мин — минута на фото`, `Sekitar ${Math.max(1, n)} menit`))}</div></div>
+    ${(a.list || []).length ? `<div class="h2" style="margin-top:22px;font-size:16px">${esc(L('My albums', 'Мои альбомы', 'Album saya'))}</div><div class="stack" style="margin-top:8px;gap:8px">${a.list.map((x) => `<button class="btn3" style="width:100%;text-align:left" data-act="alOpen" data-v="${x.id}">${esc(x.title || '…')}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
+function alSheet() {
+  const a = S.al, n = alPages(a.x).length - 2;
+  const body = a.sheet === 'video' ? `<div style="font-size:18px;font-weight:900">${esc(L('Video of the album', 'Видео альбома', 'Video album'))}</div>
+      <div class="stage" style="margin-top:10px">${a.video ? `<video src="${fileUrl(a.video)}" autoplay muted loop playsinline controls></video>` : ''}</div>
+      <div class="small" style="margin-top:8px">${esc(L('Pages turn by themselves, with soft music. Send it to the family chat.', 'Страницы листаются сами, с тихой музыкой. Отправьте в семейный чат.', 'Halaman membalik sendiri, dengan musik lembut.'))}</div>
+      <button class="btn" style="margin-top:12px" data-act="alVideoSend">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>`
+    : `<div style="font-size:18px;font-weight:900">${esc(L('Printed book', 'Печатная книга', 'Buku cetak'))}</div>
+      <div class="row" style="gap:12px;margin-top:12px;align-items:flex-start"><div class="pbook">${alMedia((a.x.chapters[0] || { pages: [{}] }).pages[0] || {})}<b>${esc(a.x.title || '')}</b></div>
+      <div class="small" style="font-size:15px;line-height:1.45">${esc(L(`Hardcover 20×20 cm, ${n} pages, thick matte paper.`, `Твёрдая обложка 20×20 см, ${n} страниц, плотная матовая бумага.`, `Sampul keras 20×20 cm, ${n} halaman.`))}<br>
+        ${esc(L('Next to every photo — a small QR code: point the phone at it and the photo comes alive.', 'Рядом с каждым фото — маленький QR-код: наведите телефон, и фото оживёт.', 'Di samping setiap foto ada kode QR: arahkan ponsel dan fotonya hidup.'))}</div></div>
+      <div class="chips" style="margin-top:12px">${[L('20×20 hardcover', '20×20 твёрдая', '20×20 keras'), L('30×30 hardcover', '30×30 твёрдая', '30×30 keras'), L('Soft cover', 'Мягкая обложка', 'Sampul lunak')].map((x, i) => `<button class="chip ${(a.fmt || 0) === i ? 'on' : ''}" data-act="alFmt" data-v="${i}">${esc(x)}</button>`).join('')}</div>
+      <button class="btn" style="margin-top:14px" data-act="orderSoon">${esc(L('Order the book', 'Заказать книгу', 'Pesan buku'))}</button>
+      <div class="small" style="text-align:center;margin-top:6px">${esc(L('Delivered to your door. Price is shown before you pay.', 'С доставкой до двери. Цену покажем до оплаты.', 'Diantar ke rumah. Harga ditampilkan sebelum bayar.'))}</div>`;
+  return `<div class="sheet" data-act="alClose"><div data-stop="1"><div class="row" style="justify-content:flex-end"><button class="iconbtn" data-act="alClose" aria-label="×">${ICON.close}</button></div>${body}</div></div>`;
+}
+async function alPoll() {
+  clearTimeout(alPoll.t); const a = S.al; if (!a || !a.x || a.view !== 'making') return;
+  try { a.x = await api('/api/albums/' + a.x.id); } catch (e) {}
+  if (a.x.status === 'ready') { a.view = 'book'; a.pg = 0; toast(L('Your album is ready!', 'Альбом готов!', 'Album siap!')); }
+  if (S.screen === 'album') { render.keep = true; render(); }
+  if (a.view === 'making') alPoll.t = setTimeout(alPoll, 2500);
+}
+function alTurn(d) {
+  const a = S.al, pages = alPages(a.x), wide = innerWidth >= 900, step = wide && a.pg > 0 ? 2 : 1;
+  let n = a.pg + d * step; if (wide && d > 0 && a.pg === 0) n = 1;
+  if (n < 0 || n > pages.length - 1) return;
+  const b = $('#book');
+  if (b) { b.classList.add(d > 0 ? 'go-next' : 'go-prev'); setTimeout(() => { a.pg = Math.max(0, n); render.keep = true; render(); const nb = $('#book'); if (nb) { nb.classList.add(d > 0 ? 'in-next' : 'in-prev'); setTimeout(() => nb.classList.remove('in-next', 'in-prev'), 420); } }, 260); }
+}
+async function alAct(a, d) {
+  const al = S.al, re = () => { render.keep = true; render(); };
+  const ti = $('#al-title'); if (ti) al.title = ti.value;
+  switch (a) {
+    case 'alDel': al.photos.splice(+d.v, 1); re(); break;
+    case 'alMake': {
+      if (Object.keys(al.busy).length) { toast(L('Wait a second — the photos are still loading.', 'Секунду — фото ещё загружаются.', 'Sebentar — foto masih dimuat.')); break; }
+      if (al.photos.length < 4) { al.err = L('Add at least 4 photos.', 'Добавьте хотя бы 4 фото.', 'Tambahkan minimal 4 foto.'); re(); break; }
+      al.err = ''; hRemember('memory', 'album');
+      try { al.x = await api('/api/albums', { title: al.title, photos: al.photos.map((u) => u.path), lang: S.lang }); al.view = 'making'; re(); alPoll(); }
+      catch (x) { al.err = x.message; re(); }
+      break; }
+    case 'alOpen': try { al.x = await api('/api/albums/' + d.v); al.view = al.x.status === 'ready' ? 'book' : 'making'; al.pg = 0; re(); alPoll(); } catch (x) { toast(x.message); } break;
+    case 'alNext': alTurn(1); break;
+    case 'alPrev': alTurn(-1); break;
+    case 'alShare': { const url = location.origin + '/a/' + al.x.share;
+      if (navigator.share) { try { await navigator.share({ title: al.x.title, url }); break; } catch (e) { if (e.name === 'AbortError') break; } }
+      try { await navigator.clipboard.writeText(url); toast(L('Link copied — paste it into the family chat.', 'Ссылка скопирована — вставьте её в семейный чат.', 'Tautan disalin.')); } catch (e) { toast(url); } break; }
+    case 'alVideo': if (al.vbusy) break; al.vbusy = true; re();
+      try { const r = await api(`/api/albums/${al.x.id}/video`, {}); al.video = r.path; al.sheet = 'video'; } catch (x) { toast(x.message); }
+      al.vbusy = false; re(); break;
+    case 'alVideoSend': { try { const b = await (await fetch(fileUrl(al.video))).blob(), f = new File([b], (al.x.title || 'album') + '.mp4', { type: 'video/mp4' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); break; } catch (e) { if (e.name === 'AbortError') break; } } dl(f); } catch (x) { toast(x.message); } break; }
+    case 'alPrint': al.sheet = 'print'; re(); break;
+    case 'alFmt': al.fmt = +d.v; re(); break;
+    case 'alClose': al.sheet = null; re(); break;
+  }
+}
+document.addEventListener('change', async (e) => {
+  const el = e.target; if (!el.dataset || !el.dataset.alup || !el.files || !el.files.length) return;
+  const al = S.al, files = [...el.files].slice(0, 30 - al.photos.length);
+  const tags = files.map((f, n) => 'a' + Date.now() + n); tags.forEach((t) => { al.busy[t] = true; }); render.keep = true; render();
+  await Promise.all(files.map(async (f, n) => { try { al.photos.push(await uploadPhoto(f)); } catch (x) { toast(x.message); } delete al.busy[tags[n]]; render.keep = true; render(); }));
+});
+let alTouch = null;
+document.addEventListener('touchstart', (e) => { if (e.target.closest('#book')) alTouch = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', (e) => { if (alTouch == null) return; const dx = e.changedTouches[0].clientX - alTouch; alTouch = null; if (Math.abs(dx) > 40) alTurn(dx < 0 ? 1 : -1); }, { passive: true });
 
 /* ---------------- Studio for pros: every model and option of the admin, in a friendlier shape ---------------- */
 const SFAM_INPUTS = { qwen_image21: [0, 10], flux3_klein: [0, 10], qwen_aio: [1, 1], wan22_i2v: [1, 1], h3_fl2va: [1, 2], h3_ref2va: [1, 9] };
@@ -1450,7 +1845,7 @@ function vStudioViewer() {
   }
   return `<div class="sheet" data-act="stClose"><div data-stop="1">
     <div style="border-radius:16px;overflow:hidden;background:#000;max-height:58vh;display:flex;justify-content:center">${vid ? `<video src="${fileUrl(p)}" controls autoplay playsinline style="max-width:100%;max-height:58vh"></video>` : `<img src="${fileUrl(p)}" alt="" style="max-width:100%;max-height:58vh;object-fit:contain">`}</div>
-    <div class="row" style="margin-top:12px;gap:8px"><button class="btn" style="background:var(--ok);flex:1" data-act="stShare">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="btn" style="flex:1" data-act="stShare">${esc(L('Send…', 'Отправить…', 'Kirim…'))}</button>
       <a class="btn3" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit" href="${fileUrl(p)}?dl=1" download>${esc(L('Save', 'Сохранить', 'Simpan'))}</a></div>
     ${acts.length ? `<div class="chips" style="margin-top:10px">${acts.map(([f, n]) => `<button class="chip" data-act="stUse" data-v="${f}">${esc(n)}</button>`).join('')}</div>` : ''}
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn3" style="flex:1;color:#dc2626;border-color:#fca5a5" data-act="stDel">${esc(st.delArm ? L('Tap again to delete', 'Нажмите ещё раз — удалить', 'Ketuk lagi untuk hapus') : L('Delete', 'Удалить', 'Hapus'))}</button>
@@ -1519,7 +1914,8 @@ function render() {
   else if (S.screen === 'a18new') h = vA18New();
   else if (S.screen === 'studio') h = vStudio();
   else if (S.screen === 'comic') h = vComic();
-  if (S.screen !== 'gate' && S.screen !== 'studio') h += `<button class="fab" data-act="chatOpen" aria-label="${esc(L('Ask Pip', 'Спросить Пипа', 'Tanya Pip'))}">${pipEl(56, A18.includes(S.screen))}</button>`;
+  else if (S.screen === 'album') h = vAlbum();
+  if (S.screen !== 'gate' && S.screen !== 'studio' && !h.includes('class="pip')) h += `<button class="fab" data-act="chatOpen" aria-label="${esc(L('Ask Pip', 'Спросить Пипа', 'Tanya Pip'))}">${pipEl(56, A18.includes(S.screen))}</button>`;
   if (S.chatOpen) h += vChat();
   const sy = window.scrollY, keepScroll = render.keep; render.keep = false;
   $('#app').innerHTML = h;
@@ -1574,6 +1970,8 @@ async function poll() {
   else if (S.screen === 'flow' && S.step === 'gen' && S.jobs.length && S.jobs.every((j) => ['done', 'error', 'cancelled'].includes(j.status)) && S.jobs.some((j) => j.status === 'done')) S.step = 'result';
   if (S.screen === 'flow' && (S.step === 'gen' || S.step === 'result')) { render.keep = true; if (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render(); }
   const still = S.jobs.some((j) => j.id !== '-' && !['done', 'error', 'cancelled'].includes(j.status));
+  if (S.screen !== 'flow') { pillUpd(); if (poll.open && !still) toast(L('Your work is ready!', 'Готово! Нажмите «смотреть» сверху.', 'Sudah siap!')); }
+  poll.open = still;
   if (still) pollT = setTimeout(poll, 2000);
 }
 
@@ -1665,24 +2063,28 @@ function chatSend(text) {
   S.chat.push({ me: false, t: reply, go: goTo, goL });
   S.chatOpen = true; render();
 }
-function openTask(sec, task) {
-  S.chatOpen = false;
+function openTask(sec, task, say) {
+  S.chatOpen = false; S.pipSay = say || ''; S.pre = []; S.preOpen = false;
   if (!task) { go('section', { sec }); return; }
   const k = taskById(sec, task);
   if (!k) { go('section', { sec }); return; }
+  if (k.album) { alNew(); go('album', { sec, task }); api('/api/albums').then((l) => { S.al.list = l; if (S.screen === 'album') { render.keep = true; render(); } }).catch(() => {}); return; }
   if (CKIND[task] || k.r === 'tale') { Object.assign(S.c, { x: null, kind: CKIND[k.r === 'tale' ? 'tale' : task], task: k.r === 'tale' ? 'tale' : task, view: null, idea: '', err: '', variant: 0, people: [], editing: null }); go('comic', { sec, task }); api('/api/comics').then((l) => { S.c.list = l; if (S.screen === 'comic') { render.keep = true; render(); } }).catch(() => {}); return; }
   if (k.soon || !k.r || !R[k.r]) { toast(TT().soonMsg); go('section', { sec }); return; }   // (story tasks are routed above)
+  const b = bgSet(); if (b && b.jobs.some((j) => !['error', 'cancelled'].includes(j.status))) { S.bg = b; bgPoll.open = true; bgPoll(); }
   S.ans = {}; S.jobs = []; S.layer = null; S.ups = []; S.upBusy = {}; S.montaged = false;
-  if (k.upload) { go('flow', { sec, task, step: 'questions' }); return; }
-  go('flow', { sec, task, step: 'preview' });
+  go('flow', { sec, task, step: 'questions' });   // the section card already shows the examples
 }
 
 /* ---------------- events ---------------- */
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('#hpip')) { pipPoke(); return; }
+  if (e.target.closest('svg.pip') && !e.target.closest('[data-act]') && !e.target.closest('.sheet')) { S.chatOpen = true; render.keep = true; render(); return; }
   const el = e.target.closest('[data-act]');
   if (!el) return;
   if (el.dataset.act === 'chatBg' && e.target.closest('[data-stop]')) return;
   const a = el.dataset.act, d = el.dataset;
+  if (/^al[A-Z]/.test(a)) { if (a === 'alClose' && el.classList.contains('sheet') && e.target.closest('[data-stop]')) return; alAct(a, d); return; }
   switch (a) {
     case 'lang': S.lang = d.v; LS.set('lang', S.lang); render.keep = true; render(); break;
     case 'back': back(); break;
@@ -1697,7 +2099,27 @@ document.addEventListener('click', async (e) => {
     case 'adult': go(S.adultOk ? 'adult' : 'gate', { after: 'adult' }); if (S.adultOk) aEnter(); break;
     case 'adultYes': S.adultOk = true; LS.set('adultOk', true); go(S.after || 'adult'); aEnter(); break;
     case 'studio': go(S.adultOk ? 'studio' : 'gate', { after: 'studio' }); break;
-    case 'ask': { const v = ($('#ask') || {}).value || ''; if (v.trim()) chatSend(v); else { S.chatOpen = true; render.keep = true; render(); } break; }
+    case 'ask': { const v = ($('#ask') || {}).value || ''; if (!v.trim()) { S.chatOpen = true; render.keep = true; render(); break; }
+      if (S.screen === 'home') { $('#ask').value = ''; hAsk(v); break; }
+      chatSend(v);
+      break; }
+    case 'hAll': S.hAll = !S.hAll; render.keep = true; render(); break;
+    case 'preOpen': S.preOpen = true; render.keep = true; render(); break;
+    case 'hNode': hNode(d.v, d.l); break;
+    case 'hGo': { const pre = d.pre && d.pre !== 'null' ? JSON.parse(d.pre) : null, has = pre && Object.keys(pre).filter((x) => x !== 'idea').length;
+      openTask(d.sec, d.task, has ? L('I filled in what I understood. Check it — and tap “Make it”.', 'Я заполнил, что понял. Проверьте — и «Сделать».', 'Sudah kuisi yang kupahami. Cek — lalu “Buat”.') : '');
+      if (has && S.screen === 'flow') { const r = R[taskById(d.sec, d.task).r]; S.pre = [];
+        for (const [q, v] of Object.entries(pre)) {
+          if (q === 'textOwn' && r.qs.includes('text')) S.ans.textOwn = v;
+          else if (r.qs.includes(q)) { S.ans[q] = v; if (typeof v === 'number') S.pre.push(q); } }
+        render(); }
+      if (pre && pre.title && S.screen === 'album') { S.al.title = String(pre.title).slice(0, 60); render(); }
+      if (pre && pre.idea && S.screen === 'comic') { S.c.idea = String(pre.idea).replace(/^(сделай|сделать|нарисуй|хочу|make|draw|buat)\s+/i, '').replace(/^(комикс|мультик|сказку|comic|cartoon|komik)\s+(про|о|about|tentang)\s+/i, ''); render(); }
+      break; }
+    case 'toBg': { const b = S.bg || bgSet(); if (!b) break; S.bg = null; clearTimeout(bgPoll.t);
+      Object.assign(S, { jobs: b.jobs, ans: b.ans, layer: b.layer, ups: b.ups, picked: b.picked, montaged: b.montaged, upBusy: {} });
+      const open = b.jobs.some((j) => !['done', 'error', 'cancelled'].includes(j.status));
+      go('flow', { sec: b.sec, task: b.task, step: open ? 'gen' : 'result' }); if (open) poll(); break; }
     case 'chatOpen': S.chatOpen = true; render.keep = true; render(); setTimeout(() => { const i = $('#chat-in'); if (i) i.focus(); }, 50); break;
     case 'chatClose': case 'chatBg': S.chatOpen = false; render.keep = true; render(); break;
     case 'chatSend': { const i = $('#chat-in'); chatSend(i ? i.value : ''); break; }
@@ -1709,7 +2131,7 @@ document.addEventListener('click', async (e) => {
       if (Object.keys(S.upBusy).length) { toast(L('Wait a second — the photo is still loading.', 'Секунду — фото ещё загружается.', 'Sebentar — foto masih dimuat.')); break; }
       const need = r.multi ? r.multi[0] : r.ups ? r.ups().length : 0;
       if ((r.multi ? ups.length : r.ups ? r.ups().filter((x, i) => S.ups[i]).length : need) < need) { toast(need > 1 ? L(`Add ${need} photos first`, `Сначала добавьте фото: ${need}`, `Tambah ${need} foto dulu`) : L('Add a photo first', 'Сначала добавьте фото', 'Tambah foto dulu')); break; }
-      S.montaged = false;
+      S.montaged = false; hRemember(S.sec, S.task);
       if (a === 'make' || !S.layer) S.layer = r.layer ? r.layer(S.ans, S.ups) : null;
       if (r.server) {
         S.jobs = []; S.picked = 0;

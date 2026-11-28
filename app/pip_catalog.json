@@ -1,0 +1,921 @@
+[
+ {
+  "section": "greet",
+  "task": "gifcard",
+  "title": "Moving card",
+  "what": "A short looping picture with your words. Perfect for WhatsApp.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "occ",
+    "type": "choice",
+    "label": "What is the occasion?",
+    "options": [
+     "Good morning",
+     "Good night",
+     "Birthday",
+     "Thank you",
+     "Get well soon",
+     "Miss you",
+     "Happy weekend",
+     "New Year"
+    ]
+   },
+   {
+    "id": "who",
+    "type": "choice",
+    "label": "Who is it for?",
+    "options": [
+     "Mom",
+     "Family group",
+     "A friend",
+     "Colleagues"
+    ]
+   },
+   {
+    "id": "textOwn",
+    "type": "text",
+    "label": "the words written on it (optional, short)"
+   }
+  ]
+ },
+ {
+  "section": "greet",
+  "task": "voice",
+  "title": "Video greeting with a voice",
+  "what": "A cat, a teddy bear or Santa says your greeting out loud — with the person’s name.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "occ",
+    "type": "choice",
+    "label": "What is the occasion?",
+    "options": [
+     "Good morning",
+     "Good night",
+     "Birthday",
+     "Thank you",
+     "Get well soon",
+     "Miss you",
+     "Happy weekend",
+     "New Year"
+    ]
+   },
+   {
+    "id": "vchar",
+    "type": "choice",
+    "label": "Who says it?",
+    "options": [
+     "Cat",
+     "Teddy bear",
+     "Santa",
+     "Puppy",
+     "Snowman",
+     "Little dragon"
+    ]
+   },
+   {
+    "id": "vname",
+    "type": "text",
+    "label": "Name of the person"
+   },
+   {
+    "id": "textOwn",
+    "type": "text",
+    "label": "the words written on it (optional, short)"
+   }
+  ]
+ },
+ {
+  "section": "greet",
+  "task": "piccard",
+  "title": "Picture card",
+  "what": "A beautiful still card. Change the words any time — no waiting.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "occ",
+    "type": "choice",
+    "label": "What is the occasion?",
+    "options": [
+     "Good morning",
+     "Good night",
+     "Birthday",
+     "Thank you",
+     "Get well soon",
+     "Miss you",
+     "Happy weekend",
+     "New Year"
+    ]
+   },
+   {
+    "id": "who",
+    "type": "choice",
+    "label": "Who is it for?",
+    "options": [
+     "Mom",
+     "Family group",
+     "A friend",
+     "Colleagues"
+    ]
+   },
+   {
+    "id": "textOwn",
+    "type": "text",
+    "label": "the words written on it (optional, short)"
+   }
+  ]
+ },
+ {
+  "section": "greet",
+  "task": "invite",
+  "title": "Invitation",
+  "what": "Birthday, wedding or party — with date, time and place on the card.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "ikind",
+    "type": "choice",
+    "label": "What kind of party?",
+    "options": [
+     "Birthday",
+     "Wedding",
+     "Kids’ party"
+    ]
+   },
+   {
+    "id": "ititle",
+    "type": "text",
+    "label": "Title"
+   },
+   {
+    "id": "iwhen",
+    "type": "text",
+    "label": "Date and time"
+   },
+   {
+    "id": "iwhere",
+    "type": "text",
+    "label": "Place"
+   }
+  ]
+ },
+ {
+  "section": "greet",
+  "task": "photocard",
+  "title": "Card with a photo",
+  "what": "Put a photo of the person on a card or make it come alive.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "occ",
+    "type": "choice",
+    "label": "What is the occasion?",
+    "options": [
+     "Good morning",
+     "Good night",
+     "Birthday",
+     "Thank you",
+     "Get well soon",
+     "Miss you",
+     "Happy weekend",
+     "New Year"
+    ]
+   },
+   {
+    "id": "who",
+    "type": "choice",
+    "label": "Who is it for?",
+    "options": [
+     "Mom",
+     "Family group",
+     "A friend",
+     "Colleagues"
+    ]
+   },
+   {
+    "id": "textOwn",
+    "type": "text",
+    "label": "the words written on it (optional, short)"
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "album",
+  "title": "Family album",
+  "what": "Lots of photos become a book you leaf through — and every photo is alive. Share a link, make a video or order it printed. (4–30 photos)",
+  "photo": true,
+  "questions": [
+   {
+    "id": "title",
+    "type": "text",
+    "label": "album title, e.g. the family name"
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "together",
+  "title": "Together again",
+  "what": "People from different photos in one picture — grandpa holding the grandson he never met.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "tplace",
+    "type": "choice",
+    "label": "Where?",
+    "options": [
+     "Garden",
+     "At home",
+     "Beach",
+     "Photo studio"
+    ]
+   },
+   {
+    "id": "tpose",
+    "type": "choice",
+    "label": "How?",
+    "options": [
+     "Side by side",
+     "Hugging",
+     "On the lap",
+     "Holding hands"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "oldlive",
+  "title": "Bring an old photo to life",
+  "what": "A gentle smile, a blink, a turn of the head.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "lmove",
+    "type": "choice",
+    "label": "What should happen?",
+    "options": [
+     "A gentle smile",
+     "Smile and look around",
+     "Wave hello",
+     "A soft nod"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "restore",
+  "title": "Restore and colorize",
+  "what": "Remove scratches and folds, make it sharp, add natural colors.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "rcolor",
+    "type": "choice",
+    "label": "Colors",
+    "options": [
+     "Add natural colors",
+     "Keep black and white"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "memcard",
+  "title": "Card in loving memory",
+  "what": "A photo, the name, the years and a few words. Calm designs.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "mname",
+    "type": "text",
+    "label": "Name"
+   },
+   {
+    "id": "myears",
+    "type": "text",
+    "label": "Years (optional)"
+   },
+   {
+    "id": "mwords",
+    "type": "text",
+    "label": "A few words (optional)"
+   },
+   {
+    "id": "mbg",
+    "type": "choice",
+    "label": "Design",
+    "options": [
+     "Candle",
+     "White flowers",
+     "Sky",
+     "Autumn leaves"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "memory",
+  "task": "memvideo",
+  "title": "Memory video",
+  "what": "3 to 10 photos come gently alive, with soft music.",
+  "photo": true,
+  "questions": []
+ },
+ {
+  "section": "home",
+  "task": "print",
+  "title": "Print on a T-shirt, mug or bag",
+  "what": "Describe a picture or a phrase — see it on the thing right away.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "pidea",
+    "type": "text",
+    "label": "What should the print show?"
+   },
+   {
+    "id": "pphrase",
+    "type": "text",
+    "label": "Phrase (optional)"
+   },
+   {
+    "id": "thing",
+    "type": "choice",
+    "label": "On what?",
+    "options": [
+     "T-shirt",
+     "Mug",
+     "Bag"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "home",
+  "task": "wallart",
+  "title": "Art for the wall",
+  "what": "Watercolor, oil, minimal — in colors that suit your room.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "subject",
+    "type": "text",
+    "label": "What should the picture show?"
+   },
+   {
+    "id": "art",
+    "type": "choice",
+    "label": "Style",
+    "options": [
+     "Watercolor",
+     "Oil painting",
+     "Minimal",
+     "Photo"
+    ]
+   },
+   {
+    "id": "tone",
+    "type": "choice",
+    "label": "Colors",
+    "options": [
+     "Warm",
+     "Cool",
+     "Beige & green",
+     "Bright"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "home",
+  "task": "wallpaper",
+  "title": "Phone wallpaper",
+  "what": "Calm or bright, for your mood.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "wmood",
+    "type": "choice",
+    "label": "Mood",
+    "options": [
+     "Calm sea",
+     "Kittens",
+     "Starry night",
+     "Abstract"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "home",
+  "task": "avatar",
+  "title": "Avatar",
+  "what": "A drawn character for your profile.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "adesc",
+    "type": "text",
+    "label": "Who to draw (if no photo)"
+   },
+   {
+    "id": "astyle",
+    "type": "choice",
+    "label": "Style",
+    "options": [
+     "3D cartoon",
+     "Anime",
+     "Comic",
+     "Chibi",
+     "Watercolor",
+     "Pixel art"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "home",
+  "task": "painting",
+  "title": "Me as a painting",
+  "what": "Your photo in the style of Van Gogh, anime or watercolor.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "pstyle",
+    "type": "choice",
+    "label": "Style",
+    "options": [
+     "Van Gogh",
+     "Watercolor",
+     "Anime",
+     "Oil portrait",
+     "Pop art",
+     "Pencil"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "kids",
+  "task": "story",
+  "title": "Bedtime story with pictures",
+  "what": "Tell us the child’s name and what they love. We write a short story and draw every page.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "idea",
+    "type": "text",
+    "label": "child name, age and what they love"
+   }
+  ]
+ },
+ {
+  "section": "kids",
+  "task": "coloring",
+  "title": "Coloring pages",
+  "what": "Any topic, simple or detailed for the age. Ready to print on A4.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "topic",
+    "type": "text",
+    "label": "What should be on the page?"
+   },
+   {
+    "id": "age",
+    "type": "choice",
+    "label": "How old is the child?",
+    "options": [
+     "2–3 years",
+     "4–6 years",
+     "7–10 years"
+    ]
+   },
+   {
+    "id": "kname",
+    "type": "text",
+    "label": "Child’s name (optional)"
+   }
+  ]
+ },
+ {
+  "section": "kids",
+  "task": "hero",
+  "title": "A hero with the child’s name",
+  "what": "Superhero, princess, astronaut or knight — as a picture or poster.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "role",
+    "type": "choice",
+    "label": "Who is the hero?",
+    "options": [
+     "Superhero",
+     "Princess",
+     "Astronaut",
+     "Knight"
+    ]
+   },
+   {
+    "id": "kname",
+    "type": "text",
+    "label": "Child’s name (optional)"
+   },
+   {
+    "id": "hair",
+    "type": "choice",
+    "label": "Hair",
+    "options": [
+     "Brown",
+     "Blonde",
+     "Black",
+     "Red"
+    ]
+   },
+   {
+    "id": "fav",
+    "type": "choice",
+    "label": "Favorite color",
+    "options": [
+     "Red",
+     "Blue",
+     "Pink",
+     "Green"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "kids",
+  "task": "cartoon",
+  "title": "Mini cartoon",
+  "what": "Your child’s drawing comes alive for a few seconds.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "cmove",
+    "type": "choice",
+    "label": "What should the hero do?",
+    "options": [
+     "Dance",
+     "Wave hello",
+     "Jump",
+     "Fly"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "kids",
+  "task": "cards",
+  "title": "Learning cards",
+  "what": "Letters, numbers, animals — in your language.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "ctheme",
+    "type": "choice",
+    "label": "Topic",
+    "options": [
+     "Animals",
+     "Fruits",
+     "Numbers",
+     "Colors"
+    ]
+   },
+   {
+    "id": "citem",
+    "type": "choice",
+    "label": "Which card?",
+    "options": [
+     "Cat",
+     "Dog",
+     "Cow",
+     "Horse",
+     "Elephant",
+     "Lion",
+     "Rabbit",
+     "Fox",
+     "Bear",
+     "Owl"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "story",
+  "task": "comic",
+  "title": "Comic",
+  "what": "One line — 6 pictures with lines. Redo any hero or picture.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "idea",
+    "type": "text",
+    "label": "the idea in one line (or the joke/tale/poem)"
+   }
+  ]
+ },
+ {
+  "section": "story",
+  "task": "clip",
+  "title": "Short clip",
+  "what": "One line — 3–4 scenes come alive with voices.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "idea",
+    "type": "text",
+    "label": "the idea in one line (or the joke/tale/poem)"
+   }
+  ]
+ },
+ {
+  "section": "story",
+  "task": "us",
+  "title": "Cartoon about us",
+  "what": "Your photos become cartoon heroes of an adventure, with voices.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "idea",
+    "type": "text",
+    "label": "the idea in one line (or the joke/tale/poem)"
+   }
+  ]
+ },
+ {
+  "section": "story",
+  "task": "film",
+  "title": "Film from a text",
+  "what": "A joke, a tale or a poem, scene by scene.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "idea",
+    "type": "text",
+    "label": "the idea in one line (or the joke/tale/poem)"
+   }
+  ]
+ },
+ {
+  "section": "fun",
+  "task": "meme",
+  "title": "Meme",
+  "what": "Pick a situation or write your own — get a picture with a caption.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "situ",
+    "type": "choice",
+    "label": "Situation",
+    "options": [
+     "Monday",
+     "Payday",
+     "Mother-in-law visit",
+     "Diet"
+    ]
+   },
+   {
+    "id": "mtop",
+    "type": "text",
+    "label": "Top text"
+   },
+   {
+    "id": "mbottom",
+    "type": "text",
+    "label": "Bottom text"
+   }
+  ]
+ },
+ {
+  "section": "fun",
+  "task": "funcard",
+  "title": "Funny card for a friend",
+  "what": "A greeting with a friendly tease.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "tease",
+    "type": "choice",
+    "label": "Which one?",
+    "options": [
+     "Getting old",
+     "Get well, lazybones",
+     "Official grump"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "fun",
+  "task": "petking",
+  "title": "My cat is a king",
+  "what": "Your pet as a king, a knight or on an old painting.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "prole",
+    "type": "choice",
+    "label": "Who will your pet be?",
+    "options": [
+     "King",
+     "Knight",
+     "Old painting",
+     "Astronaut"
+    ]
+   },
+   {
+    "id": "pname",
+    "type": "text",
+    "label": "Pet’s name (optional)"
+   }
+  ]
+ },
+ {
+  "section": "fun",
+  "task": "moon",
+  "title": "Me on the Moon",
+  "what": "You or a friend in a funny place.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "mplace",
+    "type": "choice",
+    "label": "Where to?",
+    "options": [
+     "The Moon",
+     "Paris",
+     "Dinosaurs",
+     "Red carpet",
+     "Pyramids",
+     "Tropical island"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "fun",
+  "task": "react",
+  "title": "Reaction GIF",
+  "what": "A short moving answer for the chat.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "rphrase",
+    "type": "choice",
+    "label": "Reaction",
+    "options": [
+     "Wow!",
+     "LOL",
+     "Facepalm",
+     "Thank you!",
+     "OK!",
+     "No way!"
+    ]
+   },
+   {
+    "id": "rchar",
+    "type": "choice",
+    "label": "Who?",
+    "options": [
+     "Cat",
+     "Dog",
+     "Hamster",
+     "Owl"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "biz",
+  "task": "menu",
+  "title": "Menu",
+  "what": "Your dishes and prices, for printing and the screen.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "bname",
+    "type": "text",
+    "label": "Name of your place"
+   },
+   {
+    "id": "bitems",
+    "type": "text",
+    "label": "Dishes and prices, one per line"
+   },
+   {
+    "id": "bstyle",
+    "type": "choice",
+    "label": "Style",
+    "options": [
+     "Chalkboard",
+     "Bright",
+     "Minimal"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "biz",
+  "task": "offer",
+  "title": "Today’s offer",
+  "what": "“1+1 on coffee”, “20% off till Sunday”.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "ohead",
+    "type": "text",
+    "label": "Main text"
+   },
+   {
+    "id": "osub",
+    "type": "text",
+    "label": "Small text (optional)"
+   }
+  ]
+ },
+ {
+  "section": "biz",
+  "task": "post",
+  "title": "Social post",
+  "what": "“We are open”, “New!”.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "ohead",
+    "type": "text",
+    "label": "Main text"
+   }
+  ]
+ },
+ {
+  "section": "biz",
+  "task": "product",
+  "title": "Product photo",
+  "what": "Phone photo → clean shop picture.",
+  "photo": true,
+  "questions": [
+   {
+    "id": "pbg",
+    "type": "choice",
+    "label": "Background",
+    "options": [
+     "White studio",
+     "Marble",
+     "Wood and plants",
+     "Lifestyle outdoors"
+    ]
+   }
+  ]
+ },
+ {
+  "section": "biz",
+  "task": "sign",
+  "title": "Sign and business card",
+  "what": "Several designs from your name.",
+  "photo": false,
+  "questions": [
+   {
+    "id": "skind",
+    "type": "choice",
+    "label": "What?",
+    "options": [
+     "Sign",
+     "Business card"
+    ]
+   },
+   {
+    "id": "bname",
+    "type": "text",
+    "label": "Name of your place"
+   },
+   {
+    "id": "btag",
+    "type": "text",
+    "label": "Short line (optional)"
+   },
+   {
+    "id": "bphone",
+    "type": "text",
+    "label": "Phone or address (for the card)"
+   },
+   {
+    "id": "sstyle",
+    "type": "choice",
+    "label": "Style",
+    "options": [
+     "Modern",
+     "Classic",
+     "Bright",
+     "Natural"
+    ]
+   }
+  ]
+ }
+]
